@@ -11,7 +11,7 @@ func set_hp(current_hp: int, max_hp: int) -> void:
 	hp_label.text = "生命: %d / %d" % [current_hp, max_hp]
 
 func set_gold(gold: int) -> void:
-	gold_label.text = "金币: %d" % gold
+	gold_label.text = "灵石: %d" % gold
 
 func set_wave_time(wave: int, time_left: float) -> void:
 	wave_label.text = "第 %d 轮  剩余: %02d" % [wave, max(0, int(ceil(time_left)))]
@@ -23,7 +23,10 @@ func set_artifacts(artifacts: Array) -> void:
 
 	var names: Array[String] = []
 	for artifact in artifacts:
-		names.append(artifact.get("display_name", "未知法宝"))
+		names.append("%s Lv%d" % [
+			artifact.get("display_name", "未知法宝"),
+			int(artifact.get("level", 1))
+		])
 	artifact_label.text = "法宝: " + "、".join(names)
 
 func set_synergies(active_synergies: Dictionary, tag_counts: Dictionary) -> void:

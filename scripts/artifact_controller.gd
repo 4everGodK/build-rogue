@@ -16,11 +16,10 @@ func configure(player: Player, container: Node2D, synergies: SynergyManager) -> 
 
 func set_artifacts(next_artifacts: Array) -> void:
 	artifacts = next_artifacts.duplicate(true)
-	while cooldowns.size() < artifacts.size():
-		var artifact: Dictionary = artifacts[cooldowns.size()]
-		cooldowns.append(randf_range(0.05, artifact.get("cooldown", 1.0)))
-	if cooldowns.size() > artifacts.size():
-		cooldowns.resize(artifacts.size())
+	cooldowns.clear()
+	for artifact in artifacts:
+		var typed_artifact: Dictionary = artifact
+		cooldowns.append(randf_range(0.05, _effective_cooldown(typed_artifact)))
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(owner_player) or projectile_scene == null:
@@ -31,7 +30,7 @@ func _process(delta: float) -> void:
 		cooldowns[index] -= delta
 		if cooldowns[index] <= 0.0:
 			_try_attack(artifact)
-			cooldowns[index] = artifact.get("cooldown", 1.0)
+			cooldowns[index] = _effective_cooldown(artifact)
 
 func _try_attack(artifact: Dictionary) -> void:
 	var target: Enemy = _find_nearest_enemy()
@@ -40,7 +39,7 @@ func _try_attack(artifact: Dictionary) -> void:
 
 	# Attack behavior is selected by data, so Player stays unaware of artifact types.
 	var attack_type: String = artifact.get("attack_type", "projectile")
-	var damage: float = float(artifact.get("damage", 1.0))
+	var damage: float = _effective_damage(artifact)
 	if attack_type == "projectile":
 		damage *= synergy_manager.projectile_damage_multiplier()
 
@@ -54,6 +53,15 @@ func _try_attack(artifact: Dictionary) -> void:
 	var projectile: Projectile = projectile_scene.instantiate() as Projectile
 	projectile_container.add_child(projectile)
 	projectile.setup(owner_player.global_position, target.global_position, damage, options)
+
+func _effective_damage(artifact: Dictionary) -> float:
+	var level: int = int(artifact.get("level", 1))
+	return float(artifact.get("damage", 1.0)) * (1.0 + 0.5 * float(level - 1))
+
+func _effective_cooldown(artifact: Dictionary) -> float:
+	var level: int = int(artifact.get("level", 1))
+	var cooldown_multiplier: float = max(0.55, 1.0 - 0.07 * float(level - 1))
+	return float(artifact.get("cooldown", 1.0)) * cooldown_multiplier
 
 func _find_nearest_enemy() -> Enemy:
 	var nearest: Enemy = null

@@ -6,6 +6,8 @@ signal gold_changed(gold: int)
 signal artifacts_changed(artifacts: Array)
 signal died
 
+const FUSION_COUNT: int = 3
+
 @export var move_speed: float = 220.0
 @export var max_hp: int = 100
 @export var invincible_duration: float = 0.7
@@ -69,6 +71,38 @@ func spend_gold(amount: int) -> bool:
 	return true
 
 func add_artifact(artifact: Dictionary) -> void:
-	artifact_inventory.append(artifact.duplicate(true))
+	var new_artifact: Dictionary = artifact.duplicate(true)
+	if not new_artifact.has("level"):
+		new_artifact["level"] = 1
+	artifact_inventory.append(new_artifact)
+	var artifact_id: String = str(new_artifact.get("id", ""))
+	_resolve_fusions(artifact_id, int(new_artifact.get("level", 1)))
+	_sync_artifacts()
+
+func _resolve_fusions(artifact_id: String, starting_level: int) -> void:
+	var current_level: int = starting_level
+	var fused: bool = true
+	while fused:
+		fused = false
+		var matching_indices: Array[int] = _find_matching_artifact_indices(artifact_id, current_level)
+		if matching_indices.size() >= FUSION_COUNT:
+			for remove_index in range(FUSION_COUNT - 1, -1, -1):
+				artifact_inventory.remove_at(matching_indices[remove_index])
+
+			var upgraded_artifact: Dictionary = ArtifactCatalog.get_artifact(artifact_id)
+			upgraded_artifact["level"] = current_level + 1
+			artifact_inventory.append(upgraded_artifact)
+			current_level += 1
+			fused = true
+
+func _find_matching_artifact_indices(artifact_id: String, level: int) -> Array[int]:
+	var indices: Array[int] = []
+	for index in artifact_inventory.size():
+		var artifact: Dictionary = artifact_inventory[index]
+		if artifact.get("id", "") == artifact_id and int(artifact.get("level", 1)) == level:
+			indices.append(index)
+	return indices
+
+func _sync_artifacts() -> void:
 	artifacts_changed.emit(artifact_inventory)
 	artifact_controller.set_artifacts(artifact_inventory)

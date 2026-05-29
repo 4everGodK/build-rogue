@@ -19,13 +19,13 @@ func _ready() -> void:
 
 func open_shop(wave: int, offers: Array[Dictionary], player_gold: int, reroll_cost: int) -> void:
 	current_offers = offers.duplicate(true)
-	title_label.text = "第 %d 轮结束 - 商店  金币:%d" % [wave, player_gold]
-	reroll_button.text = "刷新 -%d" % reroll_cost
+	title_label.text = "第 %d 轮结束 - 商店  灵石:%d" % [wave, player_gold]
+	reroll_button.text = "刷新 -%d 灵石" % reroll_cost
 	_render_offers(player_gold)
 	show()
 
 func refresh_gold(player_gold: int, reroll_cost: int) -> void:
-	title_label.text = title_label.text.split("  金币:")[0] + ("  金币:%d" % player_gold)
+	title_label.text = title_label.text.split("  灵石:")[0] + ("  灵石:%d" % player_gold)
 	reroll_button.disabled = player_gold < reroll_cost
 	_render_offers(player_gold)
 
@@ -45,7 +45,7 @@ func _make_offer_button(artifact: Dictionary, player_gold: int) -> Button:
 	var price: int = offer.get("price", 0)
 	var tags_array: Array = offer.get("tags", [])
 	var tags: String = " / ".join(tags_array)
-	button.text = "%s  $%d\n%s\n标签: %s" % [
+	button.text = "%s  %d 灵石\n%s\n标签: %s" % [
 		offer.get("display_name", "未知法宝"),
 		price,
 		offer.get("description", ""),
