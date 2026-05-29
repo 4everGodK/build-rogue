@@ -1,0 +1,22 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/artifact_controller.gd" id="2_artifact"]
+[ext_resource type="PackedScene" path="res://scenes/Projectile.tscn" id="3_projectile"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 13.0
+
+[node name="Player" type="CharacterBody2D" groups=["player"]]
+script = ExtResource("1_player")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.25, 0.85, 0.95, 1)
+polygon = PackedVector2Array(0, -16, 14, 12, -14, 12)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_player")
+
+[node name="ArtifactController" type="Node" parent="."]
+script = ExtResource("2_artifact")
+projectile_scene = ExtResource("3_projectile")

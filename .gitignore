@@ -1,0 +1,21 @@
+# Godot 4+ editor/cache files
+.godot/
+
+# Platform export/build output
+/android/
+/builds/
+/exports/
+*.apk
+*.aab
+*.exe
+*.pck
+*.zip
+
+# Export presets can contain credentials or local machine paths.
+export_presets.cfg
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
