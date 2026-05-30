@@ -7,6 +7,7 @@ signal artifacts_changed(artifacts: Array)
 signal died
 
 const FUSION_COUNT: int = 3
+const MAX_ARTIFACT_LEVEL: int = 3
 
 @export var move_speed: float = 220.0
 @export var max_hp: int = 100
@@ -84,6 +85,8 @@ func _resolve_fusions(artifact_id: String, starting_level: int) -> void:
 	var fused: bool = true
 	while fused:
 		fused = false
+		if current_level >= MAX_ARTIFACT_LEVEL:
+			return
 		var matching_indices: Array[int] = _find_matching_artifact_indices(artifact_id, current_level)
 		if matching_indices.size() >= FUSION_COUNT:
 			for remove_index in range(FUSION_COUNT - 1, -1, -1):

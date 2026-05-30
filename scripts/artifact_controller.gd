@@ -55,13 +55,13 @@ func _try_attack(artifact: Dictionary) -> void:
 	projectile.setup(owner_player.global_position, target.global_position, damage, options)
 
 func _effective_damage(artifact: Dictionary) -> float:
-	var level: int = int(artifact.get("level", 1))
-	return float(artifact.get("damage", 1.0)) * (1.0 + 0.5 * float(level - 1))
+	# Level-specific effects are intentionally not active yet.
+	# Keep this hook so later upgrades can branch by artifact id and level.
+	return float(artifact.get("damage", 1.0))
 
 func _effective_cooldown(artifact: Dictionary) -> float:
-	var level: int = int(artifact.get("level", 1))
-	var cooldown_multiplier: float = max(0.55, 1.0 - 0.07 * float(level - 1))
-	return float(artifact.get("cooldown", 1.0)) * cooldown_multiplier
+	# Level-specific cooldown changes should be added here when that system is designed.
+	return float(artifact.get("cooldown", 1.0))
 
 func _find_nearest_enemy() -> Enemy:
 	var nearest: Enemy = null

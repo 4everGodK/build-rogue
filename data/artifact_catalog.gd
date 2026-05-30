@@ -43,7 +43,9 @@ static func all_ids() -> Array:
 	return ARTIFACTS.keys()
 
 static func get_artifact(id: String) -> Dictionary:
-	return ARTIFACTS.get(id, {}).duplicate(true)
+	var artifact: Dictionary = ARTIFACTS.get(id, {}).duplicate(true)
+	artifact["level"] = 1
+	return artifact
 
 static func random_offer(count: int = 3) -> Array[Dictionary]:
 	var ids: Array = all_ids()
