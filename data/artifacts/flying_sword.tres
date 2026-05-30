@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "flying_sword"
+display_name = "飞剑"
+description = "自动索敌斩击最近敌人"
+attribute_tags = Array[String](["金"])
+type_tags = Array[String](["近战"])
+attack_description = "自动索敌斩击最近敌人"
+attack_type = "melee"
+base_damage = 10.0
+base_cooldown = 0.75
+implementation_note = "原型实现：自动索敌并发射短程占位攻击。"

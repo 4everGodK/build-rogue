@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "long_spear"
+display_name = "长枪"
+description = "向前长距离穿刺"
+attribute_tags = Array[String](["风"])
+type_tags = Array[String](["近战"])
+attack_description = "向前长距离穿刺"
+attack_type = "melee"
+base_damage = 12.0
+base_cooldown = 1.05
+implementation_note = "原型实现：自动索敌并发射长枪占位攻击。"

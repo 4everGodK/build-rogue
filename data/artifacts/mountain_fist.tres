@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "mountain_fist"
+display_name = "崩山拳"
+description = "巨大拳头砸地并产生冲击波"
+attribute_tags = Array[String](["土"])
+type_tags = Array[String](["体修", "区域"])
+attack_description = "巨大拳头砸地并产生冲击波"
+attack_type = "body_strike"
+base_damage = 18.0
+base_cooldown = 1.55
+implementation_note = "原型实现：目标点范围伤害。"

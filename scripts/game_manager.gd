@@ -49,8 +49,8 @@ func _initialize() -> void:
 	game_ui.set_gold(player.gold)
 	game_ui.set_artifacts(player.artifact_inventory)
 
-	# Start with one sword so the prototype immediately demonstrates auto combat.
-	player.add_artifact(ArtifactCatalog.get_artifact("gold_sword"))
+	# Start with one artifact so the prototype immediately demonstrates auto combat.
+	player.add_artifact(ArtifactCatalog.get_artifact("flying_sword"))
 	synergy_manager.recalculate(player.artifact_inventory)
 	_start_battle()
 

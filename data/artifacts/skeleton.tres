@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "skeleton"
+display_name = "骷髅"
+description = "持续追击敌人"
+attribute_tags = Array[String](["暗"])
+type_tags = Array[String](["召唤"])
+attack_description = "持续追击敌人"
+attack_type = "summon"
+base_damage = 9.0
+base_cooldown = 1.0
+implementation_note = "原型实现：召唤物暂以自动索敌攻击近似。"

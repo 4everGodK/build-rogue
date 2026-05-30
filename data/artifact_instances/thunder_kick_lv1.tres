@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ArtifactInstance" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_instance.gd" id="1"]
+[ext_resource type="Resource" path="res://data/artifacts/thunder_kick.tres" id="2"]
+[resource]
+script = ExtResource("1")
+data = ExtResource("2")
+level = 1
+star = 1

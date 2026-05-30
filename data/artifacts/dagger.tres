@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "dagger"
+display_name = "匕首"
+description = "高速连续攻击"
+attribute_tags = Array[String](["毒"])
+type_tags = Array[String](["近战"])
+attack_description = "高速连续攻击"
+attack_type = "melee"
+base_damage = 5.0
+base_cooldown = 0.35
+implementation_note = "原型实现：高频自动索敌占位攻击。"
