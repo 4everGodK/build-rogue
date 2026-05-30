@@ -34,6 +34,7 @@ func _initialize() -> void:
 	shop_panel = get_node(shop_path)
 	synergy_manager = get_node(synergy_manager_path)
 
+	player.configure_synergy_manager(synergy_manager)
 	player.artifact_controller.configure(player, projectile_container, synergy_manager)
 	player.hp_changed.connect(game_ui.set_hp)
 	player.gold_changed.connect(_on_gold_changed)

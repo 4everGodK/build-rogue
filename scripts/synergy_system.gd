@@ -23,13 +23,15 @@ static func calculate(artifact_instances: Array) -> Dictionary:
 		for tag in instance.data.get_valid_type_tags():
 			type_counts[tag] = int(type_counts.get(tag, 0)) + 1
 
+	var attribute_modifier: AttributeSynergyModifier = AttributeSynergyModifier.new().setup(attribute_counts)
 	var type_modifier: TypeSynergyModifier = TypeSynergyModifier.new().setup(type_counts)
 	return {
 		"unique_artifact_count": unique_artifacts.size(),
 		"attribute_counts": attribute_counts,
 		"type_counts": type_counts,
-		"active_attribute_synergies": _build_active_synergies(attribute_counts, "属性"),
+		"active_attribute_synergies": attribute_modifier.get_active_entries().values(),
 		"active_type_synergies": type_modifier.get_active_entries().values(),
+		"attribute_modifier": attribute_modifier,
 		"type_modifier": type_modifier
 	}
 
@@ -42,20 +44,6 @@ static func describe(result: Dictionary) -> String:
 	lines.append("激活属性羁绊: %s" % _format_active(result.get("active_attribute_synergies", [])))
 	lines.append("激活类型羁绊: %s" % _format_active(result.get("active_type_synergies", [])))
 	return "\n".join(lines)
-
-static func _build_active_synergies(counts: Dictionary, category: String) -> Array[Dictionary]:
-	var active: Array[Dictionary] = []
-	for tag in counts.keys():
-		var count: int = int(counts[tag])
-		if count >= 2:
-			active.append({
-				"category": category,
-				"tag": tag,
-				"threshold": 2,
-				"count": count,
-				"display_name": "%s 2" % tag
-			})
-	return active
 
 static func _format_counts(counts: Dictionary) -> String:
 	if counts.is_empty():

@@ -8,6 +8,8 @@ var active_synergies: Dictionary = {}
 var attribute_counts: Dictionary = {}
 var type_counts: Dictionary = {}
 var type_modifier: TypeSynergyModifier = TypeSynergyModifier.new()
+var attribute_modifier: AttributeSynergyModifier = AttributeSynergyModifier.new()
+var wood_growth_timer: float = 0.0
 
 func recalculate(artifacts: Array) -> void:
 	tag_counts.clear()
@@ -29,10 +31,10 @@ func recalculate(artifacts: Array) -> void:
 			elif ArtifactTag.is_type_tag(tag):
 				type_counts[tag] = int(type_counts.get(tag, 0)) + 1
 
-	for tag in attribute_counts.keys():
-		var count: int = int(attribute_counts[tag])
-		if count >= 2:
-			active_synergies["%s 2" % tag] = {"category": "属性", "tag": tag, "count": count, "threshold": 2}
+	attribute_modifier.setup(attribute_counts)
+	var active_attribute_entries: Dictionary = attribute_modifier.get_active_entries()
+	for name in active_attribute_entries.keys():
+		active_synergies[name] = active_attribute_entries[name]
 
 	type_modifier.setup(type_counts)
 	var active_type_entries: Dictionary = type_modifier.get_active_entries()
@@ -52,6 +54,19 @@ func chain_bonus() -> int:
 
 func get_type_modifier() -> TypeSynergyModifier:
 	return type_modifier
+
+func get_attribute_modifier() -> AttributeSynergyModifier:
+	return attribute_modifier
+
+func _process(delta: float) -> void:
+	if attribute_modifier.get_tier("木") <= 0:
+		wood_growth_timer = 0.0
+		return
+
+	wood_growth_timer += delta
+	if wood_growth_timer >= 30.0:
+		wood_growth_timer -= 30.0
+		attribute_modifier.add_growth_stack()
 
 func describe_active() -> Array[String]:
 	var lines: Array[String] = []

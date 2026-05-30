@@ -17,6 +17,9 @@ var hp: int = max_hp
 var gold: int = 10
 var artifact_inventory: Array[Dictionary] = []
 var invincible_time: float = 0.0
+var shield: float = 0.0
+var earth_shield_timer: float = 0.0
+var synergy_manager: SynergyManager
 
 @onready var visual: Polygon2D = $Visual
 @onready var artifact_controller: ArtifactController = $ArtifactController
@@ -37,6 +40,11 @@ func _physics_process(delta: float) -> void:
 	else:
 		visual.modulate = Color.WHITE
 
+	_process_attribute_recovery(delta)
+
+func configure_synergy_manager(manager: SynergyManager) -> void:
+	synergy_manager = manager
+
 func _read_move_input() -> Vector2:
 	var x: float = 0.0
 	var y: float = 0.0
@@ -54,7 +62,18 @@ func take_damage(amount: int) -> void:
 	if invincible_time > 0.0:
 		return
 
-	hp = max(0, hp - amount)
+	var final_damage: float = float(amount)
+	if synergy_manager != null:
+		var attribute_modifier: AttributeSynergyModifier = synergy_manager.get_attribute_modifier()
+		final_damage *= attribute_modifier.earth_damage_taken_multiplier()
+		if attribute_modifier.earth_counter_enabled():
+			_counter_nearby_enemies()
+
+	var shield_damage: float = min(shield, final_damage)
+	shield -= shield_damage
+	final_damage -= shield_damage
+
+	hp = max(0, hp - int(ceil(final_damage)))
 	invincible_time = invincible_duration
 	hp_changed.emit(hp, max_hp)
 	if hp <= 0:
@@ -63,6 +82,33 @@ func take_damage(amount: int) -> void:
 func add_gold(amount: int) -> void:
 	gold += amount
 	gold_changed.emit(gold)
+
+func heal(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	var missing_hp: float = float(max_hp - hp)
+	var applied_heal: float = min(missing_hp, amount)
+	var old_hp: int = hp
+	var old_shield: float = shield
+	hp = min(max_hp, hp + int(floor(applied_heal)))
+	var overflow: float = amount - applied_heal
+	if synergy_manager != null and overflow > 0.0 and synergy_manager.get_attribute_modifier().water_overheal_to_shield():
+		add_shield(overflow)
+	if hp != old_hp or not is_equal_approx(shield, old_shield):
+		hp_changed.emit(hp, max_hp)
+
+func add_shield(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	shield = min(float(max_hp) * 0.6, shield + amount)
+
+func get_hp_ratio() -> float:
+	return float(hp) / float(max_hp)
+
+func get_attribute_modifier() -> AttributeSynergyModifier:
+	if synergy_manager == null:
+		return AttributeSynergyModifier.new()
+	return synergy_manager.get_attribute_modifier()
 
 func spend_gold(amount: int) -> bool:
 	if gold < amount:
@@ -109,3 +155,25 @@ func _find_matching_artifact_indices(artifact_id: String, level: int) -> Array[i
 func _sync_artifacts() -> void:
 	artifacts_changed.emit(artifact_inventory)
 	artifact_controller.set_artifacts(artifact_inventory)
+
+func _process_attribute_recovery(delta: float) -> void:
+	if synergy_manager == null:
+		return
+
+	var modifier: AttributeSynergyModifier = synergy_manager.get_attribute_modifier()
+	heal(modifier.water_regen_per_second() * delta)
+
+	var shield_amount: float = modifier.earth_periodic_shield_amount(max_hp)
+	if shield_amount > 0.0:
+		earth_shield_timer += delta
+		if earth_shield_timer >= 8.0:
+			earth_shield_timer = 0.0
+			add_shield(shield_amount)
+	else:
+		earth_shield_timer = 0.0
+
+func _counter_nearby_enemies() -> void:
+	for body in get_tree().get_nodes_in_group("enemies"):
+		if body is Enemy and global_position.distance_to(body.global_position) <= 90.0:
+			var enemy: Enemy = body
+			enemy.take_damage(8.0)
