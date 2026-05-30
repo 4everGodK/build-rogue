@@ -1,8 +1,6 @@
 extends RefCounted
 class_name SynergySystem
 
-const DEFAULT_THRESHOLD: int = 2
-
 static func calculate(artifact_instances: Array) -> Dictionary:
 	var unique_artifacts: Dictionary = {}
 	var attribute_counts: Dictionary = {}
@@ -25,12 +23,14 @@ static func calculate(artifact_instances: Array) -> Dictionary:
 		for tag in instance.data.get_valid_type_tags():
 			type_counts[tag] = int(type_counts.get(tag, 0)) + 1
 
+	var type_modifier: TypeSynergyModifier = TypeSynergyModifier.new().setup(type_counts)
 	return {
 		"unique_artifact_count": unique_artifacts.size(),
 		"attribute_counts": attribute_counts,
 		"type_counts": type_counts,
 		"active_attribute_synergies": _build_active_synergies(attribute_counts, "属性"),
-		"active_type_synergies": _build_active_synergies(type_counts, "类型")
+		"active_type_synergies": type_modifier.get_active_entries().values(),
+		"type_modifier": type_modifier
 	}
 
 static func describe(result: Dictionary) -> String:
@@ -47,13 +47,13 @@ static func _build_active_synergies(counts: Dictionary, category: String) -> Arr
 	var active: Array[Dictionary] = []
 	for tag in counts.keys():
 		var count: int = int(counts[tag])
-		if count >= DEFAULT_THRESHOLD:
+		if count >= 2:
 			active.append({
 				"category": category,
 				"tag": tag,
-				"threshold": DEFAULT_THRESHOLD,
+				"threshold": 2,
 				"count": count,
-				"display_name": "%s %d" % [tag, DEFAULT_THRESHOLD]
+				"display_name": "%s 2" % tag
 			})
 	return active
 
@@ -74,6 +74,6 @@ static func _format_active(active_synergies: Array) -> String:
 		parts.append("%s(%d/%d)" % [
 			synergy_data.get("display_name", ""),
 			int(synergy_data.get("count", 0)),
-			int(synergy_data.get("threshold", DEFAULT_THRESHOLD))
+			int(synergy_data.get("threshold", synergy_data.get("tier", 2)))
 		])
 	return "、".join(parts)
