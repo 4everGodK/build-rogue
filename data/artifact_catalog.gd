@@ -2,7 +2,7 @@ extends RefCounted
 class_name ArtifactCatalog
 
 const ARTIFACTS := {
-	"flying_sword": {"id": "flying_sword", "display_name": "飞剑", "description": "自动索敌斩击最近敌人", "tags": ["金", "近战"], "attack_type": "melee", "damage": 10.0, "cooldown": 0.75, "level": 1, "star": 1, "price": 6},
+	"flying_sword": {"id": "flying_sword", "display_name": "飞剑", "description": "自动索敌斩击最近敌人", "tags": ["金", "发射物"], "attack_type": "projectile", "damage": 10.0, "cooldown": 0.75, "level": 1, "star": 1, "price": 6},
 	"long_spear": {"id": "long_spear", "display_name": "长枪", "description": "向前长距离穿刺", "tags": ["风", "近战"], "attack_type": "melee", "damage": 12.0, "cooldown": 1.05, "level": 1, "star": 1, "price": 6},
 	"dagger": {"id": "dagger", "display_name": "匕首", "description": "高速连续攻击", "tags": ["毒", "近战"], "attack_type": "melee", "damage": 5.0, "cooldown": 0.35, "level": 1, "star": 1, "price": 5},
 	"hammer": {"id": "hammer", "display_name": "锤子", "description": "低频高伤范围震荡", "tags": ["土", "近战", "区域"], "attack_type": "area", "damage": 18.0, "cooldown": 1.6, "level": 1, "star": 1, "price": 7},

@@ -9,13 +9,16 @@ class_name GameManager
 @export var projectile_container_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
+@export var initial_artifact_panel_path: NodePath
 @export var synergy_manager_path: NodePath
+@export var initial_artifact_ids: Array[String] = ["flying_sword", "moon_wheel", "lantern"]
 
 var player: Player
 var spawner: EnemySpawner
 var projectile_container: Node2D
 var game_ui: GameUI
 var shop_panel: ShopPanel
+var initial_artifact_panel: InitialArtifactPanel
 var synergy_manager: SynergyManager
 
 var wave: int = 1
@@ -32,6 +35,7 @@ func _initialize() -> void:
 	projectile_container = get_node(projectile_container_path)
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
+	initial_artifact_panel = get_node(initial_artifact_panel_path)
 	synergy_manager = get_node(synergy_manager_path)
 
 	player.configure_synergy_manager(synergy_manager)
@@ -45,15 +49,14 @@ func _initialize() -> void:
 	shop_panel.buy_requested.connect(_on_shop_buy_requested)
 	shop_panel.reroll_requested.connect(_on_shop_reroll_requested)
 	shop_panel.continue_requested.connect(_start_next_wave)
+	initial_artifact_panel.artifact_selected.connect(_on_initial_artifact_selected)
 
 	game_ui.set_hp(player.hp, player.max_hp)
 	game_ui.set_gold(player.gold)
 	game_ui.set_artifacts(player.artifact_inventory)
 
-	# Start with one artifact so the prototype immediately demonstrates auto combat.
-	player.add_artifact(ArtifactCatalog.get_artifact("flying_sword"))
 	synergy_manager.recalculate(player.artifact_inventory)
-	_start_battle()
+	_open_initial_artifact_selection()
 
 func _process(delta: float) -> void:
 	if not in_battle:
@@ -82,6 +85,17 @@ func _end_battle() -> void:
 	spawner.stop_battle()
 	_clear_battlefield()
 	shop_panel.open_shop(wave, ArtifactCatalog.random_offer(3), player.gold, reroll_cost)
+
+func _open_initial_artifact_selection() -> void:
+	var offers: Array[Dictionary] = []
+	for id in initial_artifact_ids:
+		offers.append(ArtifactCatalog.get_artifact(id))
+	initial_artifact_panel.open_choices(offers)
+
+func _on_initial_artifact_selected(artifact: Dictionary) -> void:
+	initial_artifact_panel.close_choices()
+	player.add_artifact(artifact)
+	_start_battle()
 
 func _start_next_wave() -> void:
 	wave += 1
