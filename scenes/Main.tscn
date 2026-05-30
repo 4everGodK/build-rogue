@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="2_enemy"]
@@ -7,6 +7,10 @@
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="5_game_manager"]
 [ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="6_spawner"]
 [ext_resource type="Script" path="res://scripts/synergy_manager.gd" id="7_synergy"]
+[ext_resource type="Script" path="res://scripts/artifact_manager.gd" id="8_artifact_manager"]
+[ext_resource type="Resource" path="res://data/artifact_instances/gold_sword_lv1.tres" id="9_gold_instance"]
+[ext_resource type="Resource" path="res://data/artifact_instances/fire_orb_lv1.tres" id="10_fire_instance"]
+[ext_resource type="Resource" path="res://data/artifact_instances/thunder_seal_lv1.tres" id="11_thunder_instance"]
 
 [node name="Main" type="Node2D"]
 
@@ -25,6 +29,11 @@ synergy_manager_path = NodePath("../SynergyManager")
 
 [node name="SynergyManager" type="Node" parent="."]
 script = ExtResource("7_synergy")
+
+[node name="ArtifactManager" type="Node" parent="."]
+script = ExtResource("8_artifact_manager")
+held_artifacts = Array[Resource]([ExtResource("9_gold_instance"), ExtResource("10_fire_instance"), ExtResource("11_thunder_instance")])
+print_debug_on_update = false
 
 [node name="ProjectileContainer" type="Node2D" parent="."]
 

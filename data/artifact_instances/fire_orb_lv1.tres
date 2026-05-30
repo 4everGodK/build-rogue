@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ArtifactInstance" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_instance.gd" id="1_artifact_instance"]
+[ext_resource type="Resource" path="res://data/artifacts/fire_orb.tres" id="2_fire_orb"]
+
+[resource]
+script = ExtResource("1_artifact_instance")
+data = ExtResource("2_fire_orb")
+level = 1
+star = 1
