@@ -135,6 +135,15 @@ func orbit_hit_count() -> int:
 		count *= 2
 	return count
 
+func orbit_object_count() -> int:
+	return 2 if get_tier("环绕") >= 2 else 1
+
+func orbit_ring_count() -> int:
+	return 2 if get_tier("环绕") >= 6 else 1
+
+func orbit_speed_multiplier() -> float:
+	return 1.5 if get_tier("环绕") >= 4 else 1.0
+
 func orbit_cooldown_multiplier() -> float:
 	return 0.67 if get_tier("环绕") >= 4 else 1.0
 

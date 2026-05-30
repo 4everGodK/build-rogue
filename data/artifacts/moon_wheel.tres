@@ -11,4 +11,5 @@ attack_description = "高速旋转切割"
 attack_type = "orbit"
 base_damage = 7.0
 base_cooldown = 0.55
-implementation_note = "原型实现：周期性自动索敌占位攻击，真实环绕待细化。"
+prototype_implemented = true
+implementation_note = "已接入真实环绕节点：高速旋转切割。"

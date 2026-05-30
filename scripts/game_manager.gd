@@ -73,6 +73,7 @@ func _start_battle() -> void:
 	in_battle = true
 	battle_time_left = battle_duration
 	shop_panel.close_shop()
+	player.artifact_controller.refresh_orbiting_artifacts()
 	spawner.start_battle(player)
 	game_ui.set_wave_time(wave, battle_time_left)
 

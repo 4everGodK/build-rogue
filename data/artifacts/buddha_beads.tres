@@ -11,4 +11,5 @@ attack_description = "持续碰撞伤害"
 attack_type = "orbit"
 base_damage = 9.0
 base_cooldown = 0.8
-implementation_note = "原型实现：周期性自动索敌占位攻击，持续碰撞待细化。"
+prototype_implemented = true
+implementation_note = "已接入真实环绕节点：按命中间隔造成持续碰撞伤害。"

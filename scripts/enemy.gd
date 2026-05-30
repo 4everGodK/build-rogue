@@ -12,13 +12,16 @@ var hp: float = max_hp
 var player: Player
 var flash_time: float = 0.0
 var poison_stacks: Array[Dictionary] = []
+var knockback_velocity: Vector2 = Vector2.ZERO
 
 @onready var visual: Polygon2D = $Visual
 
 func _physics_process(delta: float) -> void:
 	if is_instance_valid(player):
 		velocity = global_position.direction_to(player.global_position) * move_speed
+		velocity += knockback_velocity
 		move_and_slide()
+		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
 		if global_position.distance_to(player.global_position) <= 24.0:
 			player.take_damage(contact_damage)
 
@@ -51,6 +54,11 @@ func apply_poison(dps: float, duration: float, can_stack: bool) -> void:
 
 func get_hp_ratio() -> float:
 	return hp / max_hp
+
+func apply_knockback(from_position: Vector2, force: float) -> void:
+	if force <= 0.0:
+		return
+	knockback_velocity += from_position.direction_to(global_position) * force
 
 func _process_poison(delta: float) -> void:
 	if poison_stacks.is_empty():

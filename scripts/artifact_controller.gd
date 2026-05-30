@@ -2,6 +2,7 @@ extends Node
 class_name ArtifactController
 
 @export var projectile_scene: PackedScene
+@export var orbiting_artifact_scene: PackedScene
 
 var owner_player: Player
 var projectile_container: Node2D
@@ -9,6 +10,7 @@ var synergy_manager: SynergyManager
 var artifacts: Array[Dictionary] = []
 var cooldowns: Array[float] = []
 var melee_attack_counts: Dictionary = {}
+var orbit_nodes: Array[Node] = []
 
 func configure(player: Player, container: Node2D, synergies: SynergyManager) -> void:
 	owner_player = player
@@ -18,9 +20,18 @@ func configure(player: Player, container: Node2D, synergies: SynergyManager) -> 
 func set_artifacts(next_artifacts: Array) -> void:
 	artifacts = next_artifacts.duplicate(true)
 	cooldowns.clear()
+	_clear_orbit_nodes()
 	for artifact in artifacts:
 		var typed_artifact: Dictionary = artifact
 		cooldowns.append(randf_range(0.05, _effective_cooldown(typed_artifact)))
+	refresh_orbiting_artifacts()
+
+func refresh_orbiting_artifacts() -> void:
+	_clear_orbit_nodes()
+	for artifact in artifacts:
+		var typed_artifact: Dictionary = artifact
+		if str(typed_artifact.get("attack_type", "")) == "orbit":
+			_spawn_orbiting_artifacts(typed_artifact)
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(owner_player) or projectile_scene == null:
@@ -28,6 +39,8 @@ func _process(delta: float) -> void:
 
 	for index in artifacts.size():
 		var artifact: Dictionary = artifacts[index]
+		if str(artifact.get("attack_type", "")) == "orbit":
+			continue
 		cooldowns[index] -= delta
 		if cooldowns[index] <= 0.0:
 			_try_attack(artifact)
@@ -61,9 +74,6 @@ func _try_attack(artifact: Dictionary) -> void:
 		_apply_melee_attack(artifact, target.global_position, damage, modifier)
 		return
 	if attack_type == "orbit":
-		for i in modifier.orbit_hit_count():
-			_apply_area_damage(owner_player.global_position, damage, 96.0 + 18.0 * float(i), Color(0.4, 0.85, 1.0, 0.2))
-		# TODO: replace repeated pulse with real orbiting objects and rotation speed.
 		return
 	if attack_type == "summon":
 		for _summon_index in modifier.summon_count():
@@ -266,6 +276,54 @@ func _effective_cooldown(artifact: Dictionary) -> float:
 	elif attack_type == "summon":
 		cooldown *= modifier.summon_cooldown_multiplier()
 	return cooldown
+
+func _spawn_orbiting_artifacts(artifact: Dictionary) -> void:
+	if orbiting_artifact_scene == null:
+		return
+
+	var modifier: TypeSynergyModifier = synergy_manager.get_type_modifier()
+	var config: Dictionary = _orbit_config_for_artifact(str(artifact.get("id", "")))
+	var ring_count: int = modifier.orbit_ring_count()
+	var object_count: int = modifier.orbit_object_count()
+	var base_radius: float = float(config.get("radius", 86.0))
+	var base_speed: float = float(config.get("speed", 3.0)) * modifier.orbit_speed_multiplier()
+	var damage: float = _effective_damage(artifact) * synergy_manager.get_attribute_modifier().damage_multiplier(owner_player)
+	var hit_interval: float = float(config.get("hit_interval", 0.35))
+	var knockback: float = float(config.get("knockback", 0.0))
+	var clockwise: bool = bool(config.get("clockwise", true))
+	var color: Color = config.get("color", Color(0.4, 0.85, 1.0, 1.0))
+	var size: float = float(config.get("size", 8.0))
+
+	for ring_index in ring_count:
+		var radius: float = base_radius + float(ring_index) * 38.0
+		var ring_clockwise: bool = clockwise if ring_index % 2 == 0 else not clockwise
+		for object_index in object_count:
+			var start_angle: float = TAU * float(object_index) / float(object_count)
+			if ring_count > 1:
+				start_angle += float(ring_index) * PI / float(object_count)
+			var node: OrbitingArtifactNode = orbiting_artifact_scene.instantiate() as OrbitingArtifactNode
+			projectile_container.add_child(node)
+			node.configure(owner_player, start_angle, radius, base_speed, ring_clockwise, damage, hit_interval, knockback, -1.0, color, size)
+			orbit_nodes.append(node)
+
+func _clear_orbit_nodes() -> void:
+	for node in orbit_nodes:
+		if is_instance_valid(node):
+			node.queue_free()
+	orbit_nodes.clear()
+
+func _orbit_config_for_artifact(artifact_id: String) -> Dictionary:
+	match artifact_id:
+		"moon_wheel":
+			return {"radius": 78.0, "speed": 6.5, "clockwise": true, "hit_interval": 0.22, "knockback": 0.0, "color": Color(0.55, 0.9, 1.0, 1.0), "size": 7.0}
+		"flying_wheel":
+			return {"radius": 118.0, "speed": 2.2, "clockwise": true, "hit_interval": 0.45, "knockback": 60.0, "color": Color(0.95, 0.8, 0.25, 1.0), "size": 11.0}
+		"buddha_beads":
+			return {"radius": 74.0, "speed": 3.8, "clockwise": false, "hit_interval": 0.28, "knockback": 0.0, "color": Color(0.75, 0.62, 0.38, 1.0), "size": 8.0}
+		"bronze_bell":
+			return {"radius": 106.0, "speed": 1.8, "clockwise": false, "hit_interval": 0.55, "knockback": 210.0, "color": Color(0.8, 0.55, 0.25, 1.0), "size": 12.0}
+		_:
+			return {"radius": 86.0, "speed": 3.0, "clockwise": true, "hit_interval": 0.35, "knockback": 0.0, "color": Color(0.4, 0.85, 1.0, 1.0), "size": 8.0}
 
 func _find_nearest_enemy() -> Enemy:
 	var nearest: Enemy = null
