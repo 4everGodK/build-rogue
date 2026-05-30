@@ -11,7 +11,7 @@ class_name GameManager
 @export var shop_path: NodePath
 @export var initial_artifact_panel_path: NodePath
 @export var synergy_manager_path: NodePath
-@export var initial_artifact_ids: Array[String] = ["flying_sword", "moon_wheel", "lantern"]
+@export var initial_artifact_offer_count: int = 3
 
 var player: Player
 var spawner: EnemySpawner
@@ -87,10 +87,7 @@ func _end_battle() -> void:
 	shop_panel.open_shop(wave, ArtifactCatalog.random_offer(3), player.gold, reroll_cost)
 
 func _open_initial_artifact_selection() -> void:
-	var offers: Array[Dictionary] = []
-	for id in initial_artifact_ids:
-		offers.append(ArtifactCatalog.get_artifact(id))
-	initial_artifact_panel.open_choices(offers)
+	initial_artifact_panel.open_choices(ArtifactCatalog.random_offer(initial_artifact_offer_count))
 
 func _on_initial_artifact_selected(artifact: Dictionary) -> void:
 	initial_artifact_panel.close_choices()
