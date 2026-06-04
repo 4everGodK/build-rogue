@@ -1,35 +1,38 @@
 extends Node
 class_name ArtifactManager
 
-signal synergies_updated(result: Dictionary)
+const MAX_ARTIFACTS: int = 9
 
-@export var held_artifacts: Array[Resource] = []
-@export var print_debug_on_ready: bool = true
-@export var print_debug_on_update: bool = true
+var owner_player: Node2D
+var attack_container: Node
+var artifacts: Array[ArtifactInstance] = []
 
-var last_result: Dictionary = {}
+func configure(player: Node2D, container: Node) -> void:
+	owner_player = player
+	attack_container = container
+	for instance in artifacts:
+		instance.start(owner_player, attack_container)
 
-func _ready() -> void:
-	recalculate(false)
-	if print_debug_on_ready:
-		print_debug_summary()
+func add_artifact(data: ArtifactData) -> bool:
+	if data == null or artifacts.size() >= MAX_ARTIFACTS:
+		return false
+	var instance := ArtifactInstance.new(data)
+	artifacts.append(instance)
+	if is_instance_valid(owner_player) and is_instance_valid(attack_container):
+		instance.start(owner_player, attack_container)
+	return true
 
-func set_held_artifacts(next_artifacts: Array[Resource]) -> void:
-	held_artifacts = next_artifacts
-	recalculate(print_debug_on_update)
+func clear_artifacts() -> void:
+	for instance in artifacts:
+		instance.dispose()
+	artifacts.clear()
 
-func add_artifact(instance: ArtifactInstance) -> void:
-	if instance == null:
+func refresh_persistent_artifacts() -> void:
+	for instance in artifacts:
+		instance.start(owner_player, attack_container)
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(owner_player) or not is_instance_valid(attack_container):
 		return
-	held_artifacts.append(instance)
-	recalculate(print_debug_on_update)
-
-func recalculate(should_print: bool = false) -> Dictionary:
-	last_result = SynergySystem.calculate(held_artifacts)
-	synergies_updated.emit(last_result)
-	if should_print and is_inside_tree():
-		print_debug_summary()
-	return last_result
-
-func print_debug_summary() -> void:
-	print(SynergySystem.describe(last_result))
+	for instance in artifacts:
+		instance.update(delta, owner_player, attack_container)

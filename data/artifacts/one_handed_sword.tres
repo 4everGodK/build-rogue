@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "one_handed_sword"
+display_name = "单手剑"
+description = "向最近敌人方向挥出短暂剑光。"
+system_tag = "剑修"
+attribute_tag = "金"
+attack_template = "melee"
+damage = 14.0
+cooldown = 0.75
+range = 86.0
+radius = 25.0
+duration = 0.14
+visual_color = Color(0.75, 0.92, 1, 0.72)
+price = 6

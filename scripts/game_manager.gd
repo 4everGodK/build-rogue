@@ -3,6 +3,7 @@ class_name GameManager
 
 @export var battle_duration: float = 60.0
 @export var reroll_cost: int = 3
+@export var grant_all_test_artifacts: bool = true
 
 @export var player_path: NodePath
 @export var spawner_path: NodePath
@@ -10,7 +11,6 @@ class_name GameManager
 @export var ui_path: NodePath
 @export var shop_path: NodePath
 @export var initial_artifact_panel_path: NodePath
-@export var synergy_manager_path: NodePath
 @export var initial_artifact_offer_count: int = 3
 
 var player: Player
@@ -19,8 +19,6 @@ var projectile_container: Node2D
 var game_ui: GameUI
 var shop_panel: ShopPanel
 var initial_artifact_panel: InitialArtifactPanel
-var synergy_manager: SynergyManager
-
 var wave: int = 1
 var battle_time_left: float = 0.0
 var in_battle: bool = false
@@ -36,39 +34,33 @@ func _initialize() -> void:
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
 	initial_artifact_panel = get_node(initial_artifact_panel_path)
-	synergy_manager = get_node(synergy_manager_path)
-
-	player.configure_synergy_manager(synergy_manager)
-	player.artifact_controller.configure(player, projectile_container, synergy_manager)
+	player.artifact_manager.configure(player, projectile_container)
 	player.hp_changed.connect(game_ui.set_hp)
 	player.gold_changed.connect(_on_gold_changed)
-	player.artifacts_changed.connect(_on_artifacts_changed)
+	player.artifacts_changed.connect(game_ui.set_artifacts)
 	player.died.connect(_on_player_died)
-	synergy_manager.synergies_changed.connect(game_ui.set_synergies)
-
 	shop_panel.buy_requested.connect(_on_shop_buy_requested)
 	shop_panel.reroll_requested.connect(_on_shop_reroll_requested)
 	shop_panel.continue_requested.connect(_start_next_wave)
 	initial_artifact_panel.artifact_selected.connect(_on_initial_artifact_selected)
-
 	game_ui.set_hp(player.hp, player.max_hp)
 	game_ui.set_gold(player.gold)
-	game_ui.set_artifacts(player.artifact_inventory)
-
-	synergy_manager.recalculate(player.artifact_inventory)
-	_open_initial_artifact_selection()
+	if grant_all_test_artifacts:
+		for raw_id in ArtifactCatalog.all_ids():
+			player.add_artifact(ArtifactCatalog.get_artifact(str(raw_id)))
+		_start_battle()
+	else:
+		_open_initial_artifact_selection()
 
 func _process(delta: float) -> void:
 	if not in_battle:
 		return
-
 	battle_time_left -= delta
 	game_ui.set_wave_time(wave, battle_time_left)
 	if battle_time_left <= 0.0:
 		_end_battle()
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Debug helper for fast prototype testing: press T to jump to the shop.
 	if event is InputEventKey and event.pressed and event.keycode == KEY_T and in_battle:
 		_end_battle()
 
@@ -76,7 +68,7 @@ func _start_battle() -> void:
 	in_battle = true
 	battle_time_left = battle_duration
 	shop_panel.close_shop()
-	player.artifact_controller.refresh_orbiting_artifacts()
+	player.artifact_manager.refresh_persistent_artifacts()
 	spawner.start_battle(player)
 	game_ui.set_wave_time(wave, battle_time_left)
 
@@ -101,17 +93,14 @@ func _start_next_wave() -> void:
 func _clear_battlefield() -> void:
 	for body in get_tree().get_nodes_in_group("enemies"):
 		body.queue_free()
-	for projectile in projectile_container.get_children():
-		projectile.queue_free()
+	for attack in projectile_container.get_children():
+		if not attack is OrbitAttackNode and not attack is FormationAttackNode:
+			attack.queue_free()
 
-func _on_gold_changed(gold: int) -> void:
-	game_ui.set_gold(gold)
+func _on_gold_changed(value: int) -> void:
+	game_ui.set_gold(value)
 	if shop_panel.visible:
-		shop_panel.refresh_gold(gold, reroll_cost)
-
-func _on_artifacts_changed(artifacts: Array) -> void:
-	game_ui.set_artifacts(artifacts)
-	synergy_manager.recalculate(artifacts)
+		shop_panel.refresh_gold(value, reroll_cost)
 
 func _on_shop_buy_requested(artifact: Dictionary) -> void:
 	var price: int = artifact.get("price", 0)

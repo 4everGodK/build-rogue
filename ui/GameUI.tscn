@@ -18,7 +18,7 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 160.0
+offset_bottom = 180.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 10
@@ -43,7 +43,4 @@ text = "第 1 轮  剩余: 60"
 [node name="ArtifactLabel" type="Label" parent="Root/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "法宝: 无"
-
-[node name="SynergyLabel" type="Label" parent="Root/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "羁绊: 无"
+autowrap_mode = 2

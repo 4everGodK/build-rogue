@@ -1,54 +1,40 @@
-[gd_scene load_steps=13 format=3 uid="uid://dee8wnxly1wo5"]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="2_enemy"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/ShopPanel.tscn" id="4_shop"]
-[ext_resource type="Script" uid="uid://d3wqkaax5lmp7" path="res://scripts/game_manager.gd" id="5_game_manager"]
-[ext_resource type="Script" uid="uid://cch5tw017bhai" path="res://scripts/enemy_spawner.gd" id="6_spawner"]
-[ext_resource type="Script" uid="uid://fereoyk1huot" path="res://scripts/synergy_manager.gd" id="7_synergy"]
-[ext_resource type="Script" uid="uid://cnl6mxe22lqwi" path="res://scripts/artifact_manager.gd" id="8_artifact_manager"]
-[ext_resource type="Resource" path="res://data/artifact_instances/flying_sword_lv1.tres" id="9_flying_sword_instance"]
-[ext_resource type="Resource" path="res://data/artifact_instances/lantern_lv1.tres" id="10_lantern_instance"]
-[ext_resource type="Resource" path="res://data/artifact_instances/thunder_kick_lv1.tres" id="11_thunder_kick_instance"]
-[ext_resource type="PackedScene" path="res://ui/InitialArtifactPanel.tscn" id="12_initial_panel"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="5_game_manager"]
+[ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="6_spawner"]
+[ext_resource type="PackedScene" path="res://ui/InitialArtifactPanel.tscn" id="7_initial_panel"]
 
-[node name="Main" type="Node2D" unique_id=942560734]
+[node name="Main" type="Node2D"]
 
-[node name="Arena" type="Polygon2D" parent="." unique_id=634872392]
+[node name="Arena" type="Polygon2D" parent="."]
 position = Vector2(-60, -3)
 color = Color(0.08, 0.1, 0.12, 1)
 polygon = PackedVector2Array(0, 0, 1280, 0, 1280, 720, 0, 720)
 
-[node name="GameManager" type="Node" parent="." unique_id=257929974]
+[node name="GameManager" type="Node" parent="."]
 script = ExtResource("5_game_manager")
 player_path = NodePath("../Player")
 spawner_path = NodePath("../EnemySpawner")
-projectile_container_path = NodePath("../ProjectileContainer")
+projectile_container_path = NodePath("../AttackContainer")
 ui_path = NodePath("../UI")
 shop_path = NodePath("../UI/ShopPanel")
 initial_artifact_panel_path = NodePath("../UI/InitialArtifactPanel")
-synergy_manager_path = NodePath("../SynergyManager")
 
-[node name="SynergyManager" type="Node" parent="." unique_id=172449532]
-script = ExtResource("7_synergy")
+[node name="AttackContainer" type="Node2D" parent="."]
 
-[node name="ArtifactManager" type="Node" parent="." unique_id=148500689]
-script = ExtResource("8_artifact_manager")
-held_artifacts = Array[Resource]([ExtResource("9_flying_sword_instance"), ExtResource("10_lantern_instance"), ExtResource("11_thunder_kick_instance")])
-print_debug_on_update = false
-
-[node name="ProjectileContainer" type="Node2D" parent="." unique_id=823520822]
-
-[node name="Player" parent="." unique_id=959557393 instance=ExtResource("1_player")]
+[node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector2(640, 360)
 
-[node name="EnemySpawner" type="Node2D" parent="." unique_id=1092981647]
+[node name="EnemySpawner" type="Node2D" parent="."]
 script = ExtResource("6_spawner")
 enemy_scene = ExtResource("2_enemy")
 
-[node name="UI" parent="." unique_id=1819229324 instance=ExtResource("3_ui")]
+[node name="UI" parent="." instance=ExtResource("3_ui")]
 
-[node name="ShopPanel" parent="UI" unique_id=920931134 instance=ExtResource("4_shop")]
+[node name="ShopPanel" parent="UI" instance=ExtResource("4_shop")]
 
-[node name="InitialArtifactPanel" parent="UI" instance=ExtResource("12_initial_panel")]
+[node name="InitialArtifactPanel" parent="UI" instance=ExtResource("7_initial_panel")]

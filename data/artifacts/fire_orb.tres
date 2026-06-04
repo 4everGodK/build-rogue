@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "fire_orb"
+display_name = "法球"
+description = "向最近敌人发射火焰法球；已预留爆炸半径。"
+system_tag = "法修"
+attribute_tag = "火"
+attack_template = "projectile"
+damage = 13.0
+cooldown = 1.1
+range = 500.0
+radius = 10.0
+projectile_speed = 360.0
+explosion_radius = 54.0
+visual_color = Color(1, 0.32, 0.08, 1)
+price = 6

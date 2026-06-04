@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "guardian_flying_sword"
+display_name = "护体飞剑"
+description = "两柄飞剑常驻环绕玩家并造成碰撞伤害。"
+system_tag = "剑修"
+attribute_tag = "土"
+attack_template = "orbit"
+damage = 7.0
+radius = 76.0
+count = 2
+rotation_speed = 3.2
+hit_interval = 0.45
+visual_color = Color(0.82, 0.72, 0.36, 1)
+price = 7

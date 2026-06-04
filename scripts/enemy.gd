@@ -36,7 +36,7 @@ func _physics_process(delta: float) -> void:
 func setup(target_player: Player) -> void:
 	player = target_player
 
-func take_damage(amount: float) -> bool:
+func take_damage(amount: float, _source = null) -> bool:
 	hp -= amount
 	flash_time = 0.08
 	if hp <= 0.0:

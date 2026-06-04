@@ -9,7 +9,6 @@ signal continue_requested
 @onready var offer_box: VBoxContainer = $Panel/MarginContainer/VBoxContainer/OfferBox
 @onready var reroll_button: Button = $Panel/MarginContainer/VBoxContainer/ActionRow/RerollButton
 @onready var continue_button: Button = $Panel/MarginContainer/VBoxContainer/ActionRow/ContinueButton
-
 var current_offers: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -25,7 +24,6 @@ func open_shop(wave: int, offers: Array[Dictionary], player_gold: int, reroll_co
 	show()
 
 func refresh_gold(player_gold: int, reroll_cost: int) -> void:
-	title_label.text = title_label.text.split("  灵石:")[0] + ("  灵石:%d" % player_gold)
 	reroll_button.disabled = player_gold < reroll_cost
 	_render_offers(player_gold)
 
@@ -35,21 +33,18 @@ func close_shop() -> void:
 func _render_offers(player_gold: int) -> void:
 	for child in offer_box.get_children():
 		child.queue_free()
-
 	for artifact in current_offers:
 		offer_box.add_child(_make_offer_button(artifact, player_gold))
 
 func _make_offer_button(artifact: Dictionary, player_gold: int) -> Button:
 	var offer: Dictionary = artifact.duplicate(true)
-	var button: Button = Button.new()
+	var button := Button.new()
 	var price: int = offer.get("price", 0)
-	var tags_array: Array = offer.get("tags", [])
-	var tags: String = " / ".join(tags_array)
 	button.text = "%s  %d 灵石\n%s\n标签: %s" % [
 		offer.get("display_name", "未知法宝"),
 		price,
 		offer.get("description", ""),
-		tags
+		" / ".join(offer.get("tags", [])),
 	]
 	button.custom_minimum_size = Vector2(360, 86)
 	button.disabled = player_gold < price
