@@ -2,11 +2,15 @@ extends RefCounted
 class_name ArtifactInstance
 
 var data: ArtifactData
+var source_data: ArtifactData
+var star_level: int = 1
 var cooldown_remaining: float = 0.0
 var persistent_node: Node
 
-func _init(artifact_data: ArtifactData = null) -> void:
-	data = artifact_data
+func _init(artifact_data: ArtifactData = null, star: int = 1) -> void:
+	source_data = artifact_data
+	star_level = clampi(star, 1, 3)
+	data = _make_effective_data(artifact_data, star_level)
 	if data != null:
 		cooldown_remaining = randf_range(0.05, maxf(0.05, data.cooldown))
 
@@ -72,3 +76,16 @@ static func find_nearest_enemy(player: Node2D) -> Node2D:
 			nearest = enemy
 			nearest_distance_squared = distance_squared
 	return nearest
+
+func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactData:
+	if artifact_data == null:
+		return null
+	var effective := artifact_data.duplicate(true) as ArtifactData
+	match star:
+		2:
+			effective.damage *= 1.5
+			effective.cooldown *= 0.85
+		3:
+			effective.damage *= 2.2
+			effective.cooldown *= 0.7
+	return effective

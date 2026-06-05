@@ -47,6 +47,8 @@ func to_offer() -> Dictionary:
 		"id": id,
 		"display_name": display_name,
 		"description": description,
+		"system_tag": system_tag,
+		"attribute_tag": attribute_tag,
 		"tags": [system_tag, attribute_tag],
 		"attack_template": attack_template,
 		"level": 1,

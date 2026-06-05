@@ -3,8 +3,6 @@ class_name Player
 
 signal hp_changed(current_hp: int, max_hp: int)
 signal shield_changed(current_shield: float, max_shield: float)
-signal gold_changed(gold: int)
-signal artifacts_changed(artifacts: Array)
 signal died
 
 @export var move_speed: float = 220.0
@@ -12,8 +10,7 @@ signal died
 @export var invincible_duration: float = 0.7
 
 var hp: int = max_hp
-var gold: int = 10
-var artifact_inventory: Array[Dictionary] = []
+var movement_paused: bool = true
 var invincible_time: float = 0.0
 var shield: float = 0.0
 var shield_limit: float = 0.0
@@ -26,9 +23,12 @@ func _ready() -> void:
 	hp = max_hp
 	hp_changed.emit(hp, max_hp)
 	shield_changed.emit(shield, shield_limit)
-	gold_changed.emit(gold)
 
 func _physics_process(delta: float) -> void:
+	if movement_paused:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
 	velocity = _read_move_input() * move_speed
 	move_and_slide()
 	if invincible_time > 0.0:
@@ -63,10 +63,6 @@ func take_damage(amount: int) -> void:
 	if hp <= 0:
 		died.emit()
 
-func add_gold(amount: int) -> void:
-	gold += amount
-	gold_changed.emit(gold)
-
 func heal(amount: float) -> void:
 	if amount <= 0.0:
 		return
@@ -91,27 +87,13 @@ func set_artifact_cooldown_multiplier(multiplier: float) -> void:
 func get_artifact_cooldown_multiplier() -> float:
 	return artifact_cooldown_multiplier
 
-func spend_gold(amount: int) -> bool:
-	if gold < amount:
-		return false
-	gold -= amount
-	gold_changed.emit(gold)
-	return true
-
-func add_artifact(offer: Dictionary) -> void:
-	if artifact_inventory.size() >= ArtifactManager.MAX_ARTIFACTS:
-		return
-	var data := ArtifactCatalog.get_data(str(offer.get("id", "")))
-	if data == null or not artifact_manager.add_artifact(data):
-		return
-	artifact_inventory.append(data.to_offer())
-	artifacts_changed.emit(artifact_inventory)
-
-func clear_artifacts() -> void:
+func reset_combat_state() -> void:
 	artifact_manager.clear_artifacts()
-	artifact_inventory.clear()
 	shield = 0.0
 	shield_limit = 0.0
 	artifact_cooldown_multiplier = 1.0
 	shield_changed.emit(shield, shield_limit)
-	artifacts_changed.emit(artifact_inventory)
+
+func set_battle_paused(paused: bool) -> void:
+	movement_paused = paused
+	artifact_manager.set_battle_paused(paused)

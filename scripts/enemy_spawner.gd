@@ -52,6 +52,6 @@ func _random_edge_position() -> Vector2:
 		_:
 			return Vector2(-spawn_margin, randf_range(0, viewport.y))
 
-func _on_enemy_died(gold_reward: int) -> void:
-	if is_instance_valid(player):
-		player.add_gold(gold_reward)
+func _on_enemy_died(_gold_reward: int) -> void:
+	# Kept only for legacy scenes; the active loop uses WaveManager + EconomyManager.
+	pass

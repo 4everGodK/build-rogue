@@ -1,36 +1,26 @@
 extends Node
 class_name GameManager
 
-@export var battle_duration: float = 60.0
-@export var reroll_cost: int = 3
-@export var grant_test_artifacts: bool = true
-@export_enum("剑修", "法修", "体修", "阵法", "魔修") var test_system: String = "剑修"
-
 @export var player_path: NodePath
-@export var spawner_path: NodePath
-@export var projectile_container_path: NodePath
+@export var attack_container_path: NodePath
+@export var wave_manager_path: NodePath
+@export var economy_manager_path: NodePath
+@export var inventory_path: NodePath
+@export var synergy_manager_path: NodePath
+@export var shop_manager_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
-@export var initial_artifact_panel_path: NodePath
-@export var initial_artifact_offer_count: int = 3
 
 var player: Player
-var spawner: EnemySpawner
-var projectile_container: Node2D
+var attack_container: Node2D
+var wave_manager: WaveManager
+var economy_manager: EconomyManager
+var inventory: ArtifactInventory
+var synergy_manager: SynergyManager
+var shop_manager: ShopManager
 var game_ui: GameUI
 var shop_panel: ShopPanel
-var initial_artifact_panel: InitialArtifactPanel
-var wave: int = 1
-var battle_time_left: float = 0.0
-var in_battle: bool = false
-
-const TEST_SYSTEM_KEYS := {
-	KEY_1: "剑修",
-	KEY_2: "法修",
-	KEY_3: "体修",
-	KEY_4: "阵法",
-	KEY_5: "魔修",
-}
+var in_shop: bool = false
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -38,106 +28,102 @@ func _ready() -> void:
 func _initialize() -> void:
 	randomize()
 	player = get_node(player_path)
-	spawner = get_node(spawner_path)
-	projectile_container = get_node(projectile_container_path)
+	attack_container = get_node(attack_container_path)
+	wave_manager = get_node(wave_manager_path)
+	economy_manager = get_node(economy_manager_path)
+	inventory = get_node(inventory_path)
+	synergy_manager = get_node(synergy_manager_path)
+	shop_manager = get_node(shop_manager_path)
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
-	initial_artifact_panel = get_node(initial_artifact_panel_path)
-	player.artifact_manager.configure(player, projectile_container)
+
+	player.artifact_manager.configure(player, attack_container)
+	wave_manager.configure(player)
+	shop_manager.configure(economy_manager, inventory)
+
 	player.hp_changed.connect(game_ui.set_hp)
 	player.shield_changed.connect(game_ui.set_shield)
-	player.gold_changed.connect(_on_gold_changed)
-	player.artifacts_changed.connect(game_ui.set_artifacts)
 	player.died.connect(_on_player_died)
-	shop_panel.buy_requested.connect(_on_shop_buy_requested)
-	shop_panel.reroll_requested.connect(_on_shop_reroll_requested)
-	shop_panel.continue_requested.connect(_start_next_wave)
-	initial_artifact_panel.artifact_selected.connect(_on_initial_artifact_selected)
+	economy_manager.spirit_stones_changed.connect(_on_spirit_stones_changed)
+	inventory.inventory_changed.connect(_on_inventory_changed)
+	inventory.inventory_message.connect(_show_shop_message)
+	synergy_manager.synergies_changed.connect(_on_synergies_changed)
+	shop_manager.offers_changed.connect(_on_shop_offers_changed)
+	shop_manager.shop_message.connect(_show_shop_message)
+	shop_panel.buy_requested.connect(shop_manager.buy_offer)
+	shop_panel.reroll_requested.connect(shop_manager.reroll)
+	shop_panel.continue_requested.connect(_on_shop_continue_requested)
+	shop_panel.inventory_move_requested.connect(inventory.move_stack)
+	wave_manager.enemy_killed.connect(economy_manager.add_spirit_stones)
+	wave_manager.wave_started.connect(_on_wave_started)
+	wave_manager.wave_cleared.connect(_on_wave_cleared)
+
 	game_ui.set_hp(player.hp, player.max_hp)
 	game_ui.set_shield(player.shield, player.shield_limit)
-	game_ui.set_gold(player.gold)
-	if grant_test_artifacts:
-		_load_test_system(test_system)
-		_start_battle()
-	else:
-		_open_initial_artifact_selection()
-
-func _process(delta: float) -> void:
-	if not in_battle:
-		return
-	battle_time_left -= delta
-	game_ui.set_wave_time(wave, battle_time_left)
-	if battle_time_left <= 0.0:
-		_end_battle()
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not event is InputEventKey:
-		return
-	var key_event := event as InputEventKey
-	if not key_event.pressed:
-		return
-	if key_event.keycode == KEY_T and in_battle:
-		_end_battle()
-	elif TEST_SYSTEM_KEYS.has(key_event.keycode):
-		_load_test_system(str(TEST_SYSTEM_KEYS[key_event.keycode]))
+	economy_manager.reset(0)
+	_on_inventory_changed()
+	_start_battle()
 
 func _start_battle() -> void:
-	in_battle = true
-	battle_time_left = battle_duration
+	in_shop = false
 	shop_panel.close_shop()
-	player.artifact_manager.refresh_persistent_artifacts()
-	spawner.start_battle(player)
-	game_ui.set_wave_time(wave, battle_time_left)
+	player.set_battle_paused(false)
+	wave_manager.start_next_wave()
 
-func _end_battle() -> void:
-	in_battle = false
-	spawner.stop_battle()
-	_clear_battlefield()
-	shop_panel.open_shop(wave, ArtifactCatalog.random_offer(3), player.gold, reroll_cost)
+func _enter_shop(cleared_wave: int) -> void:
+	in_shop = true
+	player.set_battle_paused(true)
+	wave_manager.pause_wave(true)
+	_clear_attack_nodes()
+	shop_manager.generate_offers()
+	shop_panel.open_shop(
+		cleared_wave,
+		shop_manager.get_offer_dictionaries(),
+		economy_manager.spirit_stones,
+		inventory.battle_slots,
+		inventory.bag_slots,
+		synergy_manager.system_counts,
+		synergy_manager.attribute_counts
+	)
 
-func _open_initial_artifact_selection() -> void:
-	initial_artifact_panel.open_choices(ArtifactCatalog.random_offer(initial_artifact_offer_count))
-
-func _on_initial_artifact_selected(artifact: Dictionary) -> void:
-	initial_artifact_panel.close_choices()
-	player.add_artifact(artifact)
+func _on_shop_continue_requested() -> void:
 	_start_battle()
 
-func _start_next_wave() -> void:
-	wave += 1
-	_start_battle()
+func _on_wave_started(wave_number: int) -> void:
+	game_ui.set_wave_status(wave_number, "战斗中")
 
-func _clear_battlefield() -> void:
-	for body in get_tree().get_nodes_in_group("enemies"):
-		body.queue_free()
-	for attack in projectile_container.get_children():
-		if not attack is OrbitAttackNode and not attack is FormationAttackNode:
-			attack.queue_free()
+func _on_wave_cleared(wave_number: int) -> void:
+	game_ui.set_wave_status(wave_number, "商店阶段")
+	_enter_shop(wave_number)
 
-func _load_test_system(system_tag: String) -> void:
-	player.clear_artifacts()
-	for attack in projectile_container.get_children():
+func _on_inventory_changed() -> void:
+	player.artifact_manager.sync_from_battle_slots(inventory.battle_slots)
+	synergy_manager.recalculate(inventory.battle_slots)
+	if in_shop:
+		shop_panel.set_inventory(inventory.battle_slots, inventory.bag_slots)
+
+func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
+	if in_shop:
+		shop_panel.set_synergies(system_counts, attribute_counts)
+
+func _on_shop_offers_changed(offers: Array) -> void:
+	if in_shop and shop_panel.visible:
+		shop_panel.set_offers(offers)
+
+func _on_spirit_stones_changed(amount: int) -> void:
+	game_ui.set_spirit_stones(amount)
+	if in_shop:
+		shop_panel.set_economy(amount)
+
+func _show_shop_message(message: String) -> void:
+	if in_shop:
+		shop_panel.set_message(message)
+
+func _clear_attack_nodes() -> void:
+	for attack in attack_container.get_children():
 		attack.queue_free()
-	for id in ArtifactCatalog.ids_for_system(system_tag):
-		player.add_artifact(ArtifactCatalog.get_artifact(id))
-
-func _on_gold_changed(value: int) -> void:
-	game_ui.set_gold(value)
-	if shop_panel.visible:
-		shop_panel.refresh_gold(value, reroll_cost)
-
-func _on_shop_buy_requested(artifact: Dictionary) -> void:
-	var price: int = artifact.get("price", 0)
-	if player.spend_gold(price):
-		player.add_artifact(artifact)
-		shop_panel.refresh_gold(player.gold, reroll_cost)
-
-func _on_shop_reroll_requested() -> void:
-	if player.spend_gold(reroll_cost):
-		shop_panel.open_shop(wave, ArtifactCatalog.random_offer(3), player.gold, reroll_cost)
 
 func _on_player_died() -> void:
-	in_battle = false
-	spawner.stop_battle()
-	_clear_battlefield()
-	shop_panel.open_shop(wave, ArtifactCatalog.random_offer(3), player.gold, reroll_cost)
+	player.set_battle_paused(true)
+	wave_manager.pause_wave(true)
+	game_ui.set_wave_status(wave_manager.wave_number, "已失败")

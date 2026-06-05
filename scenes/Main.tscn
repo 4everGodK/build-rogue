@@ -1,12 +1,15 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="2_enemy"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/ShopPanel.tscn" id="4_shop"]
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="5_game_manager"]
-[ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="6_spawner"]
-[ext_resource type="PackedScene" path="res://ui/InitialArtifactPanel.tscn" id="7_initial_panel"]
+[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="6_wave"]
+[ext_resource type="Script" path="res://scripts/economy_manager.gd" id="7_economy"]
+[ext_resource type="Script" path="res://scripts/artifact_inventory.gd" id="8_inventory"]
+[ext_resource type="Script" path="res://scripts/synergy_manager.gd" id="9_synergy"]
+[ext_resource type="Script" path="res://scripts/shop_manager.gd" id="10_shop_manager"]
 
 [node name="Main" type="Node2D"]
 
@@ -18,23 +21,36 @@ polygon = PackedVector2Array(0, 0, 1280, 0, 1280, 720, 0, 720)
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("5_game_manager")
 player_path = NodePath("../Player")
-spawner_path = NodePath("../EnemySpawner")
-projectile_container_path = NodePath("../AttackContainer")
+attack_container_path = NodePath("../AttackContainer")
+wave_manager_path = NodePath("../WaveManager")
+economy_manager_path = NodePath("../EconomyManager")
+inventory_path = NodePath("../ArtifactInventory")
+synergy_manager_path = NodePath("../SynergyManager")
+shop_manager_path = NodePath("../ShopManager")
 ui_path = NodePath("../UI")
 shop_path = NodePath("../UI/ShopPanel")
-initial_artifact_panel_path = NodePath("../UI/InitialArtifactPanel")
 
 [node name="AttackContainer" type="Node2D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
 position = Vector2(640, 360)
 
-[node name="EnemySpawner" type="Node2D" parent="."]
-script = ExtResource("6_spawner")
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("6_wave")
 enemy_scene = ExtResource("2_enemy")
+
+[node name="EconomyManager" type="Node" parent="."]
+script = ExtResource("7_economy")
+
+[node name="ArtifactInventory" type="Node" parent="."]
+script = ExtResource("8_inventory")
+
+[node name="SynergyManager" type="Node" parent="."]
+script = ExtResource("9_synergy")
+
+[node name="ShopManager" type="Node" parent="."]
+script = ExtResource("10_shop_manager")
 
 [node name="UI" parent="." instance=ExtResource("3_ui")]
 
 [node name="ShopPanel" parent="UI" instance=ExtResource("4_shop")]
-
-[node name="InitialArtifactPanel" parent="UI" instance=ExtResource("7_initial_panel")]
