@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "copper_coin"
+display_name = "铜钱"
+description = "命中后在附近未命中的敌人之间弹射。"
+system_tag = "法修"
+attribute_tag = "金"
+attack_template = "projectile"
+attack_shape = "circle"
+damage = 8.0
+cooldown = 1.1
+range = 900.0
+width = 15.0
+length = 15.0
+projectile_speed = 390.0
+projectile_bounce = 3
+bounce_count = 3
+bounce_range = 180.0
+visual_color = Color(1, 0.78, 0.18, 1)
+price = 7

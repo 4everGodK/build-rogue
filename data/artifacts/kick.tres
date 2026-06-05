@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "kick"
+display_name = "腿"
+description = "旋风腿打击玩家周围一圈敌人。"
+system_tag = "体修"
+attribute_tag = "雷"
+attack_template = "melee"
+attack_shape = "circle"
+damage = 12.0
+cooldown = 1.1
+radius = 72.0
+duration = 0.18
+visual_color = Color(0.65, 0.82, 1, 0.38)
+price = 6

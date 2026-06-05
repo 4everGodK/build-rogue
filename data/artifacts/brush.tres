@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "brush"
+display_name = "毛笔"
+description = "预警后沿直线依次落下三次墨击。"
+system_tag = "法修"
+attribute_tag = "木"
+attack_template = "line_delayed"
+attack_shape = "line"
+damage = 8.0
+cooldown = 1.7
+radius = 28.0
+length = 300.0
+delayed_strike_count = 3
+delayed_strike_delay = 0.3
+delayed_strike_interval = 0.15
+visual_color = Color(0.2, 0.65, 0.3, 0.55)
+price = 7

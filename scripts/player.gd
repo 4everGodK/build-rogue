@@ -2,6 +2,7 @@ extends CharacterBody2D
 class_name Player
 
 signal hp_changed(current_hp: int, max_hp: int)
+signal shield_changed(current_shield: float, max_shield: float)
 signal gold_changed(gold: int)
 signal artifacts_changed(artifacts: Array)
 signal died
@@ -14,6 +15,9 @@ var hp: int = max_hp
 var gold: int = 10
 var artifact_inventory: Array[Dictionary] = []
 var invincible_time: float = 0.0
+var shield: float = 0.0
+var shield_limit: float = 0.0
+var artifact_cooldown_multiplier: float = 1.0
 
 @onready var visual: Polygon2D = $Visual
 @onready var artifact_manager: ArtifactManager = $ArtifactManager
@@ -21,6 +25,7 @@ var invincible_time: float = 0.0
 func _ready() -> void:
 	hp = max_hp
 	hp_changed.emit(hp, max_hp)
+	shield_changed.emit(shield, shield_limit)
 	gold_changed.emit(gold)
 
 func _physics_process(delta: float) -> void:
@@ -47,15 +52,44 @@ func _read_move_input() -> Vector2:
 func take_damage(amount: int) -> void:
 	if invincible_time > 0.0:
 		return
-	hp = max(0, hp - amount)
+	var remaining_damage := float(amount)
+	var absorbed := minf(shield, remaining_damage)
+	shield -= absorbed
+	remaining_damage -= absorbed
+	hp = max(0, hp - int(ceil(remaining_damage)))
 	invincible_time = invincible_duration
 	hp_changed.emit(hp, max_hp)
+	shield_changed.emit(shield, shield_limit)
 	if hp <= 0:
 		died.emit()
 
 func add_gold(amount: int) -> void:
 	gold += amount
 	gold_changed.emit(gold)
+
+func heal(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	hp = mini(max_hp, hp + int(ceil(amount)))
+	hp_changed.emit(hp, max_hp)
+
+func add_shield(amount: float, maximum: float = 0.0) -> void:
+	if maximum > 0.0:
+		shield_limit = maxf(shield_limit, maximum)
+	var cap := shield_limit if shield_limit > 0.0 else float(max_hp)
+	shield = minf(cap, shield + maxf(0.0, amount))
+	shield_changed.emit(shield, cap)
+
+func spend_life_percent(percent: float) -> void:
+	var cost := maxi(1, int(ceil(float(max_hp) * maxf(0.0, percent) * 0.01)))
+	hp = maxi(1, hp - cost)
+	hp_changed.emit(hp, max_hp)
+
+func set_artifact_cooldown_multiplier(multiplier: float) -> void:
+	artifact_cooldown_multiplier = clampf(multiplier, 0.1, 1.0)
+
+func get_artifact_cooldown_multiplier() -> float:
+	return artifact_cooldown_multiplier
 
 func spend_gold(amount: int) -> bool:
 	if gold < amount:
@@ -71,4 +105,13 @@ func add_artifact(offer: Dictionary) -> void:
 	if data == null or not artifact_manager.add_artifact(data):
 		return
 	artifact_inventory.append(data.to_offer())
+	artifacts_changed.emit(artifact_inventory)
+
+func clear_artifacts() -> void:
+	artifact_manager.clear_artifacts()
+	artifact_inventory.clear()
+	shield = 0.0
+	shield_limit = 0.0
+	artifact_cooldown_multiplier = 1.0
+	shield_changed.emit(shield, shield_limit)
 	artifacts_changed.emit(artifact_inventory)

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "dagger"
+display_name = "匕首"
+description = "高频短距离刺击最近敌人。"
+system_tag = "剑修"
+attribute_tag = "毒"
+attack_template = "melee"
+attack_shape = "stab"
+damage = 6.0
+cooldown = 0.3
+max_targets = 1
+width = 12.0
+length = 52.0
+duration = 0.1
+visual_color = Color(0.42, 1, 0.35, 0.72)
+price = 5

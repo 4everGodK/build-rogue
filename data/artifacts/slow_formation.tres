@@ -1,19 +1,17 @@
 [gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
-
 [ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
-
 [resource]
 script = ExtResource("1")
-id = "damage_formation"
-display_name = "伤害阵"
-description = "玩家脚下的常驻阵法，周期伤害范围内敌人。"
+id = "slow_formation"
+display_name = "减速阵"
+description = "领域内敌人移动速度降低。"
 system_tag = "阵法"
-attribute_tag = "火"
+attribute_tag = "木"
 attack_template = "formation"
 attack_shape = "aura"
-effect_type = "damage"
-damage = 5.0
-radius = 105.0
-tick_interval = 1.0
-visual_color = Color(1, 0.2, 0.06, 0.2)
+effect_type = "slow"
+radius = 125.0
+tick_interval = 0.25
+slow_percent = 0.4
+visual_color = Color(0.25, 0.85, 0.35, 0.08)
 price = 8

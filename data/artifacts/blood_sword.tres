@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "blood_sword"
+display_name = "血剑"
+description = "消耗生命挥出血色剑光，至少保留1点生命。"
+system_tag = "魔修"
+attribute_tag = "火"
+attack_template = "melee"
+attack_shape = "slash"
+damage = 20.0
+cooldown = 1.15
+width = 52.0
+length = 100.0
+life_cost_percent = 3.0
+duration = 0.18
+visual_color = Color(0.9, 0.03, 0.08, 0.72)
+price = 8

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "fist"
+display_name = "拳"
+description = "快速拳风打击最近敌人。"
+system_tag = "体修"
+attribute_tag = "火"
+attack_template = "melee"
+attack_shape = "stab"
+damage = 7.0
+cooldown = 0.38
+width = 24.0
+length = 58.0
+duration = 0.1
+visual_color = Color(1, 0.42, 0.12, 0.65)
+price = 5

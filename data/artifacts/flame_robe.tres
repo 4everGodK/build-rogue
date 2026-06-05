@@ -1,19 +1,17 @@
 [gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
-
 [ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
-
 [resource]
 script = ExtResource("1")
-id = "damage_formation"
-display_name = "伤害阵"
-description = "玩家脚下的常驻阵法，周期伤害范围内敌人。"
-system_tag = "阵法"
+id = "flame_robe"
+display_name = "衣"
+description = "贴身火焰光环持续伤害周围敌人。"
+system_tag = "体修"
 attribute_tag = "火"
 attack_template = "formation"
 attack_shape = "aura"
 effect_type = "damage"
-damage = 5.0
-radius = 105.0
-tick_interval = 1.0
-visual_color = Color(1, 0.2, 0.06, 0.2)
-price = 8
+damage = 3.0
+radius = 62.0
+tick_interval = 0.45
+visual_color = Color(1, 0.2, 0.04, 0.1)
+price = 7

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "heaven_eye"
+display_name = "天眼"
+description = "短时间锁定最近敌人并持续发射光束。"
+system_tag = "魔修"
+attribute_tag = "水"
+attack_template = "beam"
+attack_shape = "beam"
+damage = 4.0
+cooldown = 2.4
+radius = 5.0
+duration = 1.4
+tick_interval = 0.2
+visual_color = Color(0.35, 0.8, 1, 0.82)
+price = 8

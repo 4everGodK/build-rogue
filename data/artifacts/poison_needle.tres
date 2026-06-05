@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "poison_needle"
+display_name = "毒针"
+description = "高速发射毒针；中毒效果留给后续羁绊。"
+system_tag = "魔修"
+attribute_tag = "毒"
+attack_template = "projectile"
+attack_shape = "projectile"
+damage = 8.0
+cooldown = 0.48
+range = 560.0
+width = 5.0
+length = 22.0
+projectile_speed = 620.0
+projectile_pierce = 1
+visual_color = Color(0.35, 1, 0.2, 1)
+price = 6

@@ -3,7 +3,8 @@ class_name GameManager
 
 @export var battle_duration: float = 60.0
 @export var reroll_cost: int = 3
-@export var grant_all_test_artifacts: bool = true
+@export var grant_test_artifacts: bool = true
+@export_enum("剑修", "法修", "体修", "阵法", "魔修") var test_system: String = "剑修"
 
 @export var player_path: NodePath
 @export var spawner_path: NodePath
@@ -23,6 +24,14 @@ var wave: int = 1
 var battle_time_left: float = 0.0
 var in_battle: bool = false
 
+const TEST_SYSTEM_KEYS := {
+	KEY_1: "剑修",
+	KEY_2: "法修",
+	KEY_3: "体修",
+	KEY_4: "阵法",
+	KEY_5: "魔修",
+}
+
 func _ready() -> void:
 	call_deferred("_initialize")
 
@@ -36,6 +45,7 @@ func _initialize() -> void:
 	initial_artifact_panel = get_node(initial_artifact_panel_path)
 	player.artifact_manager.configure(player, projectile_container)
 	player.hp_changed.connect(game_ui.set_hp)
+	player.shield_changed.connect(game_ui.set_shield)
 	player.gold_changed.connect(_on_gold_changed)
 	player.artifacts_changed.connect(game_ui.set_artifacts)
 	player.died.connect(_on_player_died)
@@ -44,10 +54,10 @@ func _initialize() -> void:
 	shop_panel.continue_requested.connect(_start_next_wave)
 	initial_artifact_panel.artifact_selected.connect(_on_initial_artifact_selected)
 	game_ui.set_hp(player.hp, player.max_hp)
+	game_ui.set_shield(player.shield, player.shield_limit)
 	game_ui.set_gold(player.gold)
-	if grant_all_test_artifacts:
-		for raw_id in ArtifactCatalog.all_ids():
-			player.add_artifact(ArtifactCatalog.get_artifact(str(raw_id)))
+	if grant_test_artifacts:
+		_load_test_system(test_system)
 		_start_battle()
 	else:
 		_open_initial_artifact_selection()
@@ -61,8 +71,15 @@ func _process(delta: float) -> void:
 		_end_battle()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_T and in_battle:
+	if not event is InputEventKey:
+		return
+	var key_event := event as InputEventKey
+	if not key_event.pressed:
+		return
+	if key_event.keycode == KEY_T and in_battle:
 		_end_battle()
+	elif TEST_SYSTEM_KEYS.has(key_event.keycode):
+		_load_test_system(str(TEST_SYSTEM_KEYS[key_event.keycode]))
 
 func _start_battle() -> void:
 	in_battle = true
@@ -96,6 +113,13 @@ func _clear_battlefield() -> void:
 	for attack in projectile_container.get_children():
 		if not attack is OrbitAttackNode and not attack is FormationAttackNode:
 			attack.queue_free()
+
+func _load_test_system(system_tag: String) -> void:
+	player.clear_artifacts()
+	for attack in projectile_container.get_children():
+		attack.queue_free()
+	for id in ArtifactCatalog.ids_for_system(system_tag):
+		player.add_artifact(ArtifactCatalog.get_artifact(id))
 
 func _on_gold_changed(value: int) -> void:
 	game_ui.set_gold(value)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "guqin"
+display_name = "古琴"
+description = "音符命中后短暂降低敌人伤害。"
+system_tag = "法修"
+attribute_tag = "风"
+attack_template = "projectile"
+attack_shape = "circle"
+damage = 7.0
+cooldown = 1.0
+range = 480.0
+width = 16.0
+length = 16.0
+projectile_speed = 320.0
+debuff_duration = 3.0
+damage_reduction_percent = 0.3
+visual_color = Color(0.65, 1, 0.8, 1)
+price = 6

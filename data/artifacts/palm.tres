@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "palm"
+display_name = "掌"
+description = "挥出宽阔掌风打击前方敌人。"
+system_tag = "体修"
+attribute_tag = "水"
+attack_template = "melee"
+attack_shape = "slash"
+damage = 11.0
+cooldown = 0.9
+width = 72.0
+length = 82.0
+duration = 0.16
+visual_color = Color(0.35, 0.78, 1, 0.5)
+price = 6

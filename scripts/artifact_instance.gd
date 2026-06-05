@@ -39,6 +39,8 @@ func update(delta: float, player: Node2D, attack_container: Node) -> void:
 	var direction: Vector2 = player.global_position.direction_to(target.global_position)
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
+	if data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
+		player.call("spend_life_percent", data.life_cost_percent)
 	match data.attack_template:
 		"melee":
 			MeleeAttackTemplate.execute(player, attack_container, data, direction)
@@ -46,7 +48,12 @@ func update(delta: float, player: Node2D, attack_container: Node) -> void:
 			ProjectileAttackTemplate.execute(player, attack_container, data, direction)
 		"beam":
 			BeamAttackTemplate.execute(player, attack_container, data, target)
-	cooldown_remaining = maxf(0.05, data.cooldown)
+		"line_delayed":
+			LineDelayedAttackTemplate.execute(player, attack_container, data, direction)
+	var cooldown_multiplier := 1.0
+	if player.has_method("get_artifact_cooldown_multiplier"):
+		cooldown_multiplier = float(player.call("get_artifact_cooldown_multiplier"))
+	cooldown_remaining = maxf(0.05, data.cooldown * cooldown_multiplier)
 
 func dispose() -> void:
 	if is_instance_valid(persistent_node):

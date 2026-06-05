@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+id = "magic_ring"
+display_name = "法环"
+description = "宽大的法环沿直线缓慢穿透敌人。"
+system_tag = "法修"
+attribute_tag = "水"
+attack_template = "projectile"
+attack_shape = "circle"
+damage = 9.0
+cooldown = 1.0
+range = 520.0
+width = 34.0
+length = 34.0
+projectile_speed = 280.0
+projectile_pierce = 4
+visual_color = Color(0.25, 0.7, 1, 0.8)
+price = 7
