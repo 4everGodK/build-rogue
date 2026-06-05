@@ -14,10 +14,13 @@ func is_same_artifact_and_star(other: ArtifactStack) -> bool:
 func get_display_name() -> String:
 	if artifact_data == null:
 		return "空"
+	return "%s%s" % [artifact_data.display_name, get_star_text()]
+
+func get_star_text() -> String:
 	var stars := ""
 	for _index in range(star_level):
 		stars += "★"
-	return "%s%s" % [artifact_data.display_name, stars]
+	return stars
 
 func to_offer() -> Dictionary:
 	if artifact_data == null:

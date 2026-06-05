@@ -1,7 +1,6 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="2_enemy"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
 [ext_resource type="PackedScene" path="res://ui/ShopPanel.tscn" id="4_shop"]
 [ext_resource type="Script" path="res://scripts/game_manager.gd" id="5_game_manager"]
@@ -10,13 +9,16 @@
 [ext_resource type="Script" path="res://scripts/artifact_inventory.gd" id="8_inventory"]
 [ext_resource type="Script" path="res://scripts/synergy_manager.gd" id="9_synergy"]
 [ext_resource type="Script" path="res://scripts/shop_manager.gd" id="10_shop_manager"]
+[ext_resource type="Script" path="res://scripts/arena_map.gd" id="11_arena"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyBasic.tscn" id="12_basic"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id="13_fast"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyTank.tscn" id="14_tank"]
+[ext_resource type="PackedScene" path="res://scenes/BossBasic.tscn" id="15_boss"]
 
 [node name="Main" type="Node2D"]
 
-[node name="Arena" type="Polygon2D" parent="."]
-position = Vector2(-60, -3)
-color = Color(0.08, 0.1, 0.12, 1)
-polygon = PackedVector2Array(0, 0, 1280, 0, 1280, 720, 0, 720)
+[node name="ArenaMap" type="Node2D" parent="."]
+script = ExtResource("11_arena")
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("5_game_manager")
@@ -37,7 +39,10 @@ position = Vector2(640, 360)
 
 [node name="WaveManager" type="Node" parent="."]
 script = ExtResource("6_wave")
-enemy_scene = ExtResource("2_enemy")
+basic_enemy_scene = ExtResource("12_basic")
+fast_enemy_scene = ExtResource("13_fast")
+tank_enemy_scene = ExtResource("14_tank")
+boss_scene = ExtResource("15_boss")
 
 [node name="EconomyManager" type="Node" parent="."]
 script = ExtResource("7_economy")

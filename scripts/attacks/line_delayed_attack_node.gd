@@ -12,7 +12,7 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData, attack_direction: 
 	direction = attack_direction.normalized()
 	warning_line = Line2D.new()
 	warning_line.width = maxf(2.0, data.width * 0.2)
-	warning_line.default_color = Color(data.visual_color.r, data.visual_color.g, data.visual_color.b, 0.3)
+	warning_line.default_color = Color(0.0, 0.0, 0.0, 0.34) if data.id == "brush" else Color(data.visual_color.r, data.visual_color.g, data.visual_color.b, 0.3)
 	warning_line.points = PackedVector2Array([player.global_position, player.global_position + direction * data.length])
 	add_child(warning_line)
 	_run_sequence()
@@ -35,14 +35,17 @@ func _strike(center: Vector2) -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if center.distance_to((candidate as Node2D).global_position) <= data.radius:
 				candidate.call("take_damage", data.damage, player)
-	var visual := Polygon2D.new()
-	visual.polygon = _circle_points(data.radius)
-	visual.color = data.visual_color
-	visual.global_position = center
-	get_tree().current_scene.add_child(visual)
-	var tween := get_tree().create_tween()
-	tween.tween_property(visual, "modulate:a", 0.0, 0.12)
-	tween.tween_callback(visual.queue_free)
+	if data.id == "brush":
+		HitEffectManager.spawn_hit(get_tree(), center, "ink", direction, data.radius)
+	else:
+		var visual := Polygon2D.new()
+		visual.polygon = _circle_points(data.radius)
+		visual.color = data.visual_color
+		visual.global_position = center
+		get_tree().current_scene.add_child(visual)
+		var tween := get_tree().create_tween()
+		tween.tween_property(visual, "modulate:a", 0.0, 0.12)
+		tween.tween_callback(visual.queue_free)
 
 func _circle_points(circle_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

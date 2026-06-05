@@ -5,8 +5,12 @@ signal wave_started(wave_number: int)
 signal wave_cleared(wave_number: int)
 signal enemy_killed(gold_reward: int)
 
-@export var enemy_scene: PackedScene
+@export var basic_enemy_scene: PackedScene
+@export var fast_enemy_scene: PackedScene
+@export var tank_enemy_scene: PackedScene
+@export var boss_scene: PackedScene
 @export var spawn_margin: float = 60.0
+@export var arena_size: Vector2 = Vector2(2000.0, 1200.0)
 
 var player: Player
 var wave_number: int = 0
@@ -17,7 +21,7 @@ func configure(target_player: Player) -> void:
 	player = target_player
 
 func start_next_wave() -> void:
-	if enemy_scene == null or not is_instance_valid(player):
+	if basic_enemy_scene == null or not is_instance_valid(player):
 		return
 	wave_number += 1
 	active = true
@@ -37,46 +41,47 @@ func clear_existing_enemies() -> void:
 func _spawn_wave(number: int) -> void:
 	clear_existing_enemies()
 	var config := _wave_config(number)
-	for index in range(int(config.get("count", 1))):
-		var enemy := enemy_scene.instantiate() as Enemy
+	_spawn_many(basic_enemy_scene, int(config.get("basic", 0)))
+	_spawn_many(fast_enemy_scene, int(config.get("fast", 0)))
+	_spawn_many(tank_enemy_scene, int(config.get("tank", 0)))
+	_spawn_many(boss_scene, int(config.get("boss", 0)))
+
+func _wave_config(number: int) -> Dictionary:
+	match number:
+		1:
+			return {"basic": 5}
+		2:
+			return {"basic": 8, "fast": 2}
+		3:
+			return {"basic": 10, "fast": 4, "tank": 2}
+		4:
+			return {"basic": 15, "fast": 5, "tank": 4}
+		_:
+			return {"boss": 1}
+
+func _spawn_many(scene: PackedScene, count: int) -> void:
+	if scene == null:
+		return
+	for _index in range(count):
+		var enemy := scene.instantiate() as Enemy
 		get_parent().add_child(enemy)
 		enemy.global_position = _random_edge_position()
 		enemy.setup(player)
-		enemy.gold_reward = int(config.get("gold_reward", 1))
-		enemy.max_hp *= float(config.get("hp_multiplier", 1.0))
-		enemy.hp = enemy.max_hp
-		enemy.move_speed *= float(config.get("speed_multiplier", 1.0))
-		if bool(config.get("boss", false)):
-			enemy.scale = Vector2.ONE * 2.0
 		enemy.died.connect(_on_enemy_died)
 		alive_enemies += 1
 
-func _wave_config(number: int) -> Dictionary:
-	var cycle := ((number - 1) % 5) + 1
-	match cycle:
-		1:
-			return {"count": 5, "gold_reward": 1}
-		2:
-			return {"count": 8, "gold_reward": 1}
-		3:
-			return {"count": 12, "gold_reward": 1}
-		4:
-			return {"count": 15, "gold_reward": 1}
-		_:
-			return {"count": 1, "gold_reward": 10, "hp_multiplier": 8.0, "speed_multiplier": 0.65, "boss": true}
-
 func _random_edge_position() -> Vector2:
-	var viewport: Vector2 = get_viewport().get_visible_rect().size
+	var half_size := arena_size * 0.5
 	var side := randi_range(0, 3)
 	match side:
 		0:
-			return Vector2(randf_range(0, viewport.x), -spawn_margin)
+			return Vector2(randf_range(-half_size.x, half_size.x), -half_size.y + spawn_margin)
 		1:
-			return Vector2(viewport.x + spawn_margin, randf_range(0, viewport.y))
+			return Vector2(half_size.x - spawn_margin, randf_range(-half_size.y, half_size.y))
 		2:
-			return Vector2(randf_range(0, viewport.x), viewport.y + spawn_margin)
+			return Vector2(randf_range(-half_size.x, half_size.x), half_size.y - spawn_margin)
 		_:
-			return Vector2(-spawn_margin, randf_range(0, viewport.y))
+			return Vector2(-half_size.x + spawn_margin, randf_range(-half_size.y, half_size.y))
 
 func _on_enemy_died(gold_reward: int) -> void:
 	enemy_killed.emit(gold_reward)

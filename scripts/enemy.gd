@@ -10,10 +10,12 @@ signal died(gold_reward: int)
 @export var separation_radius: float = 36.0
 @export var contact_damage_interval: float = 0.8
 @export var gold_reward: int = 2
+@export var death_animation_duration: float = 0.15
 
 var hp: float = max_hp
 var player: Player
 var flash_time: float = 0.0
+var dying: bool = false
 var poison_stacks: Array[Dictionary] = []
 var knockback_velocity: Vector2 = Vector2.ZERO
 var slow_effects: Dictionary = {}
@@ -23,6 +25,8 @@ var contact_damage_cooldown: float = 0.0
 @onready var visual: Polygon2D = $Visual
 
 func _physics_process(delta: float) -> void:
+	if dying:
+		return
 	if contact_damage_cooldown > 0.0:
 		contact_damage_cooldown -= delta
 	if is_instance_valid(player):
@@ -44,7 +48,7 @@ func _physics_process(delta: float) -> void:
 
 	if flash_time > 0.0:
 		flash_time -= delta
-		visual.modulate = Color(1.0, 0.45, 0.45)
+		visual.modulate = Color.WHITE
 	else:
 		visual.modulate = Color.WHITE
 
@@ -55,13 +59,13 @@ func setup(target_player: Player) -> void:
 	player = target_player
 
 func take_damage(amount: float, _source = null) -> bool:
-	if hp <= 0.0 or is_queued_for_deletion():
+	if dying or hp <= 0.0 or is_queued_for_deletion():
 		return true
 	hp -= amount
 	flash_time = 0.08
+	_spawn_damage_number(amount)
 	if hp <= 0.0:
-		died.emit(gold_reward)
-		queue_free()
+		_die()
 		return true
 	return false
 
@@ -137,3 +141,23 @@ func _try_contact_damage(target_player: Player) -> void:
 		return
 	target_player.take_damage(int(ceil(float(contact_damage) * _current_damage_multiplier())))
 	contact_damage_cooldown = contact_damage_interval
+
+func _spawn_damage_number(amount: float) -> void:
+	var label := Label.new()
+	label.text = str(int(ceil(amount)))
+	label.modulate = Color(1.0, 0.95, 0.45, 1.0)
+	label.position = global_position + Vector2(-8.0, -28.0)
+	get_tree().current_scene.add_child(label)
+	var tween := get_tree().create_tween()
+	tween.tween_property(label, "position", label.position + Vector2(0.0, -24.0), 0.35)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.35)
+	tween.tween_callback(label.queue_free)
+
+func _die() -> void:
+	dying = true
+	set_physics_process(false)
+	died.emit(gold_reward)
+	var tween := get_tree().create_tween()
+	tween.tween_property(self, "scale", Vector2.ZERO, death_animation_duration)
+	tween.parallel().tween_property(self, "modulate:a", 0.0, death_animation_duration)
+	tween.tween_callback(queue_free)

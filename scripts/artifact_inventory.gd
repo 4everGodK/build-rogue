@@ -22,17 +22,17 @@ func _initialize_slots() -> void:
 func add_artifact(data: ArtifactData) -> bool:
 	_initialize_slots()
 	var stack := ArtifactStack.new(data, 1)
-	var index := _first_empty_index(bag_slots)
-	if index >= 0:
-		bag_slots[index] = stack
-		_after_inventory_changed()
-		return true
-	index = _first_empty_index(battle_slots)
+	var index := _first_empty_index(battle_slots)
 	if index >= 0:
 		battle_slots[index] = stack
 		_after_inventory_changed()
 		return true
-	inventory_message.emit("储物袋已满")
+	index = _first_empty_index(bag_slots)
+	if index >= 0:
+		bag_slots[index] = stack
+		_after_inventory_changed()
+		return true
+	inventory_message.emit("出战区和储物袋已满")
 	return false
 
 func move_stack(from_area: String, from_index: int, to_area: String, to_index: int) -> void:

@@ -39,6 +39,7 @@ func _initialize() -> void:
 	shop_panel = get_node(shop_path)
 
 	player.artifact_manager.configure(player, attack_container)
+	player.artifact_manager.set_synergy_manager(synergy_manager)
 	wave_manager.configure(player)
 	shop_manager.configure(economy_manager, inventory)
 
@@ -87,6 +88,7 @@ func _enter_shop(cleared_wave: int) -> void:
 		synergy_manager.system_counts,
 		synergy_manager.attribute_counts
 	)
+	shop_panel.set_message(_synergy_effect_text())
 
 func _on_shop_continue_requested() -> void:
 	_start_battle()
@@ -95,18 +97,27 @@ func _on_wave_started(wave_number: int) -> void:
 	game_ui.set_wave_status(wave_number, "战斗中")
 
 func _on_wave_cleared(wave_number: int) -> void:
+	if wave_number >= 5:
+		_on_demo_completed()
+		return
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_enter_shop(wave_number)
 
 func _on_inventory_changed() -> void:
-	player.artifact_manager.sync_from_battle_slots(inventory.battle_slots)
 	synergy_manager.recalculate(inventory.battle_slots)
+	player.artifact_manager.sync_from_battle_slots(inventory.battle_slots)
 	if in_shop:
 		shop_panel.set_inventory(inventory.battle_slots, inventory.bag_slots)
 
 func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
+	player.set_body_synergy(
+		int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)),
+		bool(synergy_manager.get_effect_value("body_counter_enabled", false)),
+		float(synergy_manager.get_effect_value("body_counter_damage", 8.0))
+	)
 	if in_shop:
 		shop_panel.set_synergies(system_counts, attribute_counts)
+		shop_panel.set_message(_synergy_effect_text())
 
 func _on_shop_offers_changed(offers: Array) -> void:
 	if in_shop and shop_panel.visible:
@@ -121,6 +132,25 @@ func _show_shop_message(message: String) -> void:
 	if in_shop:
 		shop_panel.set_message(message)
 
+func _synergy_effect_text() -> String:
+	var parts: Array[String] = []
+	var sword := float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
+	if sword > 0.0:
+		parts.append("剑修: %d%%双击" % int(round(sword * 100.0)))
+	var extra := int(synergy_manager.get_effect_value("projectile_extra_count", 0))
+	if extra > 0:
+		parts.append("法修: 额外发射物+%d" % extra)
+	var formation := float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
+	if formation > 1.0:
+		parts.append("阵法: 范围+%d%%" % int(round((formation - 1.0) * 100.0)))
+	if int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)) > 0:
+		parts.append("体修: 生命+20")
+	if bool(synergy_manager.get_effect_value("body_counter_enabled", false)):
+		parts.append("体修: 受伤反震")
+	if float(synergy_manager.get_effect_value("demon_low_hp_magic_damage_multiplier", 1.0)) > 1.0:
+		parts.append("魔修: 低血增伤")
+	return "羁绊效果: 无" if parts.is_empty() else "羁绊效果: " + "；".join(parts)
+
 func _clear_attack_nodes() -> void:
 	for attack in attack_container.get_children():
 		attack.queue_free()
@@ -129,3 +159,10 @@ func _on_player_died() -> void:
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
 	game_ui.set_wave_status(wave_manager.wave_number, "已失败")
+
+func _on_demo_completed() -> void:
+	in_shop = false
+	player.set_battle_paused(true)
+	wave_manager.pause_wave(true)
+	_clear_attack_nodes()
+	game_ui.set_wave_status(wave_manager.wave_number, "Demo通关")

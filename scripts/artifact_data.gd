@@ -4,6 +4,7 @@ class_name ArtifactData
 @export var id: String = ""
 @export var display_name: String = ""
 @export_multiline var description: String = ""
+@export var icon: Texture2D
 @export_enum("剑修", "法修", "体修", "阵法", "召唤", "魔修") var system_tag: String = "剑修"
 @export_enum("金", "木", "水", "火", "土", "风", "雷", "毒", "暗") var attribute_tag: String = "金"
 @export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon") var attack_template: String = "projectile"
@@ -47,6 +48,7 @@ func to_offer() -> Dictionary:
 		"id": id,
 		"display_name": display_name,
 		"description": description,
+		"icon": icon,
 		"system_tag": system_tag,
 		"attribute_tag": attribute_tag,
 		"tags": [system_tag, attribute_tag],

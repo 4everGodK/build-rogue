@@ -18,11 +18,8 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	var collision := CollisionShape2D.new()
 	collision.shape = shape
 	add_child(collision)
-	if data.visual_color.a > 0.0:
-		var visual := Polygon2D.new()
-		visual.polygon = _circle_points(data.radius)
-		visual.color = data.visual_color
-		add_child(visual)
+	var visual := ArtifactVisuals.make_formation_visual(data)
+	add_child(visual)
 
 func _physics_process(delta: float) -> void:
 	if not is_instance_valid(player):
@@ -39,9 +36,12 @@ func _physics_process(delta: float) -> void:
 		player.call("heal", data.heal_amount)
 	elif data.effect_type == "shield" and player.has_method("add_shield"):
 		player.call("add_shield", data.shield_amount, data.shield_max)
+		HitEffectManager.spawn_hit(get_tree(), player.global_position, "shield", Vector2.RIGHT, data.radius)
 	for body in get_overlapping_bodies():
 		if data.effect_type == "damage" and body.has_method("take_damage"):
 			body.call("take_damage", data.damage, player)
+			if body is Node2D and data.id == "damage_formation":
+				HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "fire", Vector2.RIGHT, 14.0)
 		elif data.effect_type == "slow" and body.has_method("apply_slow"):
 			body.call("apply_slow", data.slow_percent, data.tick_interval * 1.5, self)
 

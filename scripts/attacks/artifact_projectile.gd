@@ -15,8 +15,13 @@ var damage_reduction_percent: float
 var visual_radius: float
 var source: Node
 var hit_enemies: Dictionary = {}
+var data: ArtifactData
+var visual_node: Node2D
+var trail_node: Line2D
+var spin_speed: float = 0.0
 
 func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) -> void:
+	self.data = data
 	global_position = owner_player.global_position
 	direction = attack_direction.normalized()
 	speed = data.projectile_speed
@@ -41,19 +46,19 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	collision.shape = shape
 	add_child(collision)
 
-	var visual := Polygon2D.new()
-	if data.attack_shape == "circle":
-		visual.polygon = _circle_points(maxf(6.0, minf(visual_radius, 14.0)))
-	else:
-		visual.polygon = PackedVector2Array([Vector2(data.length * 0.5, 0), Vector2(-data.length * 0.5, -visual_radius), Vector2(-data.length * 0.3, 0), Vector2(-data.length * 0.5, visual_radius)])
-	visual.color = data.visual_color
-	add_child(visual)
+	trail_node = ArtifactVisuals.make_projectile_trail(data)
+	add_child(trail_node)
+	visual_node = ArtifactVisuals.make_projectile_visual(data)
+	add_child(visual_node)
+	spin_speed = ArtifactVisuals.projectile_spin_speed(data)
 	body_entered.connect(_on_body_entered)
 
 func _physics_process(delta: float) -> void:
 	var movement := direction * speed * delta
 	global_position += movement
 	traveled_distance += movement.length()
+	if is_instance_valid(visual_node) and spin_speed > 0.0:
+		visual_node.rotation += spin_speed * delta
 	if traveled_distance >= max_distance:
 		queue_free()
 
@@ -62,6 +67,9 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	body.call("take_damage", damage, source)
+	HitEffectManager.spawn_hit(get_tree(), global_position, ArtifactVisuals.projectile_hit_kind(data), direction, maxf(14.0, visual_radius * 1.8))
+	if data.id == "flying_sword":
+		HitEffectManager.spawn_hit(get_tree(), global_position, "lightning", direction, maxf(10.0, visual_radius * 1.2))
 	if damage_reduction_percent > 0.0 and body.has_method("apply_damage_reduction"):
 		body.call("apply_damage_reduction", damage_reduction_percent, debuff_duration, self)
 	if explosion_radius > 0.0:
@@ -94,7 +102,7 @@ func _explode(direct_target: Node) -> void:
 
 func _bounce_to_next_enemy() -> bool:
 	var next_enemy: Node2D
-	var nearest_distance := INF
+	var nearest_distance: float = INF
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or hit_enemies.has(candidate):
 			continue
@@ -104,6 +112,7 @@ func _bounce_to_next_enemy() -> bool:
 			nearest_distance = distance
 	if next_enemy == null:
 		return false
+	HitEffectManager.spawn_coin_path(get_tree(), global_position, next_enemy.global_position)
 	direction = global_position.direction_to(next_enemy.global_position)
 	rotation = direction.angle()
 	return true

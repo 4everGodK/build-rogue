@@ -5,8 +5,12 @@ var damage: float
 var source: Node
 var hit_enemies: Dictionary = {}
 var max_targets: int = 0
+var data: ArtifactData
+var direction: Vector2 = Vector2.RIGHT
 
 func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
+	self.data = data
+	self.direction = direction.normalized()
 	source = player
 	damage = data.damage
 	max_targets = data.max_targets
@@ -28,18 +32,9 @@ func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 		collision.shape = rectangle
 	add_child(collision)
 
-	var slash := Polygon2D.new()
-	if data.attack_shape == "circle":
-		slash.polygon = _circle_points(data.radius)
-	else:
-		slash.polygon = PackedVector2Array([
-			Vector2(0, -data.width * 0.5),
-			Vector2(data.length, -data.width * 0.25),
-			Vector2(data.length, data.width * 0.25),
-			Vector2(0, data.width * 0.5),
-		])
-	slash.color = data.visual_color
-	add_child(slash)
+	var visual := ArtifactVisuals.make_melee_visual(data)
+	add_child(visual)
+	_animate_visual(visual, data)
 	body_entered.connect(_on_body_entered)
 	get_tree().create_timer(maxf(0.1, data.duration)).timeout.connect(queue_free)
 
@@ -50,6 +45,17 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	body.call("take_damage", damage, source)
+	if body is Node2D:
+		HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, ArtifactVisuals.melee_hit_kind(data), direction, 18.0)
+
+func _animate_visual(visual: Node2D, data: ArtifactData) -> void:
+	visual.scale = Vector2(0.65, 0.65)
+	visual.modulate.a = 0.0
+	var tween := get_tree().create_tween()
+	var appear_time := minf(0.06, maxf(0.03, data.duration * 0.35))
+	tween.tween_property(visual, "modulate:a", 1.0, appear_time)
+	tween.parallel().tween_property(visual, "scale", Vector2.ONE, appear_time)
+	tween.tween_property(visual, "modulate:a", 0.0, maxf(0.04, data.duration - appear_time))
 
 func _circle_points(circle_radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

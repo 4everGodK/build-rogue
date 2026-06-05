@@ -1,10 +1,13 @@
-[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3]
 [ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://art/icons/fist.png" id="2"]
 [resource]
 script = ExtResource("1")
 id = "fist"
 display_name = "拳"
 description = "快速拳风打击最近敌人。"
+icon = ExtResource("2")
 system_tag = "体修"
 attribute_tag = "火"
 attack_template = "melee"

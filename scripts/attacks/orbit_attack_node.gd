@@ -22,9 +22,7 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 		var collision := CollisionShape2D.new()
 		collision.shape = shape
 		orbiter.add_child(collision)
-		var visual := Polygon2D.new()
-		visual.polygon = PackedVector2Array([Vector2(12, 0), Vector2(-8, -3), Vector2(-4, 0), Vector2(-8, 3)])
-		visual.color = data.visual_color
+		var visual := ArtifactVisuals.make_orbiter_visual(data)
 		orbiter.add_child(visual)
 		add_child(orbiter)
 		orbiters.append(orbiter)
@@ -52,3 +50,10 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 		return
 	last_hits[key] = now
 	body.call("take_damage", data.damage, player)
+	HitEffectManager.spawn_hit(get_tree(), orbiter.global_position, "sword", orbiter.global_transform.x, 14.0)
+	_flash_orbiter(orbiter)
+
+func _flash_orbiter(orbiter: Area2D) -> void:
+	orbiter.modulate = Color(1.8, 1.8, 1.4, 1.0)
+	var tween := get_tree().create_tween()
+	tween.tween_property(orbiter, "modulate", Color.WHITE, 0.1)

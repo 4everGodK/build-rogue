@@ -4,12 +4,14 @@ class_name ArtifactInstance
 var data: ArtifactData
 var source_data: ArtifactData
 var star_level: int = 1
+var synergy_manager: SynergyManager
 var cooldown_remaining: float = 0.0
 var persistent_node: Node
 
-func _init(artifact_data: ArtifactData = null, star: int = 1) -> void:
+func _init(artifact_data: ArtifactData = null, star: int = 1, manager: SynergyManager = null) -> void:
 	source_data = artifact_data
 	star_level = clampi(star, 1, 3)
+	synergy_manager = manager
 	data = _make_effective_data(artifact_data, star_level)
 	if data != null:
 		cooldown_remaining = randf_range(0.05, maxf(0.05, data.cooldown))
@@ -45,15 +47,26 @@ func update(delta: float, player: Node2D, attack_container: Node) -> void:
 		direction = Vector2.RIGHT
 	if data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
 		player.call("spend_life_percent", data.life_cost_percent)
+	var runtime_data := _make_runtime_data(player)
 	match data.attack_template:
 		"melee":
-			MeleeAttackTemplate.execute(player, attack_container, data, direction)
+			MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
 		"projectile":
-			ProjectileAttackTemplate.execute(player, attack_container, data, direction)
+			ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, _projectile_extra_count(), _projectile_extra_damage_multiplier())
 		"beam":
-			BeamAttackTemplate.execute(player, attack_container, data, target)
+			BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
 		"line_delayed":
-			LineDelayedAttackTemplate.execute(player, attack_container, data, direction)
+			LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
+	if source_data != null and source_data.system_tag == "剑修" and randf() < _sword_double_chance():
+		match data.attack_template:
+			"melee":
+				MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
+			"projectile":
+				ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, _projectile_extra_count(), _projectile_extra_damage_multiplier())
+			"beam":
+				BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
+			"line_delayed":
+				LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
 	var cooldown_multiplier := 1.0
 	if player.has_method("get_artifact_cooldown_multiplier"):
 		cooldown_multiplier = float(player.call("get_artifact_cooldown_multiplier"))
@@ -88,4 +101,31 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 		3:
 			effective.damage *= 2.2
 			effective.cooldown *= 0.7
+	if synergy_manager != null and effective.attack_template == "formation":
+		effective.radius *= float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
 	return effective
+
+func _make_runtime_data(player: Node2D) -> ArtifactData:
+	var runtime := data.duplicate(true) as ArtifactData
+	if synergy_manager != null:
+		var low_hp: bool = player.has_method("get_hp_ratio") and float(player.call("get_hp_ratio")) < 0.5
+		if low_hp:
+			runtime.damage *= float(synergy_manager.get_effect_value("demon_low_hp_all_damage_multiplier", 1.0))
+			if source_data != null and source_data.system_tag == "魔修":
+				runtime.damage *= float(synergy_manager.get_effect_value("demon_low_hp_magic_damage_multiplier", 1.0))
+	return runtime
+
+func _sword_double_chance() -> float:
+	if synergy_manager == null:
+		return 0.0
+	return float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
+
+func _projectile_extra_count() -> int:
+	if synergy_manager == null or source_data == null or source_data.system_tag != "法修":
+		return 0
+	return int(synergy_manager.get_effect_value("projectile_extra_count", 0))
+
+func _projectile_extra_damage_multiplier() -> float:
+	if synergy_manager == null or source_data == null or source_data.system_tag != "法修":
+		return 0.0
+	return float(synergy_manager.get_effect_value("projectile_extra_damage_multiplier", 0.0))

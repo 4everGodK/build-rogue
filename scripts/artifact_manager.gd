@@ -5,6 +5,7 @@ const MAX_ARTIFACTS: int = 9
 
 var owner_player: Node2D
 var attack_container: Node
+var synergy_manager: SynergyManager
 var artifacts: Array[ArtifactInstance] = []
 var battle_paused: bool = true
 
@@ -13,6 +14,9 @@ func configure(player: Node2D, container: Node) -> void:
 	attack_container = container
 	for instance in artifacts:
 		instance.start(owner_player, attack_container)
+
+func set_synergy_manager(manager: SynergyManager) -> void:
+	synergy_manager = manager
 
 func clear_artifacts() -> void:
 	for instance in artifacts:
@@ -25,7 +29,7 @@ func sync_from_battle_slots(battle_slots: Array) -> void:
 		var stack := raw_stack as ArtifactStack
 		if stack == null or stack.artifact_data == null:
 			continue
-		var instance := ArtifactInstance.new(stack.artifact_data, stack.star_level)
+		var instance := ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager)
 		artifacts.append(instance)
 		if is_instance_valid(owner_player) and is_instance_valid(attack_container):
 			instance.start(owner_player, attack_container)
