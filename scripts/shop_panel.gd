@@ -27,7 +27,7 @@ func _ready() -> void:
 	continue_button.pressed.connect(func() -> void: continue_requested.emit())
 
 func open_shop(wave: int, offers: Array, stones: int, battle_slots: Array, bag_slots: Array, system_counts: Dictionary, attribute_counts: Dictionary) -> void:
-	title_label.text = "第 %d 波完成 - 商店阶段" % wave
+	title_label.text = "准备阶段 - 商店" if wave <= 0 else "第 %d 波完成 - 商店阶段" % wave
 	set_offers(offers)
 	set_economy(stones)
 	set_inventory(battle_slots, bag_slots)

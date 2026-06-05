@@ -10,6 +10,7 @@ class_name GameManager
 @export var shop_manager_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
+@export var starting_spirit_stones: int = 3
 
 var player: Player
 var attack_container: Node2D
@@ -60,9 +61,10 @@ func _initialize() -> void:
 
 	game_ui.set_hp(player.hp, player.max_hp)
 	game_ui.set_shield(player.shield, player.shield_limit)
-	economy_manager.reset(0)
+	economy_manager.reset(starting_spirit_stones)
 	_on_inventory_changed()
-	_start_battle()
+	game_ui.set_wave_status(1, "准备阶段")
+	_enter_shop(0)
 
 func _start_battle() -> void:
 	in_shop = false

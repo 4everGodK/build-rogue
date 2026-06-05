@@ -6,6 +6,9 @@ signal died(gold_reward: int)
 @export var max_hp: float = 20.0
 @export var move_speed: float = 80.0
 @export var contact_damage: int = 8
+@export var contact_radius: float = 24.0
+@export var separation_radius: float = 36.0
+@export var contact_damage_interval: float = 0.8
 @export var gold_reward: int = 2
 
 var hp: float = max_hp
@@ -15,17 +18,29 @@ var poison_stacks: Array[Dictionary] = []
 var knockback_velocity: Vector2 = Vector2.ZERO
 var slow_effects: Dictionary = {}
 var damage_reduction_effects: Dictionary = {}
+var contact_damage_cooldown: float = 0.0
 
 @onready var visual: Polygon2D = $Visual
 
 func _physics_process(delta: float) -> void:
+	if contact_damage_cooldown > 0.0:
+		contact_damage_cooldown -= delta
 	if is_instance_valid(player):
-		velocity = global_position.direction_to(player.global_position) * move_speed * _current_speed_multiplier()
+		var to_player := global_position.direction_to(player.global_position)
+		if to_player == Vector2.ZERO:
+			to_player = Vector2.RIGHT.rotated(randf() * TAU)
+		var distance := global_position.distance_to(player.global_position)
+		if distance > separation_radius:
+			velocity = to_player * move_speed * _current_speed_multiplier()
+		elif distance < contact_radius:
+			velocity = -to_player * move_speed * 0.65 * _current_speed_multiplier()
+		else:
+			velocity = Vector2.ZERO
 		velocity += knockback_velocity
 		move_and_slide()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
-		if global_position.distance_to(player.global_position) <= 24.0:
-			player.take_damage(int(ceil(float(contact_damage) * _current_damage_multiplier())))
+		if distance <= contact_radius:
+			_try_contact_damage(player)
 
 	if flash_time > 0.0:
 		flash_time -= delta
@@ -115,4 +130,10 @@ func _process_poison(delta: float) -> void:
 
 func _on_contact_area_body_entered(body: Node) -> void:
 	if body is Player:
-		body.take_damage(int(ceil(float(contact_damage) * _current_damage_multiplier())))
+		_try_contact_damage(body)
+
+func _try_contact_damage(target_player: Player) -> void:
+	if contact_damage_cooldown > 0.0:
+		return
+	target_player.take_damage(int(ceil(float(contact_damage) * _current_damage_multiplier())))
+	contact_damage_cooldown = contact_damage_interval
