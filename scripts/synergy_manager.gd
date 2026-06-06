@@ -25,7 +25,7 @@ func recalculate(battle_slots: Array) -> void:
 	synergies_changed.emit(system_counts.duplicate(), attribute_counts.duplicate())
 
 func _update_effects() -> void:
-	var sword_count := int(system_counts.get("剑修", 0))
+	var sword_count: int = int(system_counts.get("剑修", 0))
 	if sword_count >= 6:
 		effects["sword_double_chance"] = 0.5
 	elif sword_count >= 4:
@@ -35,7 +35,7 @@ func _update_effects() -> void:
 	else:
 		effects["sword_double_chance"] = 0.0
 
-	var magic_count := int(system_counts.get("法修", 0))
+	var magic_count: int = int(system_counts.get("法修", 0))
 	if magic_count >= 6:
 		effects["projectile_extra_count"] = 2
 		effects["projectile_extra_damage_multiplier"] = 0.75
@@ -49,15 +49,15 @@ func _update_effects() -> void:
 		effects["projectile_extra_count"] = 0
 		effects["projectile_extra_damage_multiplier"] = 0.0
 
-	var formation_count := int(system_counts.get("阵法", 0))
+	var formation_count: int = int(system_counts.get("阵法", 0))
 	effects["formation_radius_multiplier"] = 1.5 if formation_count >= 4 else 1.25 if formation_count >= 2 else 1.0
 
-	var body_count := int(system_counts.get("体修", 0))
+	var body_count: int = int(system_counts.get("体修", 0))
 	effects["body_max_hp_bonus"] = 20 if body_count >= 2 else 0
 	effects["body_counter_enabled"] = body_count >= 4
 	effects["body_counter_damage"] = 8.0
 
-	var demon_count := int(system_counts.get("魔修", 0))
+	var demon_count: int = int(system_counts.get("魔修", 0))
 	effects["demon_low_hp_magic_damage_multiplier"] = 1.3 if demon_count >= 2 else 1.0
 	effects["demon_low_hp_all_damage_multiplier"] = 1.2 if demon_count >= 4 else 1.0
 

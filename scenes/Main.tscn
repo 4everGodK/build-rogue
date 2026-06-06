@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
@@ -14,10 +14,12 @@
 [ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id="13_fast"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyTank.tscn" id="14_tank"]
 [ext_resource type="PackedScene" path="res://scenes/BossBasic.tscn" id="15_boss"]
+[ext_resource type="Script" path="res://scripts/run_summary.gd" id="16_summary"]
+[ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="17_result"]
 
 [node name="Main" type="Node2D"]
 
-[node name="ArenaMap" type="Node2D" parent="."]
+[node name="Arena_Demo" type="Node2D" parent="."]
 script = ExtResource("11_arena")
 
 [node name="GameManager" type="Node" parent="."]
@@ -31,6 +33,8 @@ synergy_manager_path = NodePath("../SynergyManager")
 shop_manager_path = NodePath("../ShopManager")
 ui_path = NodePath("../UI")
 shop_path = NodePath("../UI/ShopPanel")
+result_panel_path = NodePath("../UI/ResultPanel")
+run_summary_path = NodePath("../RunSummary")
 
 [node name="AttackContainer" type="Node2D" parent="."]
 
@@ -56,6 +60,11 @@ script = ExtResource("9_synergy")
 [node name="ShopManager" type="Node" parent="."]
 script = ExtResource("10_shop_manager")
 
+[node name="RunSummary" type="Node" parent="."]
+script = ExtResource("16_summary")
+
 [node name="UI" parent="." instance=ExtResource("3_ui")]
 
 [node name="ShopPanel" parent="UI" instance=ExtResource("4_shop")]
+
+[node name="ResultPanel" parent="UI" instance=ExtResource("17_result")]

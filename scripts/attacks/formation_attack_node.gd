@@ -9,7 +9,7 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	player = owner_player
 	data = artifact_data
 	global_position = player.global_position
-	z_index = -1
+	z_index = 1
 	collision_layer = 0
 	collision_mask = 2
 	monitoring = true
@@ -49,7 +49,7 @@ func _circle_points(radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for index in 40:
 		var angle := TAU * float(index) / 40.0
-		var wobble := 1.0 if index % 2 == 0 else 0.88
+		var wobble: float = 1.0 if index % 2 == 0 else 0.88
 		points.append(Vector2(cos(angle), sin(angle)) * radius * wobble)
 	return points
 

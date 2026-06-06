@@ -62,7 +62,7 @@ func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> v
 	else:
 		for key in system_keys:
 			var count := int(system_counts[key])
-			var active_mark := "★ " if _is_system_synergy_active(str(key), count) else "  "
+			var active_mark: String = "★ " if _is_system_synergy_active(str(key), count) else "  "
 			lines.append("%s%s  %d" % [active_mark, key, count])
 	lines.append("")
 	lines.append("属性:")
@@ -187,10 +187,10 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 	text_box.add_child(desc_label)
 
 func _get_offer_icon(offer: Dictionary) -> Texture2D:
-	var icon := offer.get("icon", null) as Texture2D
+	var icon: Texture2D = offer.get("icon", null) as Texture2D
 	if icon != null:
 		return icon
-	var id := str(offer.get("id", ""))
+	var id: String = str(offer.get("id", ""))
 	var path := "res://art/icons/%s.png" % id
 	if id != "" and ResourceLoader.exists(path):
 		return load(path) as Texture2D

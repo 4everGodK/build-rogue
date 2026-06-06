@@ -27,7 +27,7 @@ func start(player: Node2D, attack_container: Node) -> void:
 		"summon":
 			persistent_node = SummonAttackTemplate.create(player, attack_container, data)
 
-func update(delta: float, player: Node2D, attack_container: Node) -> void:
+func update(delta: float, player: Node2D, attack_container: Node, target_reservations: Dictionary = {}) -> void:
 	if data == null:
 		return
 	if data.attack_template in ["orbit", "formation", "summon"]:
@@ -38,7 +38,8 @@ func update(delta: float, player: Node2D, attack_container: Node) -> void:
 	if cooldown_remaining > 0.0:
 		return
 
-	var target: Node2D = find_nearest_enemy(player)
+	var estimated_damage: float = _estimate_attack_damage(player)
+	var target: Node2D = find_nearest_enemy(player, _get_target_search_range(), estimated_damage, target_reservations)
 	if target == null:
 		return
 
@@ -67,6 +68,7 @@ func update(delta: float, player: Node2D, attack_container: Node) -> void:
 				BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
 			"line_delayed":
 				LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
+	_reserve_target_damage(target, estimated_damage, target_reservations)
 	var cooldown_multiplier := 1.0
 	if player.has_method("get_artifact_cooldown_multiplier"):
 		cooldown_multiplier = float(player.call("get_artifact_cooldown_multiplier"))
@@ -77,18 +79,62 @@ func dispose() -> void:
 		persistent_node.queue_free()
 	persistent_node = null
 
-static func find_nearest_enemy(player: Node2D) -> Node2D:
-	var nearest: Node2D
-	var nearest_distance_squared: float = INF
+static func find_nearest_enemy(player: Node2D, max_range: float = INF, estimated_damage: float = 0.0, target_reservations: Dictionary = {}) -> Node2D:
+	var nearest_viable: Node2D
+	var nearest_viable_distance_squared: float = INF
+	var nearest_any: Node2D
+	var nearest_any_distance_squared: float = INF
+	var max_distance_squared: float = max_range * max_range
 	for candidate in player.get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage"):
 			continue
 		var enemy := candidate as Node2D
+		if enemy.is_queued_for_deletion() or bool(enemy.get("dying")):
+			continue
 		var distance_squared := player.global_position.distance_squared_to(enemy.global_position)
-		if distance_squared < nearest_distance_squared:
-			nearest = enemy
-			nearest_distance_squared = distance_squared
-	return nearest
+		if distance_squared > max_distance_squared:
+			continue
+		if distance_squared < nearest_any_distance_squared:
+			nearest_any = enemy
+			nearest_any_distance_squared = distance_squared
+		var reserved_damage: float = float(target_reservations.get(enemy.get_instance_id(), 0.0))
+		var remaining_after_reserved: float = _get_enemy_hp(enemy) - reserved_damage
+		if remaining_after_reserved <= 0.0:
+			continue
+		if distance_squared < nearest_viable_distance_squared:
+			nearest_viable = enemy
+			nearest_viable_distance_squared = distance_squared
+	return nearest_viable if nearest_viable != null else nearest_any
+
+static func _get_enemy_hp(enemy: Node2D) -> float:
+	var hp_value: Variant = enemy.get("hp")
+	if hp_value is int or hp_value is float:
+		return float(hp_value)
+	return INF
+
+static func _reserve_target_damage(target: Node2D, estimated_damage: float, target_reservations: Dictionary) -> void:
+	if target == null or estimated_damage <= 0.0:
+		return
+	var key: int = target.get_instance_id()
+	target_reservations[key] = float(target_reservations.get(key, 0.0)) + estimated_damage
+
+func _get_target_search_range() -> float:
+	match data.attack_template:
+		"melee":
+			if data.attack_shape == "circle":
+				return maxf(1.0, data.radius)
+			return maxf(1.0, data.length)
+		"line_delayed":
+			return maxf(1.0, data.length)
+		_:
+			return maxf(1.0, data.range)
+
+func _estimate_attack_damage(player: Node2D) -> float:
+	var runtime := _make_runtime_data(player)
+	var estimate: float = runtime.damage
+	if source_data != null and source_data.system_tag == "剑修":
+		estimate *= 1.0 + _sword_double_chance()
+	return maxf(0.0, estimate)
 
 func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactData:
 	if artifact_data == null:

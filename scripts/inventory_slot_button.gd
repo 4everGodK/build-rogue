@@ -112,8 +112,8 @@ func _make_drag_preview() -> Control:
 	return panel
 
 func _apply_style(is_drop_target: bool) -> void:
-	var border := Color(1.0, 0.82, 0.32) if is_drop_target else Color(0.42, 0.46, 0.58)
-	var bg := Color(0.13, 0.15, 0.22, 0.95) if stack != null else Color(0.08, 0.09, 0.13, 0.82)
+	var border: Color = Color(1.0, 0.82, 0.32) if is_drop_target else Color(0.42, 0.46, 0.58)
+	var bg: Color = Color(0.13, 0.15, 0.22, 0.95) if stack != null else Color(0.08, 0.09, 0.13, 0.82)
 	add_theme_stylebox_override("normal", _make_style(bg, border, 2))
 	add_theme_stylebox_override("hover", _make_style(bg.lightened(0.08), Color(0.78, 0.9, 1.0), 2))
 	add_theme_stylebox_override("pressed", _make_style(bg.darkened(0.08), Color(1.0, 0.82, 0.32), 3))

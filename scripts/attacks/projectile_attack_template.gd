@@ -11,5 +11,11 @@ static func execute(player: Node2D, container: Node, data: ArtifactData, directi
 		if index >= base_count:
 			projectile_data = data.duplicate(true)
 			projectile_data.damage *= extra_damage_multiplier
-		var centered_index := float(index) - float(total_count - 1) * 0.5
-		projectile.setup(player, direction.rotated(centered_index * 0.12), projectile_data)
+		projectile.setup(player, direction.rotated(_spread_angle(index)), projectile_data)
+
+static func _spread_angle(index: int) -> float:
+	if index == 0:
+		return 0.0
+	var side: float = -1.0 if index % 2 == 1 else 1.0
+	var step: float = float((index + 1) / 2)
+	return side * step * 0.12

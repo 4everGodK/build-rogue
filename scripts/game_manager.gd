@@ -10,7 +10,11 @@ class_name GameManager
 @export var shop_manager_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
+@export var result_panel_path: NodePath
+@export var run_summary_path: NodePath
 @export var starting_spirit_stones: int = 3
+
+const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
 
 var player: Player
 var attack_container: Node2D
@@ -21,7 +25,10 @@ var synergy_manager: SynergyManager
 var shop_manager: ShopManager
 var game_ui: GameUI
 var shop_panel: ShopPanel
+var result_panel: ResultPanel
+var run_summary: RunSummary
 var in_shop: bool = false
+var run_ended: bool = false
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -37,7 +44,10 @@ func _initialize() -> void:
 	shop_manager = get_node(shop_manager_path)
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
+	result_panel = get_node(result_panel_path)
+	run_summary = get_node(run_summary_path)
 
+	run_summary.start_run()
 	player.artifact_manager.configure(player, attack_container)
 	player.artifact_manager.set_synergy_manager(synergy_manager)
 	wave_manager.configure(player)
@@ -56,7 +66,9 @@ func _initialize() -> void:
 	shop_panel.reroll_requested.connect(shop_manager.reroll)
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
 	shop_panel.inventory_move_requested.connect(inventory.move_stack)
-	wave_manager.enemy_killed.connect(economy_manager.add_spirit_stones)
+	result_panel.restart_requested.connect(_restart_run)
+	result_panel.main_menu_requested.connect(_return_to_main_menu)
+	wave_manager.enemy_killed.connect(_on_enemy_killed)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.wave_cleared.connect(_on_wave_cleared)
 
@@ -91,6 +103,8 @@ func _enter_shop(cleared_wave: int) -> void:
 	shop_panel.set_message(_synergy_effect_text())
 
 func _on_shop_continue_requested() -> void:
+	if run_ended:
+		return
 	_start_battle()
 
 func _on_wave_started(wave_number: int) -> void:
@@ -132,6 +146,10 @@ func _show_shop_message(message: String) -> void:
 	if in_shop:
 		shop_panel.set_message(message)
 
+func _on_enemy_killed(gold_reward: int) -> void:
+	run_summary.record_kill(gold_reward)
+	economy_manager.add_spirit_stones(gold_reward)
+
 func _synergy_effect_text() -> String:
 	var parts: Array[String] = []
 	var sword := float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
@@ -154,15 +172,47 @@ func _synergy_effect_text() -> String:
 func _clear_attack_nodes() -> void:
 	for attack in attack_container.get_children():
 		attack.queue_free()
+	for projectile in get_tree().get_nodes_in_group("boss_projectiles"):
+		projectile.queue_free()
 
 func _on_player_died() -> void:
+	if run_ended:
+		return
+	run_ended = true
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
+	_clear_attack_nodes()
 	game_ui.set_wave_status(wave_manager.wave_number, "已失败")
+	result_panel.show_result("你陨落了", _death_summary_text(), "重新开始")
 
 func _on_demo_completed() -> void:
+	if run_ended:
+		return
+	run_ended = true
 	in_shop = false
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
 	_clear_attack_nodes()
 	game_ui.set_wave_status(wave_manager.wave_number, "Demo通关")
+	result_panel.show_result("渡劫成功", _victory_summary_text(), "再来一局")
+
+func _death_summary_text() -> String:
+	return "到达波次: %d\n击杀数: %d\n灵石数: %d" % [
+		wave_manager.wave_number,
+		run_summary.kill_count,
+		economy_manager.spirit_stones,
+	]
+
+func _victory_summary_text() -> String:
+	return "通关时间: %s\n击杀数: %d\n最终Build:\n%s\n\n激活羁绊:\n%s" % [
+		run_summary.format_elapsed_time(),
+		run_summary.kill_count,
+		run_summary.build_text(inventory.battle_slots),
+		run_summary.synergy_text(synergy_manager.system_counts),
+	]
+
+func _restart_run() -> void:
+	get_tree().reload_current_scene()
+
+func _return_to_main_menu() -> void:
+	get_tree().change_scene_to_file(MAIN_MENU_SCENE)

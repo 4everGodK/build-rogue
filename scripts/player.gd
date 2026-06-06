@@ -84,7 +84,7 @@ func heal(amount: float) -> void:
 func add_shield(amount: float, maximum: float = 0.0) -> void:
 	if maximum > 0.0:
 		shield_limit = maxf(shield_limit, maximum)
-	var cap := shield_limit if shield_limit > 0.0 else float(max_hp)
+	var cap: float = shield_limit if shield_limit > 0.0 else float(max_hp)
 	shield = minf(cap, shield + maxf(0.0, amount))
 	shield_changed.emit(shield, cap)
 

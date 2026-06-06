@@ -24,6 +24,9 @@ var contact_damage_cooldown: float = 0.0
 
 @onready var visual: Polygon2D = $Visual
 
+func _ready() -> void:
+	hp = max_hp
+
 func _physics_process(delta: float) -> void:
 	if dying:
 		return

@@ -111,7 +111,6 @@ static func make_formation_visual(data: ArtifactData) -> Node2D:
 	var root := Node2D.new()
 	var color := _formation_color(data)
 	var ring := _ring_visual(color, data.radius)
-	ring.z_index = -1
 	root.add_child(ring)
 	var inner := _ring_visual(Color(color.r, color.g, color.b, color.a * 0.45), data.radius * 0.68)
 	root.add_child(inner)

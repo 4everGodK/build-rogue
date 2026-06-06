@@ -7,6 +7,7 @@ class_name ArenaMap
 
 func _ready() -> void:
 	_spawn_obstacles()
+	_spawn_decorations()
 	queue_redraw()
 
 func _draw() -> void:
@@ -51,3 +52,61 @@ func _spawn_obstacles() -> void:
 		])
 		visual.color = obstacle_color
 		body.add_child(visual)
+
+func _spawn_decorations() -> void:
+	var stones := [
+		Vector2(-760, -420),
+		Vector2(-360, 360),
+		Vector2(180, -420),
+		Vector2(720, -80),
+		Vector2(520, 420),
+	]
+	for position in stones:
+		_add_stone(position)
+
+	var trees := [
+		Vector2(-880, -120),
+		Vector2(-620, 430),
+		Vector2(-120, -470),
+		Vector2(420, -360),
+		Vector2(860, 300),
+	]
+	for position in trees:
+		_add_tree(position)
+
+func _add_stone(position: Vector2) -> void:
+	var stone := Polygon2D.new()
+	stone.position = position
+	stone.polygon = PackedVector2Array([
+		Vector2(-18, -10),
+		Vector2(-4, -20),
+		Vector2(18, -12),
+		Vector2(22, 8),
+		Vector2(6, 20),
+		Vector2(-20, 12),
+	])
+	stone.color = Color(0.26, 0.29, 0.32, 1.0)
+	add_child(stone)
+
+func _add_tree(position: Vector2) -> void:
+	var trunk := Polygon2D.new()
+	trunk.position = position + Vector2(0, 16)
+	trunk.polygon = PackedVector2Array([
+		Vector2(-5, -14),
+		Vector2(5, -14),
+		Vector2(7, 16),
+		Vector2(-7, 16),
+	])
+	trunk.color = Color(0.28, 0.16, 0.08, 1.0)
+	add_child(trunk)
+
+	var crown := Polygon2D.new()
+	crown.position = position
+	var points := PackedVector2Array()
+	for index in 18:
+		var angle := TAU * float(index) / 18.0
+		var radius: float = 26.0 if index % 2 == 0 else 20.0
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	crown.polygon = points
+	crown.color = Color(0.08, 0.28, 0.16, 1.0)
+	add_child(crown)
