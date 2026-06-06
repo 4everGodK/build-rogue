@@ -13,7 +13,7 @@ func recalculate(battle_slots: Array) -> void:
 	effects.clear()
 	var counted_ids: Dictionary = {}
 	for raw_stack in battle_slots:
-		var stack := raw_stack as ArtifactStack
+		var stack: ArtifactStack = raw_stack as ArtifactStack
 		if stack == null or stack.artifact_data == null:
 			continue
 		if counted_ids.has(stack.artifact_data.id):

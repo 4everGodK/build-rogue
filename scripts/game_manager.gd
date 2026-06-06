@@ -155,7 +155,7 @@ func _synergy_effect_text() -> String:
 	var sword := float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
 	if sword > 0.0:
 		parts.append("剑修: %d%%双击" % int(round(sword * 100.0)))
-	var extra := int(synergy_manager.get_effect_value("projectile_extra_count", 0))
+	var extra: int = int(synergy_manager.get_effect_value("projectile_extra_count", 0))
 	if extra > 0:
 		parts.append("法修: 额外发射物+%d" % extra)
 	var formation := float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))

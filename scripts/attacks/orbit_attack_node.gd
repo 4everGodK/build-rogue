@@ -22,7 +22,7 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 		var collision := CollisionShape2D.new()
 		collision.shape = shape
 		orbiter.add_child(collision)
-		var visual := ArtifactVisuals.make_orbiter_visual(data)
+		var visual: Node2D = ArtifactVisuals.make_orbiter_visual(data)
 		orbiter.add_child(visual)
 		add_child(orbiter)
 		orbiters.append(orbiter)

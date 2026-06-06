@@ -21,7 +21,7 @@ func _initialize_slots() -> void:
 
 func add_artifact(data: ArtifactData) -> bool:
 	_initialize_slots()
-	var stack := ArtifactStack.new(data, 1)
+	var stack: ArtifactStack = ArtifactStack.new(data, 1)
 	var index := _first_empty_index(battle_slots)
 	if index >= 0:
 		battle_slots[index] = stack
@@ -65,12 +65,12 @@ func _auto_merge_all() -> void:
 		merged = false
 		var all_slots := _all_slot_refs()
 		for first_index in range(all_slots.size()):
-			var first := all_slots[first_index]["slots"][all_slots[first_index]["index"]] as ArtifactStack
+			var first: ArtifactStack = all_slots[first_index]["slots"][all_slots[first_index]["index"]] as ArtifactStack
 			if first == null or first.star_level >= 3:
 				continue
 			var matches: Array = [all_slots[first_index]]
 			for next_index in range(first_index + 1, all_slots.size()):
-				var candidate := all_slots[next_index]["slots"][all_slots[next_index]["index"]] as ArtifactStack
+				var candidate: ArtifactStack = all_slots[next_index]["slots"][all_slots[next_index]["index"]] as ArtifactStack
 				if first.is_same_artifact_and_star(candidate):
 					matches.append(all_slots[next_index])
 					if matches.size() >= 3:

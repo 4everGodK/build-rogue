@@ -18,6 +18,7 @@ var invincible_time: float = 0.0
 var shield: float = 0.0
 var shield_limit: float = 0.0
 var artifact_cooldown_multiplier: float = 1.0
+var artifact_move_speed_multiplier: float = 1.0
 var body_counter_enabled: bool = false
 var body_counter_damage: float = 8.0
 
@@ -35,7 +36,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
-	velocity = _read_move_input() * move_speed
+	velocity = _read_move_input() * move_speed * artifact_move_speed_multiplier
 	move_and_slide()
 	global_position = global_position.clamp(-arena_half_size, arena_half_size)
 	if invincible_time > 0.0:
@@ -89,12 +90,15 @@ func add_shield(amount: float, maximum: float = 0.0) -> void:
 	shield_changed.emit(shield, cap)
 
 func spend_life_percent(percent: float) -> void:
-	var cost := maxi(1, int(ceil(float(max_hp) * maxf(0.0, percent) * 0.01)))
+	var cost: int = maxi(1, int(ceil(float(max_hp) * maxf(0.0, percent) * 0.01)))
 	hp = maxi(1, hp - cost)
 	hp_changed.emit(hp, max_hp)
 
 func set_artifact_cooldown_multiplier(multiplier: float) -> void:
 	artifact_cooldown_multiplier = clampf(multiplier, 0.1, 1.0)
+
+func set_artifact_move_speed_multiplier(multiplier: float) -> void:
+	artifact_move_speed_multiplier = maxf(1.0, multiplier)
 
 func get_artifact_cooldown_multiplier() -> float:
 	return artifact_cooldown_multiplier
@@ -115,6 +119,7 @@ func reset_combat_state() -> void:
 	shield = 0.0
 	shield_limit = 0.0
 	artifact_cooldown_multiplier = 1.0
+	artifact_move_speed_multiplier = 1.0
 	shield_changed.emit(shield, shield_limit)
 
 func set_battle_paused(paused: bool) -> void:

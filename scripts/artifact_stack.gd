@@ -28,3 +28,12 @@ func to_offer() -> Dictionary:
 	var offer := artifact_data.to_offer()
 	offer["star_level"] = star_level
 	return offer
+
+func get_upgrade_tooltip() -> String:
+	if artifact_data == null:
+		return ""
+	return "%s %s\n\n%s" % [
+		artifact_data.display_name,
+		get_star_text(),
+		ArtifactStarConfig.describe_star_effect(artifact_data, star_level),
+	]

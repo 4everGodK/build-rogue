@@ -18,7 +18,7 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	var collision := CollisionShape2D.new()
 	collision.shape = shape
 	add_child(collision)
-	var visual := ArtifactVisuals.make_formation_visual(data)
+	var visual: Node2D = ArtifactVisuals.make_formation_visual(data)
 	add_child(visual)
 
 func _physics_process(delta: float) -> void:
@@ -32,10 +32,14 @@ func _physics_process(delta: float) -> void:
 	tick_remaining = maxf(0.05, data.tick_interval)
 	if data.effect_type == "attack_speed" and player.has_method("set_artifact_cooldown_multiplier"):
 		player.call("set_artifact_cooldown_multiplier", maxf(0.1, 1.0 - data.attack_speed_bonus))
+		if player.has_method("set_artifact_move_speed_multiplier"):
+			player.call("set_artifact_move_speed_multiplier", 1.0 + data.movement_speed_bonus)
 	elif data.effect_type == "heal" and player.has_method("heal"):
 		player.call("heal", data.heal_amount)
 	elif data.effect_type == "shield" and player.has_method("add_shield"):
 		player.call("add_shield", data.shield_amount, data.shield_max)
+		if data.shield_knockback_force > 0.0:
+			_knockback_nearby_enemies()
 		HitEffectManager.spawn_hit(get_tree(), player.global_position, "shield", Vector2.RIGHT, data.radius)
 	for body in get_overlapping_bodies():
 		if data.effect_type == "damage" and body.has_method("take_damage"):
@@ -57,3 +61,11 @@ func _exit_tree() -> void:
 	if data != null and data.effect_type == "attack_speed" and is_instance_valid(player):
 		if player.has_method("set_artifact_cooldown_multiplier"):
 			player.call("set_artifact_cooldown_multiplier", 1.0)
+		if player.has_method("set_artifact_move_speed_multiplier"):
+			player.call("set_artifact_move_speed_multiplier", 1.0)
+
+func _knockback_nearby_enemies() -> void:
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate is Node2D and candidate.has_method("apply_knockback"):
+			if player.global_position.distance_to((candidate as Node2D).global_position) <= data.radius:
+				candidate.call("apply_knockback", player.global_position, data.shield_knockback_force)

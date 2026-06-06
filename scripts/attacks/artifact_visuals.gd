@@ -76,7 +76,7 @@ static func make_melee_visual(data: ArtifactData) -> Node2D:
 		"fist":
 			root.add_child(_impact_wave(Color(1.0, 0.48, 0.14, 0.55), data.length * 0.55))
 		"palm":
-			root.add_child(_fan_visual(Color(0.42, 0.85, 1.0, 0.42), maxf(72.0, data.length), deg_to_rad(70.0)))
+			root.add_child(_fan_visual(Color(0.42, 0.85, 1.0, 0.42), maxf(72.0, data.length), deg_to_rad(70.0) * data.melee_arc_multiplier))
 		"kick":
 			root.add_child(_spiral_visual(Color(0.66, 0.86, 1.0, 0.52), data.radius))
 		"blood_sword":

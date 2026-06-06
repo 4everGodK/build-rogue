@@ -13,6 +13,7 @@ func setup(area: String, index: int, next_stack: ArtifactStack) -> void:
 	slot_index = index
 	stack = next_stack
 	text = ""
+	tooltip_text = "" if stack == null else stack.get_upgrade_tooltip()
 	custom_minimum_size = Vector2(96, 92)
 	focus_mode = Control.FOCUS_NONE
 	theme_type_variation = "InventorySlotButton"

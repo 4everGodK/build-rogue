@@ -27,7 +27,7 @@ func format_elapsed_time() -> String:
 func build_text(battle_slots: Array) -> String:
 	var lines: Array[String] = []
 	for raw_stack in battle_slots:
-		var stack := raw_stack as ArtifactStack
+		var stack: ArtifactStack = raw_stack as ArtifactStack
 		if stack != null and stack.artifact_data != null:
 			lines.append(stack.get_display_name())
 	return "无" if lines.is_empty() else "\n".join(lines)
@@ -37,7 +37,7 @@ func synergy_text(system_counts: Dictionary) -> String:
 	var keys := system_counts.keys()
 	keys.sort()
 	for key in keys:
-		var count := int(system_counts[key])
+		var count: int = int(system_counts[key])
 		if count >= 2:
 			lines.append("%s %d" % [key, count])
 	return "无" if lines.is_empty() else "\n".join(lines)

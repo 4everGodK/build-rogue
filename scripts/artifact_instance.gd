@@ -139,20 +139,16 @@ func _estimate_attack_damage(player: Node2D) -> float:
 func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactData:
 	if artifact_data == null:
 		return null
-	var effective := artifact_data.duplicate(true) as ArtifactData
-	match star:
-		2:
-			effective.damage *= 1.5
-			effective.cooldown *= 0.85
-		3:
-			effective.damage *= 2.2
-			effective.cooldown *= 0.7
+	var effective: ArtifactData = artifact_data.duplicate(true) as ArtifactData
+	ArtifactStarConfig.apply_numeric_growth(effective, artifact_data, star)
+	if star >= 3:
+		ArtifactStarConfig.apply_star3_bonus(effective)
 	if synergy_manager != null and effective.attack_template == "formation":
 		effective.radius *= float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
 	return effective
 
 func _make_runtime_data(player: Node2D) -> ArtifactData:
-	var runtime := data.duplicate(true) as ArtifactData
+	var runtime: ArtifactData = data.duplicate(true) as ArtifactData
 	if synergy_manager != null:
 		var low_hp: bool = player.has_method("get_hp_ratio") and float(player.call("get_hp_ratio")) < 0.5
 		if low_hp:

@@ -43,6 +43,25 @@ class_name ArtifactData
 @export var visual_color: Color = Color.WHITE
 @export var price: int = 6
 
+@export_group("Star Growth")
+@export var star2_damage_mult: float = 0.0
+@export var star2_cooldown_mult: float = 0.0
+@export var star3_damage_mult: float = 0.0
+@export var star3_cooldown_mult: float = 0.0
+
+@export_group("Runtime Upgrade Bonuses")
+@export var crit_chance: float = 0.0
+@export var crit_damage_mult: float = 2.0
+@export var extra_melee_wave_damage_mult: float = 0.0
+@export var extra_melee_wave_range: float = 90.0
+@export var extra_melee_wave_width: float = 22.0
+@export var projectile_return_count: int = 0
+@export var poison_explosion_radius: float = 0.0
+@export var poison_explosion_damage_mult: float = 0.0
+@export var shield_knockback_force: float = 0.0
+@export var movement_speed_bonus: float = 0.0
+@export var melee_arc_multiplier: float = 1.0
+
 func to_offer() -> Dictionary:
 	return {
 		"id": id,
@@ -55,4 +74,8 @@ func to_offer() -> Dictionary:
 		"attack_template": attack_template,
 		"level": 1,
 		"price": price,
+		"star2_damage_mult": star2_damage_mult,
+		"star2_cooldown_mult": star2_cooldown_mult,
+		"star3_damage_mult": star3_damage_mult,
+		"star3_cooldown_mult": star3_cooldown_mult,
 	}

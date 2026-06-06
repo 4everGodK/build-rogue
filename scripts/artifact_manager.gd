@@ -26,10 +26,10 @@ func clear_artifacts() -> void:
 func sync_from_battle_slots(battle_slots: Array) -> void:
 	clear_artifacts()
 	for raw_stack in battle_slots:
-		var stack := raw_stack as ArtifactStack
+		var stack: ArtifactStack = raw_stack as ArtifactStack
 		if stack == null or stack.artifact_data == null:
 			continue
-		var instance := ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager)
+		var instance: ArtifactInstance = ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager)
 		artifacts.append(instance)
 		if is_instance_valid(owner_player) and is_instance_valid(attack_container):
 			instance.start(owner_player, attack_container)

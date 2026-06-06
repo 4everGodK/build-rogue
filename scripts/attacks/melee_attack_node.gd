@@ -32,9 +32,11 @@ func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 		collision.shape = rectangle
 	add_child(collision)
 
-	var visual := ArtifactVisuals.make_melee_visual(data)
+	var visual: Node2D = ArtifactVisuals.make_melee_visual(data)
 	add_child(visual)
 	_animate_visual(visual, data)
+	if data.extra_melee_wave_damage_mult > 0.0:
+		_spawn_extra_melee_wave(data)
 	body_entered.connect(_on_body_entered)
 	get_tree().create_timer(maxf(0.1, data.duration)).timeout.connect(queue_free)
 
@@ -44,9 +46,47 @@ func _on_body_entered(body: Node) -> void:
 	if max_targets > 0 and hit_enemies.size() >= max_targets:
 		return
 	hit_enemies[body] = true
-	body.call("take_damage", damage, source)
+	body.call("take_damage", _roll_damage(), source)
 	if body is Node2D:
 		HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, ArtifactVisuals.melee_hit_kind(data), direction, 18.0)
+
+func _roll_damage() -> float:
+	if data != null and data.crit_chance > 0.0 and randf() < data.crit_chance:
+		return damage * maxf(1.0, data.crit_damage_mult)
+	return damage
+
+func _spawn_extra_melee_wave(data: ArtifactData) -> void:
+	var wave := Area2D.new()
+	wave.collision_layer = 0
+	wave.collision_mask = 2
+	wave.monitoring = true
+	wave.position = Vector2(data.length + data.extra_melee_wave_range * 0.5, 0.0)
+	add_child(wave)
+
+	var rectangle := RectangleShape2D.new()
+	rectangle.size = Vector2(data.extra_melee_wave_range, data.extra_melee_wave_width)
+	var collision := CollisionShape2D.new()
+	collision.shape = rectangle
+	wave.add_child(collision)
+
+	var visual := Line2D.new()
+	visual.width = maxf(3.0, data.extra_melee_wave_width * 0.25)
+	visual.default_color = Color(0.86, 0.95, 1.0, 0.65)
+	visual.points = PackedVector2Array([
+		Vector2(-data.extra_melee_wave_range * 0.5, 0.0),
+		Vector2(data.extra_melee_wave_range * 0.5, 0.0),
+	])
+	wave.add_child(visual)
+
+	var wave_hits: Dictionary = {}
+	wave.body_entered.connect(func(body: Node) -> void:
+		if wave_hits.has(body) or not body.has_method("take_damage"):
+			return
+		wave_hits[body] = true
+		body.call("take_damage", damage * data.extra_melee_wave_damage_mult, source)
+		if body is Node2D:
+			HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "sword", direction, 14.0)
+	)
 
 func _animate_visual(visual: Node2D, data: ArtifactData) -> void:
 	visual.scale = Vector2(0.65, 0.65)

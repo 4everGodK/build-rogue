@@ -19,10 +19,10 @@ func configure(next_economy: EconomyManager, next_inventory: ArtifactInventory) 
 
 func generate_offers() -> void:
 	current_offers.clear()
-	var ids := ArtifactCatalog.all_ids()
+	var ids: Array = ArtifactCatalog.all_ids()
 	ids.shuffle()
 	for index in mini(OFFER_COUNT, ids.size()):
-		var data := ArtifactCatalog.get_data(str(ids[index]))
+		var data: ArtifactData = ArtifactCatalog.get_data(str(ids[index]))
 		if data != null:
 			current_offers.append(data)
 	offers_changed.emit(get_offer_dictionaries())
@@ -54,7 +54,7 @@ func reroll() -> void:
 func get_offer_dictionaries() -> Array:
 	var result: Array = []
 	for data in current_offers:
-		var offer := data.to_offer()
+		var offer: Dictionary = data.to_offer()
 		offer["price"] = BUY_COST
 		offer["star_level"] = 1
 		result.append(offer)

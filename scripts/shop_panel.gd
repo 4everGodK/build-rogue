@@ -61,7 +61,7 @@ func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> v
 		lines.append("无")
 	else:
 		for key in system_keys:
-			var count := int(system_counts[key])
+			var count: int = int(system_counts[key])
 			var active_mark: String = "★ " if _is_system_synergy_active(str(key), count) else "  "
 			lines.append("%s%s  %d" % [active_mark, key, count])
 	lines.append("")
@@ -89,6 +89,10 @@ func _render_offers() -> void:
 		button.custom_minimum_size = Vector2(330, 112)
 		button.disabled = current_stones < ShopManager.BUY_COST
 		button.text = ""
+		button.tooltip_text = "%s ★\n\n%s" % [
+			offer.get("display_name", "未知法宝"),
+			ArtifactStarConfig.describe_offer(offer, int(offer.get("star_level", 1))),
+		]
 		button.focus_mode = Control.FOCUS_NONE
 		_apply_card_style(button)
 		_build_offer_card(button, offer)

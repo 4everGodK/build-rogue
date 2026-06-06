@@ -5,7 +5,7 @@ static func execute(player: Node2D, container: Node, data: ArtifactData, directi
 	var base_count: int = maxi(1, data.count)
 	var total_count: int = base_count + maxi(0, extra_count)
 	for index in range(total_count):
-		var projectile := ArtifactProjectile.new()
+		var projectile: ArtifactProjectile = ArtifactProjectile.new()
 		container.add_child(projectile)
 		var projectile_data := data
 		if index >= base_count:
