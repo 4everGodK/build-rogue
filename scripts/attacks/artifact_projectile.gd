@@ -42,9 +42,9 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	monitoring = true
 	rotation = direction.angle()
 
-	var shape := CircleShape2D.new()
+	var shape: CircleShape2D = CircleShape2D.new()
 	shape.radius = maxf(4.0, minf(visual_radius, 14.0))
-	var collision := CollisionShape2D.new()
+	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.shape = shape
 	add_child(collision)
 
@@ -56,7 +56,7 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	body_entered.connect(_on_body_entered)
 
 func _physics_process(delta: float) -> void:
-	var movement := direction * speed * delta
+	var movement: Vector2 = direction * speed * delta
 	global_position += movement
 	traveled_distance += movement.length()
 	if is_instance_valid(visual_node) and spin_speed > 0.0:
@@ -103,12 +103,12 @@ func _explode(direct_target: Node) -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= explosion_radius:
 				candidate.call("take_damage", damage, source)
-	var blast := Polygon2D.new()
+	var blast: Polygon2D = Polygon2D.new()
 	blast.polygon = _circle_points(explosion_radius)
 	blast.color = Color(1.0, 0.25, 0.05, 0.25)
 	blast.global_position = global_position
 	get_tree().current_scene.add_child(blast)
-	var tween := get_tree().create_tween()
+	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(blast, "modulate:a", 0.0, 0.18)
 	tween.tween_callback(blast.queue_free)
 
@@ -127,7 +127,7 @@ func _bounce_to_next_enemy() -> bool:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or hit_enemies.has(candidate):
 			continue
-		var distance := global_position.distance_to((candidate as Node2D).global_position)
+		var distance: float = global_position.distance_to((candidate as Node2D).global_position)
 		if distance <= bounce_range and distance < nearest_distance:
 			next_enemy = candidate as Node2D
 			nearest_distance = distance
@@ -139,8 +139,8 @@ func _bounce_to_next_enemy() -> bool:
 	return true
 
 func _circle_points(radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points: PackedVector2Array = PackedVector2Array()
 	for index in 16:
-		var angle := TAU * float(index) / 16.0
+		var angle: float = TAU * float(index) / 16.0
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
 	return points

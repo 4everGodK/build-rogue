@@ -58,7 +58,8 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 			data.projectile_bounce += 2
 			data.bounce_count += 2
 		"brush":
-			data.delayed_strike_count += 1
+			data.length *= 1.35
+			data.width *= 1.2
 		"magic_ring":
 			data.width *= 1.5
 			data.radius *= 1.5
@@ -143,7 +144,7 @@ static func get_star3_description(id: String) -> String:
 		"copper_coin":
 			return "弹射次数 +2"
 		"brush":
-			return "墨迹段数 +1"
+			return "墨迹长度 +35%，宽度 +20%"
 		"magic_ring":
 			return "法环宽度 +50%"
 		"fist":

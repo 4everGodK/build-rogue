@@ -29,9 +29,22 @@ var result_panel: ResultPanel
 var run_summary: RunSummary
 var in_shop: bool = false
 var run_ended: bool = false
+var wave_elapsed_time: float = 0.0
+var artifact_hud_refresh_remaining: float = 0.0
 
 func _ready() -> void:
 	call_deferred("_initialize")
+
+func _process(delta: float) -> void:
+	if player == null or wave_manager == null or game_ui == null:
+		return
+	if not in_shop and not run_ended and wave_manager.active:
+		wave_elapsed_time += delta
+	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), wave_elapsed_time, wave_manager.alive_enemies)
+	artifact_hud_refresh_remaining -= delta
+	if artifact_hud_refresh_remaining <= 0.0:
+		artifact_hud_refresh_remaining = 0.12
+		_update_battle_ui(true)
 
 func _initialize() -> void:
 	randomize()
@@ -77,6 +90,7 @@ func _initialize() -> void:
 	economy_manager.reset(starting_spirit_stones)
 	_on_inventory_changed()
 	game_ui.set_wave_status(1, "准备阶段")
+	_update_battle_ui(true)
 	_enter_shop(0)
 
 func _start_battle() -> void:
@@ -84,6 +98,7 @@ func _start_battle() -> void:
 	shop_panel.close_shop()
 	player.set_battle_paused(false)
 	wave_manager.start_next_wave()
+	_update_battle_ui(true)
 
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
@@ -108,22 +123,27 @@ func _on_shop_continue_requested() -> void:
 	_start_battle()
 
 func _on_wave_started(wave_number: int) -> void:
+	wave_elapsed_time = 0.0
 	game_ui.set_wave_status(wave_number, "战斗中")
+	_update_battle_ui(true)
 
 func _on_wave_cleared(wave_number: int) -> void:
 	if wave_number >= 5:
 		_on_demo_completed()
 		return
 	game_ui.set_wave_status(wave_number, "商店阶段")
+	_update_battle_ui(true)
 	_enter_shop(wave_number)
 
 func _on_inventory_changed() -> void:
 	synergy_manager.recalculate(inventory.battle_slots)
 	player.artifact_manager.sync_from_battle_slots(inventory.battle_slots)
+	game_ui.set_equipped_artifacts(inventory.battle_slots, player.artifact_manager.artifacts)
 	if in_shop:
 		shop_panel.set_inventory(inventory.battle_slots, inventory.bag_slots)
 
 func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
+	game_ui.set_synergies(system_counts, attribute_counts)
 	player.set_body_synergy(
 		int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)),
 		bool(synergy_manager.get_effect_value("body_counter_enabled", false)),
@@ -136,6 +156,7 @@ func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictiona
 func _on_shop_offers_changed(offers: Array) -> void:
 	if in_shop and shop_panel.visible:
 		shop_panel.set_offers(offers)
+		shop_panel.set_economy(economy_manager.spirit_stones)
 
 func _on_spirit_stones_changed(amount: int) -> void:
 	game_ui.set_spirit_stones(amount)
@@ -149,16 +170,24 @@ func _show_shop_message(message: String) -> void:
 func _on_enemy_killed(gold_reward: int) -> void:
 	run_summary.record_kill(gold_reward)
 	economy_manager.add_spirit_stones(gold_reward)
+	_update_battle_ui(false)
+
+func _update_battle_ui(refresh_artifacts: bool = false) -> void:
+	if game_ui == null or wave_manager == null or player == null or inventory == null:
+		return
+	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), wave_elapsed_time, wave_manager.alive_enemies)
+	if refresh_artifacts:
+		game_ui.set_equipped_artifacts(inventory.battle_slots, player.artifact_manager.artifacts)
 
 func _synergy_effect_text() -> String:
 	var parts: Array[String] = []
-	var sword := float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
+	var sword: float = float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
 	if sword > 0.0:
 		parts.append("剑修: %d%%双击" % int(round(sword * 100.0)))
 	var extra: int = int(synergy_manager.get_effect_value("projectile_extra_count", 0))
 	if extra > 0:
 		parts.append("法修: 额外发射物+%d" % extra)
-	var formation := float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
+	var formation: float = float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
 	if formation > 1.0:
 		parts.append("阵法: 范围+%d%%" % int(round((formation - 1.0) * 100.0)))
 	if int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)) > 0:

@@ -27,75 +27,106 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer"]
+[node name="Root" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
-[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/Root"]
 layout_mode = 2
-text = "商店阶段"
+text = "准备阶段"
 horizontal_alignment = 1
 
-[node name="MessageLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="TopActionRow" type="HBoxContainer" parent="Panel/MarginContainer/Root"]
 layout_mode = 2
-text = ""
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="MainRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
+[node name="RerollButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
+custom_minimum_size = Vector2(118, 38)
 layout_mode = 2
-size_flags_vertical = 3
+text = "刷新: 1"
+
+[node name="ContinueButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+text = "继续战斗"
+
+[node name="MainRow" type="HBoxContainer" parent="Panel/MarginContainer/Root"]
+layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="OfferBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MainRow"]
+[node name="LeftColumn" type="VBoxContainer" parent="Panel/MarginContainer/Root/MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 10
 
-[node name="InventoryBox" type="VBoxContainer" parent="Panel/MarginContainer/VBoxContainer/MainRow"]
+[node name="ShopFrame" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
 layout_mode = 2
-size_flags_horizontal = 3
+
+[node name="ShopBox" type="VBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame"]
+layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BattleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
+[node name="ShopHeader" type="HBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
 layout_mode = 2
-text = "出战区 5"
+theme_override_constants/separation = 12
 
-[node name="BattleGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
+[node name="StoneLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "灵石: 0"
+
+[node name="OfferBox" type="HBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MessageLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="BattleFrame" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
+layout_mode = 2
+
+[node name="BattleBox" type="VBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BattleLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox"]
+layout_mode = 2
+text = "出战区 5/5"
+
+[node name="BattleGrid" type="GridContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox"]
 layout_mode = 2
 columns = 5
 
-[node name="BagLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
+[node name="BagFrame" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
+layout_mode = 2
+
+[node name="BagBox" type="VBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="BagLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox"]
 layout_mode = 2
 text = "储物袋 8"
 
-[node name="BagGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
+[node name="BagGrid" type="GridContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox"]
 layout_mode = 2
-columns = 4
+columns = 8
 
-[node name="SynergyLabel" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer/MainRow"]
+[node name="SynergyFrame" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow"]
+custom_minimum_size = Vector2(270, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "羁绊统计"
+
+[node name="SynergyLabel" type="RichTextLabel" parent="Panel/MarginContainer/Root/MainRow/SynergyFrame"]
+layout_mode = 2
 bbcode_enabled = true
 fit_content = true
-
-[node name="ActionRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="StoneLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/ActionRow"]
-layout_mode = 2
-text = "灵石: 0"
-
-[node name="RerollButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ActionRow"]
-layout_mode = 2
-text = "刷新 -1"
-
-[node name="ContinueButton" type="Button" parent="Panel/MarginContainer/VBoxContainer/ActionRow"]
-layout_mode = 2
-text = "继续"
+scroll_active = false
+text = "羁绊统计"

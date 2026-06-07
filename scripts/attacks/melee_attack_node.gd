@@ -20,13 +20,13 @@ func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 	collision_mask = 2
 	monitoring = true
 
-	var collision := CollisionShape2D.new()
+	var collision: CollisionShape2D = CollisionShape2D.new()
 	if data.attack_shape == "circle":
-		var circle := CircleShape2D.new()
+		var circle: CircleShape2D = CircleShape2D.new()
 		circle.radius = data.radius
 		collision.shape = circle
 	else:
-		var rectangle := RectangleShape2D.new()
+		var rectangle: RectangleShape2D = RectangleShape2D.new()
 		rectangle.size = Vector2(data.length, data.width)
 		collision.position.x = data.length * 0.5
 		collision.shape = rectangle
@@ -58,20 +58,20 @@ func _roll_damage() -> float:
 	return damage
 
 func _spawn_extra_melee_wave(data: ArtifactData) -> void:
-	var wave := Area2D.new()
+	var wave: Area2D = Area2D.new()
 	wave.collision_layer = 0
 	wave.collision_mask = 2
 	wave.monitoring = true
 	wave.position = Vector2(data.length + data.extra_melee_wave_range * 0.5, 0.0)
 	add_child(wave)
 
-	var rectangle := RectangleShape2D.new()
+	var rectangle: RectangleShape2D = RectangleShape2D.new()
 	rectangle.size = Vector2(data.extra_melee_wave_range, data.extra_melee_wave_width)
-	var collision := CollisionShape2D.new()
+	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.shape = rectangle
 	wave.add_child(collision)
 
-	var visual := Line2D.new()
+	var visual: Line2D = Line2D.new()
 	visual.width = maxf(3.0, data.extra_melee_wave_width * 0.25)
 	visual.default_color = Color(0.86, 0.95, 1.0, 0.65)
 	visual.points = PackedVector2Array([
@@ -93,15 +93,15 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 func _animate_visual(visual: Node2D, data: ArtifactData) -> void:
 	visual.scale = Vector2(0.65, 0.65)
 	visual.modulate.a = 0.0
-	var tween := get_tree().create_tween()
-	var appear_time := minf(0.06, maxf(0.03, data.duration * 0.35))
+	var tween: Tween = get_tree().create_tween()
+	var appear_time: float = minf(0.06, maxf(0.03, data.duration * 0.35))
 	tween.tween_property(visual, "modulate:a", 1.0, appear_time)
 	tween.parallel().tween_property(visual, "scale", Vector2.ONE, appear_time)
 	tween.tween_property(visual, "modulate:a", 0.0, maxf(0.04, data.duration - appear_time))
 
 func _circle_points(circle_radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points: PackedVector2Array = PackedVector2Array()
 	for index in 24:
-		var angle := TAU * float(index) / 24.0
+		var angle: float = TAU * float(index) / 24.0
 		points.append(Vector2(cos(angle), sin(angle)) * circle_radius)
 	return points

@@ -13,9 +13,9 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	collision_layer = 0
 	collision_mask = 2
 	monitoring = true
-	var shape := CircleShape2D.new()
+	var shape: CircleShape2D = CircleShape2D.new()
 	shape.radius = data.radius
-	var collision := CollisionShape2D.new()
+	var collision: CollisionShape2D = CollisionShape2D.new()
 	collision.shape = shape
 	add_child(collision)
 	var visual: Node2D = ArtifactVisuals.make_formation_visual(data)
@@ -63,9 +63,9 @@ func _formation_hit_kind() -> String:
 			return "flash"
 
 func _circle_points(radius: float) -> PackedVector2Array:
-	var points := PackedVector2Array()
+	var points: PackedVector2Array = PackedVector2Array()
 	for index in 40:
-		var angle := TAU * float(index) / 40.0
+		var angle: float = TAU * float(index) / 40.0
 		var wobble: float = 1.0 if index % 2 == 0 else 0.88
 		points.append(Vector2(cos(angle), sin(angle)) * radius * wobble)
 	return points
