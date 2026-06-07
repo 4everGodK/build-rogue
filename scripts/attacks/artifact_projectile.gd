@@ -69,6 +69,8 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	body.call("take_damage", damage, source)
+	if data.poison_dps > 0.0 and body.has_method("apply_poison"):
+		body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
 	HitEffectManager.spawn_hit(get_tree(), global_position, ArtifactVisuals.projectile_hit_kind(data), direction, maxf(14.0, visual_radius * 1.8))
 	if data.id == "flying_sword":
 		HitEffectManager.spawn_hit(get_tree(), global_position, "lightning", direction, maxf(10.0, visual_radius * 1.2))

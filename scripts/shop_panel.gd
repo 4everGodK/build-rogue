@@ -10,11 +10,20 @@ signal inventory_move_requested(from_area: String, from_index: int, to_area: Str
 @onready var stone_label: Label = $Panel/MarginContainer/VBoxContainer/ActionRow/StoneLabel
 @onready var message_label: Label = $Panel/MarginContainer/VBoxContainer/MessageLabel
 @onready var offer_box: VBoxContainer = $Panel/MarginContainer/VBoxContainer/MainRow/OfferBox
+@onready var battle_label: Label = $Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox/BattleLabel
 @onready var battle_grid: GridContainer = $Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox/BattleGrid
 @onready var bag_grid: GridContainer = $Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox/BagGrid
-@onready var synergy_label: Label = $Panel/MarginContainer/VBoxContainer/MainRow/SynergyLabel
+@onready var synergy_label: RichTextLabel = $Panel/MarginContainer/VBoxContainer/MainRow/SynergyLabel
 @onready var reroll_button: Button = $Panel/MarginContainer/VBoxContainer/ActionRow/RerollButton
 @onready var continue_button: Button = $Panel/MarginContainer/VBoxContainer/ActionRow/ContinueButton
+
+const SYSTEM_SYNERGY_STYLE_BY_TIER: Dictionary = {
+	0: {"icon": "◇", "color": "#858b96"},
+	1: {"icon": "◆", "color": "#c8d0d8"},
+	2: {"icon": "◆", "color": "#f3c969"},
+	3: {"icon": "◆", "color": "#ff7ad9"},
+}
+const ATTRIBUTE_TAG_STYLE: Dictionary = {"icon": "◇", "color": "#858b96"}
 
 var current_offers: Array = []
 var current_battle_slots: Array = []
@@ -40,7 +49,7 @@ func close_shop() -> void:
 
 func set_economy(stones: int) -> void:
 	current_stones = stones
-	stone_label.text = "灵石: %d    购买: 3    刷新: 1" % current_stones
+	stone_label.text = "灵石: %d    购买: %d" % [current_stones, ShopManager.BUY_COST]
 	reroll_button.disabled = current_stones < ShopManager.REROLL_COST
 	_render_offers()
 
@@ -51,28 +60,28 @@ func set_offers(offers: Array) -> void:
 func set_inventory(battle_slots: Array, bag_slots: Array) -> void:
 	current_battle_slots = battle_slots.duplicate()
 	current_bag_slots = bag_slots.duplicate()
+	_update_battle_slot_layout(current_battle_slots.size())
 	_render_slots()
 
 func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
-	var lines: Array[String] = ["羁绊统计", "", "体系:"]
+	var lines: Array[String] = ["[b]羁绊统计[/b]", "", "[color=#d8dde8]体系[/color]"]
 	var system_keys := system_counts.keys()
 	system_keys.sort()
 	if system_keys.is_empty():
-		lines.append("无")
+		lines.append(_format_inactive_tag("无"))
 	else:
 		for key in system_keys:
 			var count: int = int(system_counts[key])
-			var active_mark: String = "★ " if _is_system_synergy_active(str(key), count) else "  "
-			lines.append("%s%s  %d" % [active_mark, key, count])
+			lines.append(_format_system_tag(str(key), count))
 	lines.append("")
-	lines.append("属性:")
+	lines.append("[color=#d8dde8]属性[/color]")
 	var attribute_keys := attribute_counts.keys()
 	attribute_keys.sort()
 	if attribute_keys.is_empty():
-		lines.append("无")
+		lines.append(_format_inactive_tag("无"))
 	else:
 		for key in attribute_keys:
-			lines.append("  %s  %d" % [key, attribute_counts[key]])
+			lines.append(_format_attribute_tag(str(key), int(attribute_counts[key])))
 	synergy_label.text = "\n".join(lines)
 
 func set_message(message: String) -> void:
@@ -108,6 +117,10 @@ func _render_slots() -> void:
 		battle_grid.add_child(_make_slot_button("battle", index, current_battle_slots[index] as ArtifactStack))
 	for index in range(current_bag_slots.size()):
 		bag_grid.add_child(_make_slot_button("bag", index, current_bag_slots[index] as ArtifactStack))
+
+func _update_battle_slot_layout(slot_count: int) -> void:
+	battle_label.text = "出战区 %d" % slot_count
+	battle_grid.columns = maxi(1, slot_count)
 
 func _make_slot_button(area: String, index: int, stack: ArtifactStack) -> InventorySlotButton:
 	var button := InventorySlotButton.new()
@@ -207,11 +220,29 @@ func _make_stars(star_level: int) -> String:
 	return stars
 
 func _is_system_synergy_active(system_tag: String, count: int) -> bool:
+	return _system_synergy_tier(system_tag, count) > 0
+
+func _system_synergy_tier(system_tag: String, count: int) -> int:
 	match system_tag:
 		"剑修", "法修", "体修", "阵法", "魔修":
-			return count >= 2
-		_:
-			return false
+			if count >= 6:
+				return 3
+			if count >= 4:
+				return 2
+			if count >= 2:
+				return 1
+	return 0
+
+func _format_system_tag(system_tag: String, count: int) -> String:
+	var tier := _system_synergy_tier(system_tag, count)
+	var style: Dictionary = SYSTEM_SYNERGY_STYLE_BY_TIER.get(tier, SYSTEM_SYNERGY_STYLE_BY_TIER[0])
+	return "[color=%s]%s %s  %d[/color]" % [style["color"], style["icon"], system_tag, count]
+
+func _format_attribute_tag(attribute_tag: String, count: int) -> String:
+	return "[color=%s]%s %s  %d[/color]" % [ATTRIBUTE_TAG_STYLE["color"], ATTRIBUTE_TAG_STYLE["icon"], attribute_tag, count]
+
+func _format_inactive_tag(label: String) -> String:
+	return "[color=%s]%s %s[/color]" % [SYSTEM_SYNERGY_STYLE_BY_TIER[0]["color"], SYSTEM_SYNERGY_STYLE_BY_TIER[0]["icon"], label]
 
 func _apply_card_style(button: Button) -> void:
 	var bg := Color(0.10, 0.12, 0.18, 0.96)

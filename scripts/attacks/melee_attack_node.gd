@@ -47,6 +47,8 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	body.call("take_damage", _roll_damage(), source)
+	if data.knockback_force > 0.0 and source is Node2D and body.has_method("apply_knockback"):
+		body.call("apply_knockback", (source as Node2D).global_position, data.knockback_force)
 	if body is Node2D:
 		HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, ArtifactVisuals.melee_hit_kind(data), direction, 18.0)
 

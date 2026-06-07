@@ -6,13 +6,14 @@
 script = ExtResource("1")
 id = "healing_formation"
 display_name = "回血阵"
-description = "领域周期性恢复玩家生命。"
+description = "领域周期性恢复玩家生命，并对阵内敌人造成少量水属性伤害。"
 icon = ExtResource("2")
 system_tag = "阵法"
 attribute_tag = "水"
 attack_template = "formation"
 attack_shape = "aura"
 effect_type = "heal"
+damage = 3.0
 radius = 125.0
 tick_interval = 2.0
 heal_amount = 3.0

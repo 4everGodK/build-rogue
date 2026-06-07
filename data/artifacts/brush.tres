@@ -6,14 +6,14 @@
 script = ExtResource("1")
 id = "brush"
 display_name = "毛笔"
-description = "预警后沿直线依次落下三次墨击。"
+description = "预警后沿直线依次落下三次墨击，范围稳定但爆发降低。"
 icon = ExtResource("2")
 system_tag = "法修"
 attribute_tag = "木"
 attack_template = "line_delayed"
 attack_shape = "line"
-damage = 8.0
-cooldown = 1.7
+damage = 6.0
+cooldown = 1.95
 radius = 28.0
 length = 300.0
 delayed_strike_count = 3

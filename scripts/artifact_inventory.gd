@@ -4,7 +4,7 @@ class_name ArtifactInventory
 signal inventory_changed
 signal inventory_message(message: String)
 
-const BATTLE_SLOT_COUNT: int = 9
+const INITIAL_BATTLE_SLOT_COUNT: int = 5
 const BAG_SLOT_COUNT: int = 8
 
 var battle_slots: Array = []
@@ -14,10 +14,15 @@ func _ready() -> void:
 	_initialize_slots()
 
 func _initialize_slots() -> void:
-	if battle_slots.size() != BATTLE_SLOT_COUNT:
-		battle_slots.resize(BATTLE_SLOT_COUNT)
+	var battle_slot_count := get_battle_slot_count()
+	if battle_slots.size() != battle_slot_count:
+		battle_slots.resize(battle_slot_count)
 	if bag_slots.size() != BAG_SLOT_COUNT:
 		bag_slots.resize(BAG_SLOT_COUNT)
+
+func get_battle_slot_count() -> int:
+	# 后续接修仙境界时在这里返回 5/6/7/8...
+	return INITIAL_BATTLE_SLOT_COUNT
 
 func add_artifact(data: ArtifactData) -> bool:
 	_initialize_slots()

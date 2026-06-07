@@ -96,9 +96,12 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 static func describe_star_effect(data: ArtifactData, star_level: int) -> String:
 	var damage_mult: float = get_damage_multiplier(data, star_level)
 	var cooldown_mult: float = get_cooldown_multiplier(data, star_level)
+	var effective_damage: float = data.damage * damage_mult
+	var effective_cooldown: float = maxf(0.05, data.cooldown * cooldown_mult)
+	var attack_speed: float = 1.0 / effective_cooldown
 	var lines: Array[String] = [
-		"伤害 x%.1f" % damage_mult,
-		"冷却 x%.2f" % cooldown_mult,
+		"伤害 %.0f" % effective_damage,
+		"攻速 %.2f/秒" % attack_speed,
 	]
 	if star_level >= 3:
 		lines.append("")
@@ -113,6 +116,8 @@ static func describe_star_effect(data: ArtifactData, star_level: int) -> String:
 static func describe_offer(offer: Dictionary, star_level: int = 1) -> String:
 	var data: ArtifactData = ArtifactData.new()
 	data.id = str(offer.get("id", ""))
+	data.damage = float(offer.get("damage", data.damage))
+	data.cooldown = float(offer.get("cooldown", data.cooldown))
 	data.star2_damage_mult = float(offer.get("star2_damage_mult", 0.0))
 	data.star2_cooldown_mult = float(offer.get("star2_cooldown_mult", 0.0))
 	data.star3_damage_mult = float(offer.get("star3_damage_mult", 0.0))

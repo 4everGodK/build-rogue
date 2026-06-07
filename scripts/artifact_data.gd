@@ -34,6 +34,12 @@ class_name ArtifactData
 @export var damage_reduction_percent: float = 0.0
 @export var slow_percent: float = 0.0
 @export var attack_speed_bonus: float = 0.0
+@export var poison_dps: float = 0.0
+@export var poison_duration: float = 0.0
+@export var poison_can_stack: bool = true
+@export var knockback_force: float = 0.0
+@export var counter_range: float = 0.0
+@export var counter_speed: float = 620.0
 @export var heal_amount: float = 0.0
 @export var shield_amount: float = 0.0
 @export var shield_max: float = 0.0
@@ -74,6 +80,8 @@ func to_offer() -> Dictionary:
 		"attack_template": attack_template,
 		"level": 1,
 		"price": price,
+		"damage": damage,
+		"cooldown": cooldown,
 		"star2_damage_mult": star2_damage_mult,
 		"star2_cooldown_mult": star2_cooldown_mult,
 		"star3_damage_mult": star3_damage_mult,

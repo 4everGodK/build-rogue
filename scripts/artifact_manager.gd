@@ -1,7 +1,7 @@
 extends Node
 class_name ArtifactManager
 
-const MAX_ARTIFACTS: int = 9
+const INITIAL_MAX_ARTIFACTS: int = 5
 
 var owner_player: Node2D
 var attack_container: Node

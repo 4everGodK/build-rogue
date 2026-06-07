@@ -62,11 +62,11 @@ theme_override_constants/separation = 8
 
 [node name="BattleLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
 layout_mode = 2
-text = "出战区 9"
+text = "出战区 5"
 
 [node name="BattleGrid" type="GridContainer" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
 layout_mode = 2
-columns = 3
+columns = 5
 
 [node name="BagLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MainRow/InventoryBox"]
 layout_mode = 2
@@ -76,11 +76,12 @@ text = "储物袋 8"
 layout_mode = 2
 columns = 4
 
-[node name="SynergyLabel" type="Label" parent="Panel/MarginContainer/VBoxContainer/MainRow"]
+[node name="SynergyLabel" type="RichTextLabel" parent="Panel/MarginContainer/VBoxContainer/MainRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "羁绊统计"
-autowrap_mode = 2
+bbcode_enabled = true
+fit_content = true
 
 [node name="ActionRow" type="HBoxContainer" parent="Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

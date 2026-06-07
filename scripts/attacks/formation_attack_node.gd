@@ -42,12 +42,25 @@ func _physics_process(delta: float) -> void:
 			_knockback_nearby_enemies()
 		HitEffectManager.spawn_hit(get_tree(), player.global_position, "shield", Vector2.RIGHT, data.radius)
 	for body in get_overlapping_bodies():
-		if data.effect_type == "damage" and body.has_method("take_damage"):
+		if data.damage > 0.0 and body.has_method("take_damage"):
 			body.call("take_damage", data.damage, player)
-			if body is Node2D and data.id == "damage_formation":
-				HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "fire", Vector2.RIGHT, 14.0)
-		elif data.effect_type == "slow" and body.has_method("apply_slow"):
+			if body is Node2D:
+				HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, _formation_hit_kind(), Vector2.RIGHT, 12.0)
+		if data.effect_type == "slow" and body.has_method("apply_slow"):
 			body.call("apply_slow", data.slow_percent, data.tick_interval * 1.5, self)
+
+func _formation_hit_kind() -> String:
+	match data.id:
+		"damage_formation", "flame_robe":
+			return "fire"
+		"slow_formation":
+			return "poison"
+		"healing_formation":
+			return "flash"
+		"attack_speed_formation":
+			return "lightning"
+		_:
+			return "flash"
 
 func _circle_points(radius: float) -> PackedVector2Array:
 	var points := PackedVector2Array()

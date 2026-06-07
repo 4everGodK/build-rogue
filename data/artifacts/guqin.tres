@@ -6,14 +6,14 @@
 script = ExtResource("1")
 id = "guqin"
 display_name = "古琴"
-description = "音符命中后短暂降低敌人伤害。"
+description = "音符命中后短暂降低敌人伤害，直伤较低。"
 icon = ExtResource("2")
 system_tag = "法修"
 attribute_tag = "风"
 attack_template = "projectile"
 attack_shape = "circle"
-damage = 7.0
-cooldown = 1.0
+damage = 5.0
+cooldown = 1.15
 range = 480.0
 width = 16.0
 length = 16.0
