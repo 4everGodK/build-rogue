@@ -68,7 +68,8 @@ func _on_body_entered(body: Node) -> void:
 	if hit_enemies.has(body) or not body.has_method("take_damage"):
 		return
 	hit_enemies[body] = true
-	body.call("take_damage", damage, source)
+	var killed: bool = bool(body.call("take_damage", damage, source))
+	_apply_kill_heal(killed)
 	if data.poison_dps > 0.0 and body.has_method("apply_poison"):
 		body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
 	HitEffectManager.spawn_hit(get_tree(), global_position, ArtifactVisuals.projectile_hit_kind(data), direction, maxf(14.0, visual_radius * 1.8))
@@ -102,7 +103,8 @@ func _explode(direct_target: Node) -> void:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= explosion_radius:
-				candidate.call("take_damage", damage, source)
+				var killed: bool = bool(candidate.call("take_damage", damage, source))
+				_apply_kill_heal(killed)
 	var blast: Polygon2D = Polygon2D.new()
 	blast.polygon = _circle_points(explosion_radius)
 	blast.color = Color(1.0, 0.25, 0.05, 0.25)
@@ -118,8 +120,15 @@ func _poison_explode() -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= blast_radius:
-				candidate.call("take_damage", poison_damage, source)
+				var killed: bool = bool(candidate.call("take_damage", poison_damage, source))
+				_apply_kill_heal(killed)
 	HitEffectManager.spawn_hit(get_tree(), global_position, "poison", direction, blast_radius)
+
+func _apply_kill_heal(killed: bool) -> void:
+	if not killed or data == null or data.kill_heal_amount <= 0.0:
+		return
+	if source != null and source.has_method("heal"):
+		source.call("heal", data.kill_heal_amount)
 
 func _bounce_to_next_enemy() -> bool:
 	var next_enemy: Node2D

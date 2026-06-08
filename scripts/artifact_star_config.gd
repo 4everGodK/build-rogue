@@ -85,7 +85,7 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 		"damage_formation":
 			data.tick_interval /= 1.5
 		"blood_sword":
-			data.life_cost_percent *= 0.7
+			data.kill_heal_amount += 3.0
 		"blood_slash":
 			data.range *= 1.5
 		"poison_needle":
@@ -166,7 +166,7 @@ static func get_star3_description(id: String) -> String:
 		"damage_formation":
 			return "伤害触发频率 +50%"
 		"blood_sword":
-			return "生命消耗减少 30%"
+			return "击杀回复 +3"
 		"blood_slash":
 			return "剑气飞行距离 +50%"
 		"poison_needle":

@@ -46,7 +46,8 @@ func _on_body_entered(body: Node) -> void:
 	if max_targets > 0 and hit_enemies.size() >= max_targets:
 		return
 	hit_enemies[body] = true
-	body.call("take_damage", _roll_damage(), source)
+	var killed: bool = bool(body.call("take_damage", _roll_damage(), source))
+	_apply_kill_heal(killed)
 	if data.knockback_force > 0.0 and source is Node2D and body.has_method("apply_knockback"):
 		body.call("apply_knockback", (source as Node2D).global_position, data.knockback_force)
 	if body is Node2D:
@@ -56,6 +57,12 @@ func _roll_damage() -> float:
 	if data != null and data.crit_chance > 0.0 and randf() < data.crit_chance:
 		return damage * maxf(1.0, data.crit_damage_mult)
 	return damage
+
+func _apply_kill_heal(killed: bool) -> void:
+	if not killed or data == null or data.kill_heal_amount <= 0.0:
+		return
+	if source != null and source.has_method("heal"):
+		source.call("heal", data.kill_heal_amount)
 
 func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 	var wave: Area2D = Area2D.new()
@@ -85,7 +92,8 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 		if wave_hits.has(body) or not body.has_method("take_damage"):
 			return
 		wave_hits[body] = true
-		body.call("take_damage", damage * data.extra_melee_wave_damage_mult, source)
+		var killed: bool = bool(body.call("take_damage", damage * data.extra_melee_wave_damage_mult, source))
+		_apply_kill_heal(killed)
 		if body is Node2D:
 			HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "sword", direction, 14.0)
 	)

@@ -10,10 +10,11 @@ radius = 38.0
 
 [node name="BossBasic" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
-collision_mask = 0
+collision_mask = 4
 script = ExtResource("1_boss")
-max_hp = 420.0
-move_speed = 45.0
+max_hp = 1260.0
+move_speed = 58.5
+charge_speed = 676.0
 contact_damage = 15
 gold_reward = 10
 contact_radius = 44.0

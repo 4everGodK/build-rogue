@@ -39,7 +39,7 @@ run_summary_path = NodePath("../RunSummary")
 [node name="AttackContainer" type="Node2D" parent="."]
 
 [node name="Player" parent="." instance=ExtResource("1_player")]
-position = Vector2(640, 360)
+position = Vector2(0, 0)
 
 [node name="WaveManager" type="Node" parent="."]
 script = ExtResource("6_wave")

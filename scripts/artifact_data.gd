@@ -27,6 +27,9 @@ class_name ArtifactData
 @export var count: int = 1
 @export var max_targets: int = 0
 @export var life_cost_percent: float = 0.0
+@export var life_cost_flat: float = 0.0
+@export var life_cost_min_hp_ratio: float = 0.0
+@export var kill_heal_amount: float = 0.0
 @export var rotation_speed: float = 3.0
 @export var hit_interval: float = 0.4
 @export var explosion_radius: float = 0.0
@@ -93,6 +96,9 @@ func to_offer() -> Dictionary:
 		"tick_interval": tick_interval,
 		"count": count,
 		"life_cost_percent": life_cost_percent,
+		"life_cost_flat": life_cost_flat,
+		"life_cost_min_hp_ratio": life_cost_min_hp_ratio,
+		"kill_heal_amount": kill_heal_amount,
 		"damage_reduction_percent": damage_reduction_percent,
 		"slow_percent": slow_percent,
 		"attack_speed_bonus": attack_speed_bonus,

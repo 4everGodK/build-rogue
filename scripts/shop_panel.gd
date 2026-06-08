@@ -333,6 +333,10 @@ func _offer_special_lines(offer: Dictionary) -> Array[String]:
 		lines.append("减伤：%d%%" % int(roundf(float(offer["damage_reduction_percent"]) * 100.0)))
 	if float(offer.get("life_cost_percent", 0.0)) > 0.0:
 		lines.append("生命消耗：%s%%" % _format_number(float(offer["life_cost_percent"])))
+	if float(offer.get("life_cost_flat", 0.0)) > 0.0:
+		lines.append("生命消耗：%s" % _format_number(float(offer["life_cost_flat"])))
+	if float(offer.get("kill_heal_amount", 0.0)) > 0.0:
+		lines.append("击杀回复：%s" % _format_number(float(offer["kill_heal_amount"])))
 	if float(offer.get("attack_speed_bonus", 0.0)) > 0.0:
 		lines.append("攻速提升：%d%%" % int(roundf(float(offer["attack_speed_bonus"]) * 100.0)))
 	return lines

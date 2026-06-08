@@ -94,6 +94,14 @@ func spend_life_percent(percent: float) -> void:
 	hp = maxi(1, hp - cost)
 	hp_changed.emit(hp, max_hp)
 
+func spend_life_flat(amount: float, min_hp_ratio: float = 0.0) -> void:
+	if amount <= 0.0:
+		return
+	if min_hp_ratio > 0.0 and get_hp_ratio() < min_hp_ratio:
+		return
+	hp = maxi(1, hp - int(ceil(amount)))
+	hp_changed.emit(hp, max_hp)
+
 func set_artifact_cooldown_multiplier(multiplier: float) -> void:
 	artifact_cooldown_multiplier = clampf(multiplier, 0.1, 1.0)
 

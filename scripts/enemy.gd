@@ -11,6 +11,7 @@ signal died(gold_reward: int)
 @export var contact_damage_interval: float = 0.8
 @export var gold_reward: int = 2
 @export var death_animation_duration: float = 0.15
+@export var arena_half_size: Vector2 = Vector2(980.0, 580.0)
 
 var hp: float = max_hp
 var player: Player
@@ -33,10 +34,10 @@ func _physics_process(delta: float) -> void:
 	if contact_damage_cooldown > 0.0:
 		contact_damage_cooldown -= delta
 	if is_instance_valid(player):
-		var to_player := global_position.direction_to(player.global_position)
+		var to_player: Vector2 = global_position.direction_to(player.global_position)
 		if to_player == Vector2.ZERO:
 			to_player = Vector2.RIGHT.rotated(randf() * TAU)
-		var distance := global_position.distance_to(player.global_position)
+		var distance: float = global_position.distance_to(player.global_position)
 		if distance > separation_radius:
 			velocity = to_player * move_speed * _current_speed_multiplier()
 		elif distance < contact_radius:
@@ -45,8 +46,10 @@ func _physics_process(delta: float) -> void:
 			velocity = Vector2.ZERO
 		velocity += knockback_velocity
 		move_and_slide()
+		clamp_to_arena()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
-		if distance <= contact_radius:
+		var contact_distance: float = global_position.distance_to(player.global_position)
+		if contact_distance <= maxf(contact_radius, separation_radius):
 			_try_contact_damage(player)
 
 	if flash_time > 0.0:
@@ -61,9 +64,12 @@ func _physics_process(delta: float) -> void:
 func setup(target_player: Player) -> void:
 	player = target_player
 
+func clamp_to_arena() -> void:
+	global_position = global_position.clamp(-arena_half_size, arena_half_size)
+
 func take_damage(amount: float, _source = null) -> bool:
 	if dying or hp <= 0.0 or is_queued_for_deletion():
-		return true
+		return false
 	hp -= amount
 	flash_time = 0.08
 	_spawn_damage_number(amount)
@@ -146,12 +152,12 @@ func _try_contact_damage(target_player: Player) -> void:
 	contact_damage_cooldown = contact_damage_interval
 
 func _spawn_damage_number(amount: float) -> void:
-	var label := Label.new()
+	var label: Label = Label.new()
 	label.text = str(int(ceil(amount)))
 	label.modulate = Color(1.0, 0.95, 0.45, 1.0)
 	label.position = global_position + Vector2(-8.0, -28.0)
 	get_tree().current_scene.add_child(label)
-	var tween := get_tree().create_tween()
+	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(label, "position", label.position + Vector2(0.0, -24.0), 0.35)
 	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.35)
 	tween.tween_callback(label.queue_free)
@@ -160,7 +166,7 @@ func _die() -> void:
 	dying = true
 	set_physics_process(false)
 	died.emit(gold_reward)
-	var tween := get_tree().create_tween()
+	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(self, "scale", Vector2.ZERO, death_animation_duration)
 	tween.parallel().tween_property(self, "modulate:a", 0.0, death_animation_duration)
 	tween.tween_callback(queue_free)

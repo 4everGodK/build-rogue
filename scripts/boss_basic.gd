@@ -35,6 +35,7 @@ func _process_charge(delta: float) -> void:
 	charge_time_left -= delta
 	velocity = charge_direction * charge_speed
 	move_and_slide()
+	clamp_to_arena()
 	if is_instance_valid(player) and global_position.distance_to(player.global_position) <= contact_radius + 8.0:
 		_try_contact_damage(player)
 	if charge_time_left <= 0.0:

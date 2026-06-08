@@ -48,6 +48,8 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 		direction = Vector2.RIGHT
 	if data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
 		player.call("spend_life_percent", data.life_cost_percent)
+	if data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
+		player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
 	var runtime_data := _make_runtime_data(player)
 	match data.attack_template:
 		"melee":
