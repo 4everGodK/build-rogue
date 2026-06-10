@@ -12,6 +12,7 @@ var current_offers: Array = []
 var economy: EconomyManager
 var inventory: ArtifactInventory
 var cultivation: CultivationManager
+var unlimited_catalog_mode: bool = false
 
 func configure(next_economy: EconomyManager, next_inventory: ArtifactInventory, next_cultivation: CultivationManager = null) -> void:
 	economy = next_economy
@@ -20,8 +21,20 @@ func configure(next_economy: EconomyManager, next_inventory: ArtifactInventory, 
 
 func generate_offers() -> void:
 	current_offers.clear()
+	unlimited_catalog_mode = false
 	for _index in range(OFFER_COUNT):
 		current_offers.append(_roll_offer())
+	offers_changed.emit(get_offer_dictionaries())
+
+func generate_all_offers() -> void:
+	current_offers.clear()
+	unlimited_catalog_mode = true
+	var ids: Array = ArtifactCatalog.all_ids()
+	ids.sort()
+	for raw_id in ids:
+		var data: ArtifactData = ArtifactCatalog.get_data(str(raw_id))
+		if data != null:
+			current_offers.append(data)
 	offers_changed.emit(get_offer_dictionaries())
 
 func _roll_offer() -> ArtifactData:
@@ -89,7 +102,8 @@ func buy_offer(index: int) -> void:
 		economy.add_spirit_stones(cost)
 		shop_message.emit("储物袋已满")
 		return
-	current_offers[index] = null
+	if not unlimited_catalog_mode:
+		current_offers[index] = null
 	offers_changed.emit(get_offer_dictionaries())
 	purchase_completed.emit()
 

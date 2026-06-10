@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/shop_panel.gd" id="1_shop"]
+[ext_resource type="Script" path="res://scripts/sell_drop_zone.gd" id="2_sell"]
 
 [node name="ShopPanel" type="Control"]
 process_mode = 3
@@ -90,9 +91,16 @@ text = "灵石: 0"
 layout_mode = 2
 text = "修为: 炼气"
 
-[node name="OfferBox" type="HBoxContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
+[node name="OfferScroll" type="ScrollContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
+custom_minimum_size = Vector2(0, 360)
 layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="OfferBox" type="GridContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
+columns = 5
 
 [node name="MessageLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
 layout_mode = 2
@@ -128,6 +136,17 @@ text = "储物袋 8"
 [node name="BagGrid" type="GridContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox"]
 layout_mode = 2
 columns = 8
+
+[node name="SellZone" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+script = ExtResource("2_sell")
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/SellZone"]
+layout_mode = 2
+text = "拖到这里出售法宝"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SynergyFrame" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow"]
 custom_minimum_size = Vector2(270, 0)

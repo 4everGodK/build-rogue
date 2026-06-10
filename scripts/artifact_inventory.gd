@@ -9,6 +9,7 @@ const BAG_SLOT_COUNT: int = 8
 
 var battle_slots: Array = []
 var bag_slots: Array = []
+var battle_slot_count: int = INITIAL_BATTLE_SLOT_COUNT
 
 func _ready() -> void:
 	_initialize_slots()
@@ -21,8 +22,15 @@ func _initialize_slots() -> void:
 		bag_slots.resize(BAG_SLOT_COUNT)
 
 func get_battle_slot_count() -> int:
-	# 后续接修仙境界时在这里返回 5/6/7/8...
-	return INITIAL_BATTLE_SLOT_COUNT
+	return battle_slot_count
+
+func set_battle_slot_count(next_count: int) -> void:
+	var normalized_count: int = maxi(INITIAL_BATTLE_SLOT_COUNT, next_count)
+	if battle_slot_count == normalized_count:
+		return
+	battle_slot_count = normalized_count
+	_initialize_slots()
+	inventory_changed.emit()
 
 func add_artifact(data: ArtifactData) -> bool:
 	_initialize_slots()
@@ -51,6 +59,18 @@ func move_stack(from_area: String, from_index: int, to_area: String, to_index: i
 	from_slots[from_index] = to_slots[to_index]
 	to_slots[to_index] = moving
 	_after_inventory_changed()
+
+func sell_stack(area: String, index: int) -> int:
+	var slots := _slots_for_area(area)
+	if slots.is_empty() or index < 0 or index >= slots.size():
+		return 0
+	var stack: ArtifactStack = slots[index] as ArtifactStack
+	if stack == null:
+		return 0
+	var sell_value: int = stack.get_sell_value()
+	slots[index] = null
+	_after_inventory_changed()
+	return sell_value
 
 func clear_inventory() -> void:
 	_initialize_slots()

@@ -6,6 +6,7 @@ signal reroll_requested
 signal breakthrough_requested
 signal continue_requested
 signal inventory_move_requested(from_area: String, from_index: int, to_area: String, to_index: int)
+signal sell_requested(from_area: String, from_index: int)
 
 @onready var title_label: Label = $Panel/MarginContainer/Root/TitleLabel
 @onready var root_box: VBoxContainer = $Panel/MarginContainer/Root
@@ -14,11 +15,12 @@ signal inventory_move_requested(from_area: String, from_index: int, to_area: Str
 @onready var shop_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame
 @onready var battle_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame
 @onready var bag_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame
+@onready var sell_zone: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/SellZone
 @onready var synergy_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/SynergyFrame
 @onready var stone_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/StoneLabel
 @onready var cultivation_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/CultivationLabel
 @onready var message_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/MessageLabel
-@onready var offer_box: HBoxContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferBox
+@onready var offer_box: GridContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferScroll/OfferBox
 @onready var battle_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox/BattleLabel
 @onready var battle_grid: GridContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox/BattleGrid
 @onready var bag_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox/BagLabel
@@ -75,6 +77,7 @@ var current_stones: int = 0
 var current_realm: String = "炼气"
 var current_breakthrough_cost: int = 10
 var current_is_max_realm: bool = false
+var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
 var bag_slot_size: Vector2 = Vector2(112, 60)
@@ -86,6 +89,7 @@ func _ready() -> void:
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
 	breakthrough_button.pressed.connect(_on_breakthrough_button_pressed)
 	continue_button.pressed.connect(_on_continue_button_pressed)
+	sell_zone.sell_drop_requested.connect(_on_sell_drop_requested)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and is_node_ready():
@@ -94,7 +98,7 @@ func _notification(what: int) -> void:
 		_render_slots()
 
 func open_shop(wave: int, offers: Array, stones: int, battle_slots: Array, bag_slots: Array, system_counts: Dictionary, attribute_counts: Dictionary) -> void:
-	title_label.text = "准备阶段：第 %d 波" % maxi(1, wave + 1)
+	title_label.text = "测试法宝列表" if debug_catalog_mode else "准备阶段：第 %d 波" % maxi(1, wave + 1)
 	show()
 	set_offers(offers)
 	set_economy(stones)
@@ -106,11 +110,21 @@ func open_shop(wave: int, offers: Array, stones: int, battle_slots: Array, bag_s
 func close_shop() -> void:
 	hide()
 
+func set_debug_catalog_mode(enabled: bool) -> void:
+	debug_catalog_mode = enabled
+	if not is_node_ready():
+		return
+	reroll_button.visible = not enabled
+	breakthrough_button.visible = not enabled
+	continue_button.text = "关闭商店" if enabled else "继续战斗"
+	_update_cultivation_display()
+	_apply_responsive_layout()
+
 func set_economy(stones: int) -> void:
 	current_stones = stones
 	stone_label.text = "灵石：%d" % current_stones
 	reroll_button.text = "刷新：%d" % ShopManager.REROLL_COST
-	reroll_button.disabled = false
+	reroll_button.disabled = debug_catalog_mode
 	_update_cultivation_display()
 	_render_offers()
 
@@ -125,7 +139,7 @@ func _update_cultivation_display() -> void:
 		return
 	cultivation_label.text = "修为：%s" % current_realm
 	breakthrough_button.text = "突破：已满" if current_is_max_realm else "突破：%d" % current_breakthrough_cost
-	breakthrough_button.disabled = current_is_max_realm
+	breakthrough_button.disabled = current_is_max_realm or debug_catalog_mode
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)
@@ -167,7 +181,7 @@ func _render_offers() -> void:
 		return
 	for child in offer_box.get_children():
 		child.queue_free()
-	for index in range(ShopManager.OFFER_COUNT):
+	for index in range(current_offers.size()):
 		var offer: Dictionary = current_offers[index] if index < current_offers.size() else {}
 		var button: Button = Button.new()
 		button.custom_minimum_size = offer_card_size
@@ -230,6 +244,9 @@ func _on_breakthrough_button_pressed() -> void:
 
 func _on_continue_button_pressed() -> void:
 	continue_requested.emit()
+
+func _on_sell_drop_requested(from_area: String, from_index: int) -> void:
+	sell_requested.emit(from_area, from_index)
 
 func _build_empty_offer_card(button: Button) -> void:
 	var label: Label = Label.new()
@@ -507,8 +524,10 @@ func _apply_responsive_layout() -> void:
 
 	var available_left_width: float = maxf(520.0, viewport_size.x - side_width - 78.0)
 	var left_width: float = clampf(available_left_width, 520.0, 1180.0)
-	var offer_gap: float = 8.0 * float(maxi(0, ShopManager.OFFER_COUNT - 1))
-	var offer_width: float = floor((left_width - offer_gap) / float(ShopManager.OFFER_COUNT))
+	var offer_columns: int = 4 if debug_catalog_mode else ShopManager.OFFER_COUNT
+	offer_box.columns = offer_columns
+	var offer_gap: float = 8.0 * float(maxi(0, offer_columns - 1))
+	var offer_width: float = floor((left_width - offer_gap) / float(offer_columns))
 	offer_card_size = Vector2(clampf(offer_width, 112.0, 230.0), 176.0 if aspect < 1.7 else 168.0)
 
 	var responsive_battle_count: float = maxf(1.0, float(maxi(1, current_battle_slots.size())))

@@ -29,11 +29,24 @@ func to_offer() -> Dictionary:
 	offer["star_level"] = star_level
 	return offer
 
+func get_sell_value() -> int:
+	if artifact_data == null:
+		return 0
+	var base_cost: int = max(1, artifact_data.get_shop_cost())
+	match star_level:
+		1:
+			return base_cost
+		2:
+			return max(0, base_cost * 3 - 1)
+		_:
+			return max(0, base_cost * 9 - 5)
+
 func get_upgrade_tooltip() -> String:
 	if artifact_data == null:
 		return ""
-	return "%s %s\n\n%s" % [
+	return "%s %s\n出售：%d 灵石\n\n%s" % [
 		artifact_data.display_name,
 		get_star_text(),
+		get_sell_value(),
 		ArtifactStarConfig.describe_star_effect(artifact_data, star_level),
 	]

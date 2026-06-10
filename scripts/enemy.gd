@@ -26,6 +26,7 @@ var taunt_target: Node2D
 var taunt_time: float = 0.0
 
 @onready var visual: Polygon2D = $Visual
+@onready var contact_area: Area2D = $ContactArea
 
 func _ready() -> void:
 	hp = max_hp
@@ -68,6 +69,13 @@ func _physics_process(delta: float) -> void:
 
 func setup(target_player: Player) -> void:
 	player = target_player
+
+func set_combat_paused(paused: bool) -> void:
+	set_physics_process(not paused)
+	set_process(not paused)
+	velocity = Vector2.ZERO
+	if contact_area != null:
+		contact_area.monitoring = not paused
 
 func clamp_to_arena() -> void:
 	global_position = global_position.clamp(-arena_half_size, arena_half_size)

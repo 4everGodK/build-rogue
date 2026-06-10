@@ -22,6 +22,7 @@ var redeploy_remaining: float = 0.0
 var dash_remaining: float = 0.0
 var dash_direction: Vector2 = Vector2.RIGHT
 var damaged_during_dash: Dictionary = {}
+var battle_paused: bool = false
 var visual: Node2D
 var collision: CollisionShape2D
 
@@ -33,16 +34,16 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData, owner_controller: 
 	max_hp = maxf(1.0, data.summon_hp)
 	hp = max_hp
 	taunt_cooldown = randf_range(0.2, 1.0)
-	collision_layer = 4
-	collision_mask = 2
-	if data.summon_behavior_type == "ghost":
-		collision_layer = 0
-		collision_mask = 0
+	collision_layer = 0
+	collision_mask = 0
 	add_to_group("summons")
 	_build_collision()
 	_build_visual()
 
 func _physics_process(delta: float) -> void:
+	if battle_paused:
+		velocity = Vector2.ZERO
+		return
 	if data == null or not is_instance_valid(player):
 		queue_free()
 		return
@@ -64,6 +65,12 @@ func _physics_process(delta: float) -> void:
 			_process_return(delta)
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
 	taunt_cooldown = maxf(0.0, taunt_cooldown - delta)
+
+func set_battle_paused(paused: bool) -> void:
+	battle_paused = paused
+	set_physics_process(not paused)
+	set_process(not paused)
+	velocity = Vector2.ZERO
 
 func take_damage(amount: float, _source = null) -> bool:
 	if state == STATE_RESPAWN:

@@ -33,9 +33,14 @@ func sync_from_battle_slots(battle_slots: Array) -> void:
 		artifacts.append(instance)
 		if is_instance_valid(owner_player) and is_instance_valid(attack_container):
 			instance.start(owner_player, attack_container)
+			if battle_paused and is_instance_valid(instance.persistent_node) and instance.persistent_node.has_method("set_battle_paused"):
+				instance.persistent_node.call("set_battle_paused", true)
 
 func set_battle_paused(paused: bool) -> void:
 	battle_paused = paused
+	for instance in artifacts:
+		if is_instance_valid(instance.persistent_node) and instance.persistent_node.has_method("set_battle_paused"):
+			instance.persistent_node.call("set_battle_paused", paused)
 
 func refresh_persistent_artifacts() -> void:
 	for instance in artifacts:

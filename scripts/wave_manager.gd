@@ -58,7 +58,10 @@ func start_next_wave() -> void:
 func pause_wave(paused: bool) -> void:
 	active = not paused
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		enemy.set_physics_process(not paused)
+		if enemy.has_method("set_combat_paused"):
+			enemy.call("set_combat_paused", paused)
+		else:
+			enemy.set_physics_process(not paused)
 
 func clear_existing_enemies() -> void:
 	for enemy in get_tree().get_nodes_in_group("enemies"):

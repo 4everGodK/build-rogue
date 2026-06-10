@@ -14,6 +14,7 @@ const TIER_COSTS: Dictionary = {
 	"通天灵宝": 5,
 }
 const BREAKTHROUGH_COSTS: Array[int] = [10, 20, 40, 80]
+const BASE_BATTLE_SLOT_COUNT: int = 5
 const SHOP_TIER_WEIGHTS: Dictionary = {
 	"炼气": {"凡品": 65, "法器": 25, "灵器": 8, "古宝": 2, "通天灵宝": 0},
 	"筑基": {"凡品": 45, "法器": 35, "灵器": 15, "古宝": 5, "通天灵宝": 0},
@@ -38,6 +39,9 @@ func get_breakthrough_cost() -> int:
 
 func is_max_realm() -> bool:
 	return realm_index >= REALMS.size() - 1
+
+func get_battle_slot_count() -> int:
+	return BASE_BATTLE_SLOT_COUNT + clampi(realm_index, 0, REALMS.size() - 1)
 
 func try_breakthrough(economy: EconomyManager) -> bool:
 	if is_max_realm():

@@ -4,6 +4,7 @@ class_name SummonController
 var player: Node2D
 var data: ArtifactData
 var units: Array[SummonUnit] = []
+var battle_paused: bool = false
 
 func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	player = owner_player
@@ -11,10 +12,19 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	_spawn_missing_units()
 
 func _process(_delta: float) -> void:
+	if battle_paused:
+		return
 	if not is_instance_valid(player) or data == null:
 		queue_free()
 		return
 	_spawn_missing_units()
+
+func set_battle_paused(paused: bool) -> void:
+	battle_paused = paused
+	set_process(not paused)
+	for unit in units:
+		if is_instance_valid(unit):
+			unit.set_battle_paused(paused)
 
 func try_spawn_extra_unit() -> void:
 	if data == null or not is_instance_valid(player):
@@ -42,6 +52,7 @@ func _make_unit(index: int) -> SummonUnit:
 	var unit := SummonUnit.new()
 	add_child(unit)
 	unit.setup(player, data, self, index)
+	unit.set_battle_paused(battle_paused)
 	units.append(unit)
 	return unit
 

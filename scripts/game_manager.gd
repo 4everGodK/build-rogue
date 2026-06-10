@@ -103,6 +103,7 @@ func _initialize() -> void:
 	shop_panel.breakthrough_requested.connect(_on_breakthrough_requested)
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
 	shop_panel.inventory_move_requested.connect(inventory.move_stack)
+	shop_panel.sell_requested.connect(_on_sell_requested)
 	result_panel.restart_requested.connect(_restart_run)
 	result_panel.main_menu_requested.connect(_return_to_main_menu)
 	wave_manager.enemy_killed.connect(_on_enemy_killed)
@@ -143,8 +144,12 @@ func _enter_shop(cleared_wave: int) -> void:
 	wave_manager.pause_wave(true)
 	combat_room_timer.stop_room()
 	_clear_attack_nodes()
-	shop_manager.generate_offers()
+	if debug_test_room:
+		shop_manager.generate_all_offers()
+	else:
+		shop_manager.generate_offers()
 	_update_shop_cultivation()
+	shop_panel.set_debug_catalog_mode(debug_test_room)
 	shop_panel.open_shop(
 		cleared_wave,
 		shop_manager.get_offer_dictionaries(),
@@ -164,6 +169,9 @@ func _close_debug_shop() -> void:
 
 func _on_shop_continue_requested() -> void:
 	if run_ended:
+		return
+	if debug_test_room:
+		_close_debug_shop()
 		return
 	_start_battle()
 
@@ -222,10 +230,14 @@ func _shop_status_text() -> String:
 
 func _on_breakthrough_requested() -> void:
 	if cultivation_manager.try_breakthrough(economy_manager):
-		shop_manager.generate_offers()
+		if debug_test_room:
+			shop_manager.generate_all_offers()
+		else:
+			shop_manager.generate_offers()
 	_update_shop_cultivation()
 
 func _on_cultivation_changed(_realm: String, _realm_index: int) -> void:
+	inventory.set_battle_slot_count(cultivation_manager.get_battle_slot_count())
 	_update_shop_cultivation()
 
 func _update_shop_cultivation() -> void:
@@ -236,6 +248,14 @@ func _update_shop_cultivation() -> void:
 		cultivation_manager.get_breakthrough_cost(),
 		cultivation_manager.is_max_realm()
 	)
+
+func _on_sell_requested(from_area: String, from_index: int) -> void:
+	var value: int = inventory.sell_stack(from_area, from_index)
+	if value <= 0:
+		_show_shop_message("无法出售")
+		return
+	economy_manager.add_spirit_stones(value)
+	_show_shop_message("出售获得 %d 灵石" % value)
 
 func _on_enemy_killed(gold_reward: int) -> void:
 	run_summary.record_kill(gold_reward)
