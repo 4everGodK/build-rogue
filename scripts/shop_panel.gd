@@ -115,7 +115,7 @@ func set_debug_catalog_mode(enabled: bool) -> void:
 	if not is_node_ready():
 		return
 	reroll_button.visible = not enabled
-	breakthrough_button.visible = not enabled
+	breakthrough_button.visible = true
 	continue_button.text = "关闭商店" if enabled else "继续战斗"
 	_update_cultivation_display()
 	_apply_responsive_layout()
@@ -139,7 +139,7 @@ func _update_cultivation_display() -> void:
 		return
 	cultivation_label.text = "修为：%s" % current_realm
 	breakthrough_button.text = "突破：已满" if current_is_max_realm else "突破：%d" % current_breakthrough_cost
-	breakthrough_button.disabled = current_is_max_realm or debug_catalog_mode
+	breakthrough_button.disabled = current_is_max_realm
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)
@@ -304,7 +304,7 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 	name_box.add_child(star_label)
 
 	var tag_label: Label = Label.new()
-	tag_label.text = "%s / %s / %s" % [str(offer.get("tier", "凡品")), _offer_system_tag(offer), _offer_attribute_tag(offer)]
+	tag_label.text = "%s / %s / %s" % [str(offer.get("tier", "凡器")), _offer_system_tag(offer), _offer_attribute_tag(offer)]
 	tag_label.add_theme_font_size_override("font_size", 13)
 	tag_label.add_theme_color_override("font_color", Color(0.68, 0.82, 1.0))
 	tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -329,7 +329,7 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 func _make_offer_tooltip(offer: Dictionary) -> String:
 	var lines: Array[String] = [
 		"%s %s" % [offer.get("display_name", "未知法宝"), _make_stars(int(offer.get("star_level", 1)))],
-		"%s / %s / %s" % [str(offer.get("tier", "凡品")), _offer_system_tag(offer), _offer_attribute_tag(offer)],
+		"%s / %s / %s" % [str(offer.get("tier", "凡器")), _offer_system_tag(offer), _offer_attribute_tag(offer)],
 		"价格：%d 灵石" % int(offer.get("cost", offer.get("price", 1))),
 		"",
 		str(offer.get("description", "")),

@@ -4,6 +4,9 @@ class_name ArtifactVisuals
 static func make_projectile_visual(data: ArtifactData) -> Node2D:
 	var root := Node2D.new()
 	match data.id:
+		"giant_sword_art":
+			root.add_child(_sword_polygon(Color(1.0, 0.82, 0.24, 0.82), Color(1.0, 0.96, 0.62, 0.95), maxf(140.0, data.length), maxf(18.0, data.width * 0.28)))
+			root.add_child(_afterimage_line(Color(1.0, 0.72, 0.18, 0.32), maxf(100.0, data.length * 0.85), maxf(8.0, data.width * 0.14), Vector2(-data.length * 0.18, 0.0)))
 		"flying_sword":
 			root.add_child(_sword_polygon(Color.WHITE, Color(0.72, 0.9, 1.0), maxf(26.0, data.length), maxf(5.0, data.width)))
 		"blood_slash":
@@ -32,6 +35,8 @@ static func make_projectile_trail(data: ArtifactData) -> Line2D:
 	trail.default_color = _trail_color(data)
 	var length := 30.0
 	match data.id:
+		"giant_sword_art":
+			length = maxf(70.0, data.length * 0.5)
 		"flying_sword":
 			length = 42.0
 		"blood_slash":
@@ -48,6 +53,8 @@ static func projectile_spin_speed(data: ArtifactData) -> float:
 
 static func projectile_hit_kind(data: ArtifactData) -> String:
 	match data.id:
+		"giant_sword_art":
+			return "sword"
 		"flying_sword":
 			return "sword"
 		"fire_orb":
@@ -66,6 +73,15 @@ static func projectile_hit_kind(data: ArtifactData) -> String:
 static func make_melee_visual(data: ArtifactData) -> Node2D:
 	var root := Node2D.new()
 	match data.id:
+		"giant_sword_art":
+			if data.attack_shape == "circle":
+				root.add_child(_giant_sword_sweep_visual(data))
+			else:
+				root.add_child(_fan_visual(Color(1.0, 0.78, 0.25, 0.46), maxf(130.0, data.length), deg_to_rad(70.0)))
+				root.add_child(_slash_line(Color(1.0, 0.9, 0.52, 0.56), data.length, maxf(8.0, data.width * 0.16)))
+		"two_handed_sword":
+			root.add_child(_fan_visual(Color(0.86, 0.68, 0.34, 0.58), maxf(130.0, data.length), deg_to_rad(72.0)))
+			root.add_child(_slash_line(Color(1.0, 0.86, 0.48, 0.5), data.length * 0.92, maxf(7.0, data.width * 0.16)))
 		"long_spear":
 			root.add_child(_thrust_line(Color(0.72, 1.0, 0.86, 0.72), data.length, maxf(4.0, data.width * 0.35)))
 			root.add_child(_afterimage_line(Color(0.72, 1.0, 0.86, 0.28), data.length * 0.78, maxf(2.0, data.width * 0.2), Vector2(-18, 0)))
@@ -92,7 +108,7 @@ static func melee_hit_kind(data: ArtifactData) -> String:
 			return "blood"
 		"dagger":
 			return "poison"
-		"long_spear", "one_handed_sword":
+		"long_spear", "one_handed_sword", "two_handed_sword", "giant_sword_art":
 			return "sword"
 		"fist", "palm", "kick":
 			return "flash"
@@ -276,6 +292,16 @@ static func _spiral_visual(color: Color, radius: float) -> Line2D:
 		points.append(Vector2(cos(t), sin(t)) * r)
 	line.points = points
 	return line
+
+static func _giant_sword_sweep_visual(data: ArtifactData) -> Node2D:
+	var root := Node2D.new()
+	var sweep_radius: float = maxf(260.0, data.radius * 0.62)
+	root.add_child(_ring_visual(Color(1.0, 0.78, 0.18, 0.34), sweep_radius))
+	root.add_child(_ring_visual(Color(1.0, 0.95, 0.55, 0.18), maxf(80.0, sweep_radius * 0.72)))
+	var sword := _sword_polygon(Color(1.0, 0.82, 0.24, 0.78), Color(1.0, 0.96, 0.62, 0.92), maxf(160.0, data.length), maxf(20.0, data.width * 0.24))
+	sword.position.x = sweep_radius * 0.58
+	root.add_child(sword)
+	return root
 
 static func _add_runes(root: Node2D, color: Color, radius: float, kind: String) -> void:
 	for index in 6:

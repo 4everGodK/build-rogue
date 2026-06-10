@@ -105,6 +105,8 @@ func _animate_visual(visual: Node2D, data: ArtifactData) -> void:
 	var appear_time: float = minf(0.06, maxf(0.03, data.duration * 0.35))
 	tween.tween_property(visual, "modulate:a", 1.0, appear_time)
 	tween.parallel().tween_property(visual, "scale", Vector2.ONE, appear_time)
+	if data.id == "giant_sword_art" and data.attack_shape == "circle":
+		tween.parallel().tween_property(visual, "rotation", TAU, maxf(0.18, data.duration))
 	tween.tween_property(visual, "modulate:a", 0.0, maxf(0.04, data.duration - appear_time))
 
 func _circle_points(circle_radius: float) -> PackedVector2Array:

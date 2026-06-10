@@ -51,11 +51,13 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 	if data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
 		player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
 	var runtime_data := _make_runtime_data(player)
+	var projectile_extra_count: int = _projectile_extra_count()
+	var projectile_extra_directions: Array[Vector2] = _get_projectile_extra_directions(player, target, projectile_extra_count)
 	match data.attack_template:
 		"melee":
 			MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
 		"projectile":
-			ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, _projectile_extra_count(), _projectile_extra_damage_multiplier())
+			ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, projectile_extra_count, _projectile_extra_damage_multiplier(), projectile_extra_directions)
 		"beam":
 			BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
 		"line_delayed":
@@ -65,7 +67,7 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 			"melee":
 				MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
 			"projectile":
-				ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, _projectile_extra_count(), _projectile_extra_damage_multiplier())
+				ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, projectile_extra_count, _projectile_extra_damage_multiplier(), projectile_extra_directions)
 			"beam":
 				BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
 			"line_delayed":
@@ -120,6 +122,9 @@ static func _reserve_target_damage(target: Node2D, estimated_damage: float, targ
 	var key: int = target.get_instance_id()
 	target_reservations[key] = float(target_reservations.get(key, 0.0)) + estimated_damage
 
+static func _sort_target_candidates(a: Dictionary, b: Dictionary) -> bool:
+	return float(a["distance_squared"]) < float(b["distance_squared"])
+
 func _get_target_search_range() -> float:
 	match data.attack_template:
 		"melee":
@@ -137,6 +142,36 @@ func _estimate_attack_damage(player: Node2D) -> float:
 	if source_data != null and source_data.system_tag == "剑修":
 		estimate *= 1.0 + _sword_double_chance()
 	return maxf(0.0, estimate)
+
+func _get_projectile_extra_directions(player: Node2D, primary_target: Node2D, extra_count: int) -> Array[Vector2]:
+	var directions: Array[Vector2] = []
+	if extra_count <= 0 or data.attack_template != "projectile":
+		return directions
+	var candidates: Array[Dictionary] = []
+	var max_distance_squared: float = _get_target_search_range() * _get_target_search_range()
+	for candidate in player.get_tree().get_nodes_in_group("enemies"):
+		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		var enemy := candidate as Node2D
+		if enemy == primary_target or enemy.is_queued_for_deletion() or bool(enemy.get("dying")):
+			continue
+		var distance_squared := player.global_position.distance_squared_to(enemy.global_position)
+		if distance_squared > max_distance_squared:
+			continue
+		candidates.append({
+			"enemy": enemy,
+			"distance_squared": distance_squared,
+		})
+	candidates.sort_custom(_sort_target_candidates)
+	for item in candidates:
+		var enemy := item["enemy"] as Node2D
+		var extra_direction: Vector2 = player.global_position.direction_to(enemy.global_position)
+		if extra_direction == Vector2.ZERO:
+			continue
+		directions.append(extra_direction)
+		if directions.size() >= extra_count:
+			break
+	return directions
 
 func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactData:
 	if artifact_data == null:

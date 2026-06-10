@@ -25,6 +25,8 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	self.data = data
 	global_position = owner_player.global_position
 	direction = attack_direction.normalized()
+	if data.id == "giant_sword_art":
+		global_position -= direction * maxf(40.0, data.length * 0.45)
 	speed = data.projectile_speed
 	damage = data.damage
 	max_distance = data.range
@@ -42,10 +44,16 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	monitoring = true
 	rotation = direction.angle()
 
-	var shape: CircleShape2D = CircleShape2D.new()
-	shape.radius = maxf(4.0, minf(visual_radius, 14.0))
 	var collision: CollisionShape2D = CollisionShape2D.new()
-	collision.shape = shape
+	if data.attack_shape == "line":
+		var rectangle: RectangleShape2D = RectangleShape2D.new()
+		rectangle.size = Vector2(maxf(16.0, data.length), maxf(8.0, data.width))
+		collision.position.x = data.length * 0.2
+		collision.shape = rectangle
+	else:
+		var shape: CircleShape2D = CircleShape2D.new()
+		shape.radius = maxf(4.0, minf(visual_radius, 14.0))
+		collision.shape = shape
 	add_child(collision)
 
 	trail_node = ArtifactVisuals.make_projectile_trail(data)

@@ -34,11 +34,21 @@ static func apply_numeric_growth(runtime_data: ArtifactData, source_data: Artifa
 	runtime_data.heal_amount *= damage_mult
 	runtime_data.shield_amount *= damage_mult
 	runtime_data.cooldown *= cooldown_mult
+	if source_data.id == "giant_sword_art" and star_level >= 2:
+		runtime_data.width *= 1.35
 	if runtime_data.attack_template == "formation":
 		runtime_data.tick_interval *= cooldown_mult
 
 static func apply_star3_bonus(data: ArtifactData) -> void:
 	match data.id:
+		"giant_sword_art":
+			data.attack_template = "melee"
+			data.attack_shape = "circle"
+			data.radius = maxf(data.radius, 720.0)
+			data.length = maxf(data.length, 260.0)
+			data.width = maxf(data.width, 130.0)
+			data.duration = maxf(data.duration, 0.42)
+			data.max_targets = 0
 		"one_handed_sword":
 			data.extra_melee_wave_damage_mult = 0.55
 			data.extra_melee_wave_range = 90.0
@@ -152,6 +162,8 @@ static func describe_offer(offer: Dictionary, star_level: int = 1) -> String:
 
 static func get_star3_description(id: String) -> String:
 	match id:
+		"giant_sword_art":
+			return "巨剑以角色为中心横扫一整圈，对大范围敌人造成伤害"
 		"one_handed_sword":
 			return "挥砍末端额外发出一道短距离剑气"
 		"flying_sword":

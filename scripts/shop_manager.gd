@@ -38,7 +38,7 @@ func generate_all_offers() -> void:
 	offers_changed.emit(get_offer_dictionaries())
 
 func _roll_offer() -> ArtifactData:
-	var tier: String = cultivation.roll_shop_tier() if cultivation != null else "凡品"
+	var tier: String = cultivation.roll_shop_tier() if cultivation != null else "凡器"
 	var ids: Array[String] = _ids_for_tier(tier)
 	if ids.is_empty():
 		ids = _ids_for_any_available_tier()

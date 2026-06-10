@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://art/icons/flying_sword.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "giant_sword_art"
+display_name = "巨剑术"
+description = "在角色身后凝聚巨剑，朝敌人发射，在较宽的直线范围内造成伤害。三星时以角色为中心横扫一整圈。"
+icon = ExtResource("2")
+system_tag = "剑修"
+attribute_tag = "金"
+attack_template = "projectile"
+attack_shape = "line"
+damage = 68.0
+cooldown = 2.35
+range = 760.0
+radius = 680.0
+width = 86.0
+length = 185.0
+projectile_speed = 520.0
+projectile_pierce = 99
+duration = 0.42
+visual_color = Color(1, 0.82, 0.24, 0.86)
+price = 5
+tier = "仙宝"
+cost = 5
+cultivation_requirement = ""
+shop_weight = 1.0
+star2_damage_mult = 1.75
+star2_cooldown_mult = 0.95
+star3_damage_mult = 2.4
+star3_cooldown_mult = 0.85

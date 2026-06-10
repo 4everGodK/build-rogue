@@ -3,6 +3,8 @@ class_name ArtifactCatalog
 
 const ARTIFACT_PATHS := {
 	"one_handed_sword": "res://data/artifacts/one_handed_sword.tres",
+	"two_handed_sword": "res://data/artifacts/two_handed_sword.tres",
+	"giant_sword_art": "res://data/artifacts/giant_sword_art.tres",
 	"flying_sword": "res://data/artifacts/flying_sword.tres",
 	"guardian_flying_sword": "res://data/artifacts/guardian_flying_sword.tres",
 	"long_spear": "res://data/artifacts/long_spear.tres",

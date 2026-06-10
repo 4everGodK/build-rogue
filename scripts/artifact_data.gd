@@ -51,7 +51,7 @@ class_name ArtifactData
 @export var delayed_strike_interval: float = 0.15
 @export var visual_color: Color = Color.WHITE
 @export var price: int = 6
-@export_enum("凡品", "法器", "灵器", "古宝", "通天灵宝") var tier: String = "凡品"
+@export_enum("凡器", "法器", "灵器", "灵宝", "仙宝") var tier: String = "凡器"
 @export var cost: int = 0
 @export var cultivation_requirement: String = ""
 @export var shop_weight: float = 1.0
