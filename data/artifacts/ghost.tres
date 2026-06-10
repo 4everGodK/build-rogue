@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "ghost"
+display_name = "幽魂"
+description = "召唤高速幽魂穿过敌人造成伤害，命中时回复玩家生命。幽魂无复杂碰撞体积，死亡后快速重生。"
+system_tag = "召唤"
+attribute_tag = "水"
+attack_template = "summon"
+attack_shape = "line"
+damage = 8.0
+cooldown = 0.83
+range = 700.0
+heal_amount = 2.0
+summon_base_count = 2
+summon_hp = 60.0
+summon_attack = 8.0
+summon_attack_speed = 1.2
+summon_move_speed = 320.0
+summon_combat_radius = 700.0
+summon_return_radius = 900.0
+summon_respawn_time = 4.0
+summon_behavior_type = "ghost"
+summon_special_effect = "机动骚扰，命中回复玩家生命"
+visual_color = Color(0.50, 0.78, 1, 0.72)
+price = 8
+tier = "灵器"
+cost = 3
+cultivation_requirement = ""
+shop_weight = 1.0

@@ -19,3 +19,7 @@ tick_interval = 2.0
 heal_amount = 3.0
 visual_color = Color(0.2, 0.65, 1, 0.06)
 price = 8
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "turret"
+display_name = "炮台"
+description = "召唤固定炮台自动索敌并发射爆炸炮弹。玩家离开过远时，炮台会延迟重新部署到玩家附近。"
+system_tag = "召唤"
+attribute_tag = "火"
+attack_template = "summon"
+attack_shape = "projectile"
+damage = 18.0
+cooldown = 1.25
+range = 700.0
+projectile_speed = 420.0
+explosion_radius = 58.0
+summon_base_count = 1
+summon_hp = 120.0
+summon_attack = 18.0
+summon_attack_speed = 0.8
+summon_move_speed = 0.0
+summon_combat_radius = 700.0
+summon_return_radius = 900.0
+summon_respawn_time = 10.0
+summon_behavior_type = "turret"
+summon_special_effect = "固定阵地输出，距离玩家超过900后2秒重新部署"
+visual_color = Color(1, 0.32, 0.10, 1)
+price = 9
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

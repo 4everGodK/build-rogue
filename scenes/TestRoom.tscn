@@ -1,11 +1,12 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
-[ext_resource type="PackedScene" path="res://ui/ShopPanel.tscn" id="4_shop"]
-[ext_resource type="Script" path="res://scripts/game_manager.gd" id="5_game_manager"]
-[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="6_wave"]
-[ext_resource type="Script" path="res://scripts/economy_manager.gd" id="7_economy"]
+[ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="2_ui"]
+[ext_resource type="PackedScene" path="res://ui/ShopPanel.tscn" id="3_shop"]
+[ext_resource type="Script" path="res://scripts/game_manager.gd" id="4_game_manager"]
+[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="5_wave"]
+[ext_resource type="Script" path="res://scripts/economy_manager.gd" id="6_economy"]
+[ext_resource type="Script" path="res://scripts/cultivation_manager.gd" id="7_cultivation"]
 [ext_resource type="Script" path="res://scripts/artifact_inventory.gd" id="8_inventory"]
 [ext_resource type="Script" path="res://scripts/synergy_manager.gd" id="9_synergy"]
 [ext_resource type="Script" path="res://scripts/shop_manager.gd" id="10_shop_manager"]
@@ -13,19 +14,17 @@
 [ext_resource type="PackedScene" path="res://scenes/EnemyBasic.tscn" id="12_basic"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id="13_fast"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyTank.tscn" id="14_tank"]
-[ext_resource type="PackedScene" path="res://scenes/BossBasic.tscn" id="15_boss"]
-[ext_resource type="Script" path="res://scripts/run_summary.gd" id="16_summary"]
-[ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="17_result"]
-[ext_resource type="Script" path="res://scripts/cultivation_manager.gd" id="18_cultivation"]
-[ext_resource type="Script" path="res://scripts/combat_room_timer.gd" id="19_room_timer"]
+[ext_resource type="Script" path="res://scripts/run_summary.gd" id="15_summary"]
+[ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="16_result"]
+[ext_resource type="Script" path="res://scripts/combat_room_timer.gd" id="17_room_timer"]
 
-[node name="Main" type="Node2D"]
+[node name="TestRoom" type="Node2D"]
 
 [node name="Arena_Demo" type="Node2D" parent="."]
 script = ExtResource("11_arena")
 
 [node name="GameManager" type="Node" parent="."]
-script = ExtResource("5_game_manager")
+script = ExtResource("4_game_manager")
 player_path = NodePath("../Player")
 attack_container_path = NodePath("../AttackContainer")
 wave_manager_path = NodePath("../WaveManager")
@@ -39,6 +38,8 @@ ui_path = NodePath("../UI")
 shop_path = NodePath("../UI/ShopPanel")
 result_panel_path = NodePath("../UI/ResultPanel")
 run_summary_path = NodePath("../RunSummary")
+starting_spirit_stones = 999999
+debug_test_room = true
 
 [node name="AttackContainer" type="Node2D" parent="."]
 
@@ -46,17 +47,16 @@ run_summary_path = NodePath("../RunSummary")
 position = Vector2(0, 0)
 
 [node name="WaveManager" type="Node" parent="."]
-script = ExtResource("6_wave")
+script = ExtResource("5_wave")
 basic_enemy_scene = ExtResource("12_basic")
 fast_enemy_scene = ExtResource("13_fast")
 tank_enemy_scene = ExtResource("14_tank")
-boss_scene = ExtResource("15_boss")
 
 [node name="EconomyManager" type="Node" parent="."]
-script = ExtResource("7_economy")
+script = ExtResource("6_economy")
 
 [node name="CultivationManager" type="Node" parent="."]
-script = ExtResource("18_cultivation")
+script = ExtResource("7_cultivation")
 
 [node name="ArtifactInventory" type="Node" parent="."]
 script = ExtResource("8_inventory")
@@ -68,13 +68,13 @@ script = ExtResource("9_synergy")
 script = ExtResource("10_shop_manager")
 
 [node name="CombatRoomTimer" type="Node" parent="."]
-script = ExtResource("19_room_timer")
+script = ExtResource("17_room_timer")
 
 [node name="RunSummary" type="Node" parent="."]
-script = ExtResource("16_summary")
+script = ExtResource("15_summary")
 
-[node name="UI" parent="." instance=ExtResource("3_ui")]
+[node name="UI" parent="." instance=ExtResource("2_ui")]
 
-[node name="ShopPanel" parent="UI" instance=ExtResource("4_shop")]
+[node name="ShopPanel" parent="UI" instance=ExtResource("3_shop")]
 
-[node name="ResultPanel" parent="UI" instance=ExtResource("17_result")]
+[node name="ResultPanel" parent="UI" instance=ExtResource("16_result")]

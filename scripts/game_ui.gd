@@ -15,25 +15,23 @@ class_name GameUI
 @onready var artifact_slots: HBoxContainer = $Root/ArtifactBar/ArtifactMargin/ArtifactSlots
 
 const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "阵法", "召唤", "魔修"]
-const ATTRIBUTE_TAGS: Array[String] = ["火", "风", "毒", "雷", "水", "土", "金", "木", "暗"]
+const ATTRIBUTE_TAGS: Array[String] = ["火", "毒", "雷", "水", "土", "金", "木"]
 const SYSTEM_THRESHOLDS: Dictionary = {
 	"剑修": [2, 4, 6],
 	"法修": [2, 4, 6],
 	"体修": [2, 4],
 	"阵法": [2, 4],
-	"召唤": [2],
+	"召唤": [2, 4, 6],
 	"魔修": [2, 4],
 }
 const ATTRIBUTE_THRESHOLDS: Dictionary = {
 	"火": [3],
-	"风": [3],
 	"毒": [3],
 	"雷": [2],
 	"水": [2],
 	"土": [2],
 	"金": [2],
 	"木": [2],
-	"暗": [2],
 }
 
 const COLOR_INACTIVE: String = "#858992"
@@ -46,17 +44,15 @@ const SYNERGY_EFFECTS: Dictionary = {
 	"法修": "2: 额外发射物 +1，额外弹体 50% 伤害\n4: 额外发射物 +1，额外弹体 75% 伤害\n6: 额外发射物 +2，额外弹体 75% 伤害",
 	"体修": "2: 生命上限 +20\n4: 受伤反震",
 	"阵法": "2: 阵法范围 +25%\n4: 阵法范围 +50%",
-	"召唤": "2: 召唤流预留羁绊",
+	"召唤": "2: 所有召唤法宝数量上限 +1\n4: 数量上限额外 +1，重生时间 -50%\n6: 数量上限额外 +2，召唤物死亡释放灵力冲击",
 	"魔修": "2: 低血量魔修法宝伤害提升\n4: 低血量全部伤害提升",
 	"火": "属性羁绊预留：火属性 Build 方向",
-	"风": "属性羁绊预留：风属性 Build 方向",
 	"毒": "属性羁绊预留：毒属性 Build 方向",
 	"雷": "属性羁绊预留：雷属性 Build 方向",
 	"水": "属性羁绊预留：水属性 Build 方向",
 	"土": "属性羁绊预留：土属性 Build 方向",
 	"金": "属性羁绊预留：金属性 Build 方向",
 	"木": "属性羁绊预留：木属性 Build 方向",
-	"暗": "属性羁绊预留：暗属性 Build 方向",
 }
 
 var current_wave: int = 1

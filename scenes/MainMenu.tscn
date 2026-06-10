@@ -65,6 +65,11 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 46)
 text = "开始游戏"
 
+[node name="TestButton" type="Button" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 42)
+text = "测试房间"
+
 [node name="QuitButton" type="Button" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 46)

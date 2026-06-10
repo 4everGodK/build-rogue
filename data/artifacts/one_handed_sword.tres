@@ -23,3 +23,7 @@ length = 108.0
 duration = 0.14
 visual_color = Color(0.75, 0.92, 1, 0.72)
 price = 6
+tier = "凡品"
+cost = 1
+cultivation_requirement = ""
+shop_weight = 1.0

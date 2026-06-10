@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "palm"
 display_name = "掌"
-description = "挥出爆发掌风打击前方扇形敌人，并将敌人击退。"
+description = "挥出爆发掌劲打击前方扇形敌人，并将敌人击退。"
 icon = ExtResource("2")
 system_tag = "体修"
 attribute_tag = "水"
@@ -20,3 +20,7 @@ duration = 0.2
 knockback_force = 360.0
 visual_color = Color(0.35, 0.78, 1, 0.5)
 price = 6
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

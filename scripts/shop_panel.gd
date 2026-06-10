@@ -3,6 +3,7 @@ class_name ShopPanel
 
 signal buy_requested(offer_index: int)
 signal reroll_requested
+signal breakthrough_requested
 signal continue_requested
 signal inventory_move_requested(from_area: String, from_index: int, to_area: String, to_index: int)
 
@@ -15,6 +16,7 @@ signal inventory_move_requested(from_area: String, from_index: int, to_area: Str
 @onready var bag_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame
 @onready var synergy_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/SynergyFrame
 @onready var stone_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/StoneLabel
+@onready var cultivation_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/CultivationLabel
 @onready var message_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/MessageLabel
 @onready var offer_box: HBoxContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferBox
 @onready var battle_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox/BattleLabel
@@ -23,28 +25,27 @@ signal inventory_move_requested(from_area: String, from_index: int, to_area: Str
 @onready var bag_grid: GridContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox/BagGrid
 @onready var synergy_label: RichTextLabel = $Panel/MarginContainer/Root/MainRow/SynergyFrame/SynergyLabel
 @onready var reroll_button: Button = $Panel/MarginContainer/Root/TopActionRow/RerollButton
+@onready var breakthrough_button: Button = $Panel/MarginContainer/Root/TopActionRow/BreakthroughButton
 @onready var continue_button: Button = $Panel/MarginContainer/Root/TopActionRow/ContinueButton
 
 const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "阵法", "召唤", "魔修"]
-const ATTRIBUTE_TAGS: Array[String] = ["金", "木", "水", "火", "土", "风", "雷", "毒", "暗"]
+const ATTRIBUTE_TAGS: Array[String] = ["金", "木", "水", "火", "土", "雷", "毒"]
 const SYSTEM_THRESHOLDS: Dictionary = {
 	"剑修": [2, 4, 6],
 	"法修": [2, 4, 6],
 	"体修": [2, 4],
 	"阵法": [2, 4],
-	"召唤": [2],
+	"召唤": [2, 4, 6],
 	"魔修": [2, 4],
 }
 const ATTRIBUTE_THRESHOLDS: Dictionary = {
 	"火": [3],
-	"风": [3],
 	"毒": [3],
 	"金": [2],
 	"木": [2],
 	"水": [2],
 	"土": [2],
 	"雷": [2],
-	"暗": [2],
 }
 const SYNERGY_INACTIVE_COLOR: String = "#7d838d"
 const SYNERGY_ACTIVE_COLOR: String = "#7ee36d"
@@ -56,23 +57,24 @@ const SYNERGY_EFFECTS: Dictionary = {
 	"法修": "2: 额外发射物 +1，额外弹体 50% 伤害\n4: 额外发射物 +1，额外弹体 75% 伤害\n6: 额外发射物 +2，额外弹体 75% 伤害",
 	"体修": "2: 生命上限 +20\n4: 受伤反震",
 	"阵法": "2: 阵法范围 +25%\n4: 阵法范围 +50%",
-	"召唤": "2: 召唤流预留羁绊",
+	"召唤": "2: 所有召唤法宝数量上限 +1\n4: 数量上限额外 +1，重生时间 -50%\n6: 数量上限额外 +2，召唤物死亡释放灵力冲击",
 	"魔修": "2: 低血量魔修法宝伤害提升\n4: 低血量全部伤害提升",
 	"火": "属性羁绊预留：火属性 Build 方向",
-	"风": "属性羁绊预留：风属性 Build 方向",
 	"毒": "属性羁绊预留：毒属性 Build 方向",
 	"金": "属性羁绊预留：金属性 Build 方向",
 	"木": "属性羁绊预留：木属性 Build 方向",
 	"水": "属性羁绊预留：水属性 Build 方向",
 	"土": "属性羁绊预留：土属性 Build 方向",
 	"雷": "属性羁绊预留：雷属性 Build 方向",
-	"暗": "属性羁绊预留：暗属性 Build 方向",
 }
 
 var current_offers: Array = []
 var current_battle_slots: Array = []
 var current_bag_slots: Array = []
 var current_stones: int = 0
+var current_realm: String = "炼气"
+var current_breakthrough_cost: int = 10
+var current_is_max_realm: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
 var bag_slot_size: Vector2 = Vector2(112, 60)
@@ -82,6 +84,7 @@ func _ready() -> void:
 	_apply_panel_styles()
 	_apply_responsive_layout()
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
+	breakthrough_button.pressed.connect(_on_breakthrough_button_pressed)
 	continue_button.pressed.connect(_on_continue_button_pressed)
 
 func _notification(what: int) -> void:
@@ -108,7 +111,21 @@ func set_economy(stones: int) -> void:
 	stone_label.text = "灵石：%d" % current_stones
 	reroll_button.text = "刷新：%d" % ShopManager.REROLL_COST
 	reroll_button.disabled = false
+	_update_cultivation_display()
 	_render_offers()
+
+func set_cultivation(realm: String, breakthrough_cost: int, is_max_realm: bool) -> void:
+	current_realm = realm
+	current_breakthrough_cost = breakthrough_cost
+	current_is_max_realm = is_max_realm
+	_update_cultivation_display()
+
+func _update_cultivation_display() -> void:
+	if not is_node_ready():
+		return
+	cultivation_label.text = "修为：%s" % current_realm
+	breakthrough_button.text = "突破：已满" if current_is_max_realm else "突破：%d" % current_breakthrough_cost
+	breakthrough_button.disabled = current_is_max_realm
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)
@@ -208,6 +225,9 @@ func _on_offer_button_pressed(offer_index: int) -> void:
 func _on_reroll_button_pressed() -> void:
 	reroll_requested.emit()
 
+func _on_breakthrough_button_pressed() -> void:
+	breakthrough_requested.emit()
+
 func _on_continue_button_pressed() -> void:
 	continue_requested.emit()
 
@@ -267,7 +287,7 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 	name_box.add_child(star_label)
 
 	var tag_label: Label = Label.new()
-	tag_label.text = "%s / %s" % [_offer_system_tag(offer), _offer_attribute_tag(offer)]
+	tag_label.text = "%s / %s / %s" % [str(offer.get("tier", "凡品")), _offer_system_tag(offer), _offer_attribute_tag(offer)]
 	tag_label.add_theme_font_size_override("font_size", 13)
 	tag_label.add_theme_color_override("font_color", Color(0.68, 0.82, 1.0))
 	tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -282,7 +302,7 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 	box.add_child(desc_label)
 
 	var price_label: Label = Label.new()
-	price_label.text = "%d 灵石" % int(offer.get("price", ShopManager.BUY_COST))
+	price_label.text = "%d 灵石" % int(offer.get("cost", offer.get("price", 1)))
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_font_size_override("font_size", 16)
 	price_label.add_theme_color_override("font_color", Color(0.98, 0.78, 0.34))
@@ -292,7 +312,8 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 func _make_offer_tooltip(offer: Dictionary) -> String:
 	var lines: Array[String] = [
 		"%s %s" % [offer.get("display_name", "未知法宝"), _make_stars(int(offer.get("star_level", 1)))],
-		"%s / %s" % [_offer_system_tag(offer), _offer_attribute_tag(offer)],
+		"%s / %s / %s" % [str(offer.get("tier", "凡品")), _offer_system_tag(offer), _offer_attribute_tag(offer)],
+		"价格：%d 灵石" % int(offer.get("cost", offer.get("price", 1))),
 		"",
 		str(offer.get("description", "")),
 		"",
@@ -339,6 +360,12 @@ func _offer_special_lines(offer: Dictionary) -> Array[String]:
 		lines.append("击杀回复：%s" % _format_number(float(offer["kill_heal_amount"])))
 	if float(offer.get("attack_speed_bonus", 0.0)) > 0.0:
 		lines.append("攻速提升：%d%%" % int(roundf(float(offer["attack_speed_bonus"]) * 100.0)))
+	if int(offer.get("summon_base_count", 0)) > 0:
+		lines.append("召唤数量：%d" % int(offer["summon_base_count"]))
+		lines.append("召唤生命：%s" % _format_number(float(offer.get("summon_hp", 0.0))))
+		lines.append("召唤攻击：%s" % _format_number(float(offer.get("summon_attack", 0.0))))
+		lines.append("召唤攻速：%.2f/秒" % float(offer.get("summon_attack_speed", 1.0)))
+		lines.append("重生：%s秒" % _format_number(float(offer.get("summon_respawn_time", 0.0))))
 	return lines
 
 func _format_synergy_line(tag: String, count: int, thresholds: Array) -> String:
@@ -444,9 +471,14 @@ func _apply_panel_styles() -> void:
 	title_label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.55))
 	stone_label.add_theme_font_size_override("font_size", 20)
 	stone_label.add_theme_color_override("font_color", Color(0.95, 0.86, 0.58))
+	cultivation_label.add_theme_font_size_override("font_size", 16)
+	cultivation_label.add_theme_color_override("font_color", Color(0.58, 0.86, 1.0))
 	reroll_button.custom_minimum_size = Vector2(118, 38)
+	breakthrough_button.custom_minimum_size = Vector2(130, 38)
 	reroll_button.focus_mode = Control.FOCUS_NONE
+	breakthrough_button.focus_mode = Control.FOCUS_NONE
 	reroll_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	breakthrough_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	battle_label.add_theme_font_size_override("font_size", 18)
 	battle_label.add_theme_color_override("font_color", Color(0.48, 0.84, 1.0))
 	bag_label.add_theme_color_override("font_color", Color(0.72, 0.69, 0.58))

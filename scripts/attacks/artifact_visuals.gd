@@ -118,7 +118,7 @@ static func make_formation_visual(data: ArtifactData) -> Node2D:
 		"slow_formation":
 			_add_runes(root, color, data.radius, "cross")
 		"attack_speed_formation":
-			_add_runes(root, color, data.radius, "wind")
+			_add_runes(root, color, data.radius, "thunder")
 		"healing_formation":
 			_add_runes(root, color, data.radius, "water")
 		"damage_formation":
@@ -287,8 +287,8 @@ static func _add_runes(root: Node2D, color: Color, radius: float, kind: String) 
 		rune.position = pos
 		rune.rotation = angle
 		match kind:
-			"wind":
-				rune.points = PackedVector2Array([Vector2(-10, 5), Vector2(0, -6), Vector2(12, 0), Vector2(0, 7)])
+			"thunder":
+				rune.points = PackedVector2Array([Vector2(-8, -10), Vector2(3, -10), Vector2(-3, 1), Vector2(9, 1), Vector2(-6, 12)])
 			"water":
 				rune.points = PackedVector2Array([Vector2(-12, 0), Vector2(-4, -5), Vector2(4, 5), Vector2(12, 0)])
 			"fire":

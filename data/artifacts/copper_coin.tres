@@ -23,3 +23,7 @@ bounce_count = 2
 bounce_range = 160.0
 visual_color = Color(1, 0.78, 0.18, 1)
 price = 7
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

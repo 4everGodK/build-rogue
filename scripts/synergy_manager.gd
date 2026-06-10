@@ -20,7 +20,8 @@ func recalculate(battle_slots: Array) -> void:
 			continue
 		counted_ids[stack.artifact_data.id] = true
 		system_counts[stack.artifact_data.system_tag] = int(system_counts.get(stack.artifact_data.system_tag, 0)) + 1
-		attribute_counts[stack.artifact_data.attribute_tag] = int(attribute_counts.get(stack.artifact_data.attribute_tag, 0)) + 1
+		var attribute_tag: String = stack.artifact_data.get_attribute_tag()
+		attribute_counts[attribute_tag] = int(attribute_counts.get(attribute_tag, 0)) + 1
 	_update_effects()
 	synergies_changed.emit(system_counts.duplicate(), attribute_counts.duplicate())
 
@@ -51,6 +52,24 @@ func _update_effects() -> void:
 
 	var formation_count: int = int(system_counts.get("阵法", 0))
 	effects["formation_radius_multiplier"] = 1.5 if formation_count >= 4 else 1.25 if formation_count >= 2 else 1.0
+
+	var summon_count: int = int(system_counts.get("召唤", 0))
+	if summon_count >= 6:
+		effects["summon_extra_count"] = 4
+		effects["summon_respawn_time_multiplier"] = 0.5
+		effects["summon_death_burst_enabled"] = true
+	elif summon_count >= 4:
+		effects["summon_extra_count"] = 2
+		effects["summon_respawn_time_multiplier"] = 0.5
+		effects["summon_death_burst_enabled"] = false
+	elif summon_count >= 2:
+		effects["summon_extra_count"] = 1
+		effects["summon_respawn_time_multiplier"] = 1.0
+		effects["summon_death_burst_enabled"] = false
+	else:
+		effects["summon_extra_count"] = 0
+		effects["summon_respawn_time_multiplier"] = 1.0
+		effects["summon_death_burst_enabled"] = false
 
 	var body_count: int = int(system_counts.get("体修", 0))
 	effects["body_max_hp_bonus"] = 20 if body_count >= 2 else 0

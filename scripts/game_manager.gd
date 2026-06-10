@@ -5,14 +5,19 @@ class_name GameManager
 @export var attack_container_path: NodePath
 @export var wave_manager_path: NodePath
 @export var economy_manager_path: NodePath
+@export var cultivation_manager_path: NodePath
 @export var inventory_path: NodePath
 @export var synergy_manager_path: NodePath
 @export var shop_manager_path: NodePath
+@export var combat_room_timer_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
 @export var result_panel_path: NodePath
 @export var run_summary_path: NodePath
 @export var starting_spirit_stones: int = 3
+@export var room_duration: float = 30.0
+@export var debug_test_room: bool = false
+@export var debug_shop_toggle_key: int = KEY_B
 
 const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
 
@@ -20,9 +25,11 @@ var player: Player
 var attack_container: Node2D
 var wave_manager: WaveManager
 var economy_manager: EconomyManager
+var cultivation_manager: CultivationManager
 var inventory: ArtifactInventory
 var synergy_manager: SynergyManager
 var shop_manager: ShopManager
+var combat_room_timer: CombatRoomTimer
 var game_ui: GameUI
 var shop_panel: ShopPanel
 var result_panel: ResultPanel
@@ -30,6 +37,8 @@ var run_summary: RunSummary
 var in_shop: bool = false
 var run_ended: bool = false
 var wave_elapsed_time: float = 0.0
+var room_kill_count: int = 0
+var room_spirit_stones: int = 0
 var artifact_hud_refresh_remaining: float = 0.0
 
 func _ready() -> void:
@@ -46,15 +55,27 @@ func _process(delta: float) -> void:
 		artifact_hud_refresh_remaining = 0.12
 		_update_battle_ui(true)
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not debug_test_room or run_ended:
+		return
+	var key_event := event as InputEventKey
+	if key_event != null and key_event.pressed and not key_event.echo and key_event.keycode == debug_shop_toggle_key:
+		if in_shop:
+			_close_debug_shop()
+		else:
+			_enter_shop(wave_manager.wave_number)
+
 func _initialize() -> void:
 	randomize()
 	player = get_node(player_path)
 	attack_container = get_node(attack_container_path)
 	wave_manager = get_node(wave_manager_path)
 	economy_manager = get_node(economy_manager_path)
+	cultivation_manager = get_node(cultivation_manager_path)
 	inventory = get_node(inventory_path)
 	synergy_manager = get_node(synergy_manager_path)
 	shop_manager = get_node(shop_manager_path)
+	combat_room_timer = get_node(combat_room_timer_path)
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
 	result_panel = get_node(result_panel_path)
@@ -64,12 +85,14 @@ func _initialize() -> void:
 	player.artifact_manager.configure(player, attack_container)
 	player.artifact_manager.set_synergy_manager(synergy_manager)
 	wave_manager.configure(player)
-	shop_manager.configure(economy_manager, inventory)
+	shop_manager.configure(economy_manager, inventory, cultivation_manager)
 
 	player.hp_changed.connect(game_ui.set_hp)
 	player.shield_changed.connect(game_ui.set_shield)
 	player.died.connect(_on_player_died)
 	economy_manager.spirit_stones_changed.connect(_on_spirit_stones_changed)
+	cultivation_manager.cultivation_changed.connect(_on_cultivation_changed)
+	cultivation_manager.cultivation_message.connect(_show_shop_message)
 	inventory.inventory_changed.connect(_on_inventory_changed)
 	inventory.inventory_message.connect(_show_shop_message)
 	synergy_manager.synergies_changed.connect(_on_synergies_changed)
@@ -77,6 +100,7 @@ func _initialize() -> void:
 	shop_manager.shop_message.connect(_show_shop_message)
 	shop_panel.buy_requested.connect(shop_manager.buy_offer)
 	shop_panel.reroll_requested.connect(shop_manager.reroll)
+	shop_panel.breakthrough_requested.connect(_on_breakthrough_requested)
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
 	shop_panel.inventory_move_requested.connect(inventory.move_stack)
 	result_panel.restart_requested.connect(_restart_run)
@@ -84,28 +108,43 @@ func _initialize() -> void:
 	wave_manager.enemy_killed.connect(_on_enemy_killed)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.wave_cleared.connect(_on_wave_cleared)
+	combat_room_timer.room_finished.connect(_on_room_timer_finished)
 
 	game_ui.set_hp(player.hp, player.max_hp)
 	game_ui.set_shield(player.shield, player.shield_limit)
 	economy_manager.reset(starting_spirit_stones)
+	if debug_test_room:
+		economy_manager.set_unlimited(true)
+	cultivation_manager.reset()
 	_on_inventory_changed()
 	game_ui.set_wave_status(1, "准备阶段")
 	_update_battle_ui(true)
-	_enter_shop(0)
+	if debug_test_room:
+		_start_battle()
+	else:
+		_enter_shop(0)
 
 func _start_battle() -> void:
 	in_shop = false
 	shop_panel.close_shop()
 	player.set_battle_paused(false)
+	room_kill_count = 0
+	room_spirit_stones = 0
 	wave_manager.start_next_wave()
+	if debug_test_room:
+		combat_room_timer.stop_room()
+	else:
+		combat_room_timer.start_room(room_duration)
 	_update_battle_ui(true)
 
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
+	combat_room_timer.stop_room()
 	_clear_attack_nodes()
 	shop_manager.generate_offers()
+	_update_shop_cultivation()
 	shop_panel.open_shop(
 		cleared_wave,
 		shop_manager.get_offer_dictionaries(),
@@ -115,7 +154,13 @@ func _enter_shop(cleared_wave: int) -> void:
 		synergy_manager.system_counts,
 		synergy_manager.attribute_counts
 	)
-	shop_panel.set_message(_synergy_effect_text())
+	shop_panel.set_message(_shop_status_text())
+
+func _close_debug_shop() -> void:
+	in_shop = false
+	shop_panel.close_shop()
+	player.set_battle_paused(false)
+	wave_manager.pause_wave(false)
 
 func _on_shop_continue_requested() -> void:
 	if run_ended:
@@ -128,12 +173,14 @@ func _on_wave_started(wave_number: int) -> void:
 	_update_battle_ui(true)
 
 func _on_wave_cleared(wave_number: int) -> void:
-	if wave_number >= 5:
-		_on_demo_completed()
-		return
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_update_battle_ui(true)
 	_enter_shop(wave_number)
+
+func _on_room_timer_finished() -> void:
+	if run_ended or in_shop:
+		return
+	wave_manager.finish_current_room(true)
 
 func _on_inventory_changed() -> void:
 	synergy_manager.recalculate(inventory.battle_slots)
@@ -151,7 +198,7 @@ func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictiona
 	)
 	if in_shop:
 		shop_panel.set_synergies(system_counts, attribute_counts)
-		shop_panel.set_message(_synergy_effect_text())
+		shop_panel.set_message(_shop_status_text())
 
 func _on_shop_offers_changed(offers: Array) -> void:
 	if in_shop and shop_panel.visible:
@@ -167,8 +214,33 @@ func _show_shop_message(message: String) -> void:
 	if in_shop:
 		shop_panel.set_message(message)
 
+func _shop_status_text() -> String:
+	var prefix: String = ""
+	if wave_manager != null and wave_manager.wave_number > 0 and not debug_test_room:
+		prefix = "本房间击杀 %d，获得灵石 %d。 " % [room_kill_count, room_spirit_stones]
+	return prefix + _synergy_effect_text()
+
+func _on_breakthrough_requested() -> void:
+	if cultivation_manager.try_breakthrough(economy_manager):
+		shop_manager.generate_offers()
+	_update_shop_cultivation()
+
+func _on_cultivation_changed(_realm: String, _realm_index: int) -> void:
+	_update_shop_cultivation()
+
+func _update_shop_cultivation() -> void:
+	if shop_panel == null or cultivation_manager == null:
+		return
+	shop_panel.set_cultivation(
+		cultivation_manager.get_realm(),
+		cultivation_manager.get_breakthrough_cost(),
+		cultivation_manager.is_max_realm()
+	)
+
 func _on_enemy_killed(gold_reward: int) -> void:
 	run_summary.record_kill(gold_reward)
+	room_kill_count += 1
+	room_spirit_stones += gold_reward
 	economy_manager.add_spirit_stones(gold_reward)
 	_update_battle_ui(false)
 
@@ -190,6 +262,13 @@ func _synergy_effect_text() -> String:
 	var formation: float = float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
 	if formation > 1.0:
 		parts.append("阵法: 范围+%d%%" % int(round((formation - 1.0) * 100.0)))
+	var summon_extra: int = int(synergy_manager.get_effect_value("summon_extra_count", 0))
+	if summon_extra > 0:
+		parts.append("召唤: 数量+%d" % summon_extra)
+	if float(synergy_manager.get_effect_value("summon_respawn_time_multiplier", 1.0)) < 1.0:
+		parts.append("召唤: 重生-50%")
+	if bool(synergy_manager.get_effect_value("summon_death_burst_enabled", false)):
+		parts.append("召唤: 死亡灵力冲击")
 	if int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)) > 0:
 		parts.append("体修: 生命+20")
 	if bool(synergy_manager.get_effect_value("body_counter_enabled", false)):

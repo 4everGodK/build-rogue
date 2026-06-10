@@ -24,3 +24,7 @@ projectile_speed = 520.0
 projectile_pierce = 1
 visual_color = Color(0.55, 0.85, 1, 1)
 price = 6
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

@@ -22,6 +22,8 @@ var knockback_velocity: Vector2 = Vector2.ZERO
 var slow_effects: Dictionary = {}
 var damage_reduction_effects: Dictionary = {}
 var contact_damage_cooldown: float = 0.0
+var taunt_target: Node2D
+var taunt_time: float = 0.0
 
 @onready var visual: Polygon2D = $Visual
 
@@ -33,24 +35,25 @@ func _physics_process(delta: float) -> void:
 		return
 	if contact_damage_cooldown > 0.0:
 		contact_damage_cooldown -= delta
-	if is_instance_valid(player):
-		var to_player: Vector2 = global_position.direction_to(player.global_position)
-		if to_player == Vector2.ZERO:
-			to_player = Vector2.RIGHT.rotated(randf() * TAU)
-		var distance: float = global_position.distance_to(player.global_position)
+	var current_target := _current_target()
+	if is_instance_valid(current_target):
+		var to_target: Vector2 = global_position.direction_to(current_target.global_position)
+		if to_target == Vector2.ZERO:
+			to_target = Vector2.RIGHT.rotated(randf() * TAU)
+		var distance: float = global_position.distance_to(current_target.global_position)
 		if distance > separation_radius:
-			velocity = to_player * move_speed * _current_speed_multiplier()
+			velocity = to_target * move_speed * _current_speed_multiplier()
 		elif distance < contact_radius:
-			velocity = -to_player * move_speed * 0.65 * _current_speed_multiplier()
+			velocity = -to_target * move_speed * 0.65 * _current_speed_multiplier()
 		else:
 			velocity = Vector2.ZERO
 		velocity += knockback_velocity
 		move_and_slide()
 		clamp_to_arena()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
-		var contact_distance: float = global_position.distance_to(player.global_position)
+		var contact_distance: float = global_position.distance_to(current_target.global_position)
 		if contact_distance <= maxf(contact_radius, separation_radius):
-			_try_contact_damage(player)
+			_try_contact_damage(current_target)
 
 	if flash_time > 0.0:
 		flash_time -= delta
@@ -60,6 +63,8 @@ func _physics_process(delta: float) -> void:
 
 	_process_poison(delta)
 	_process_timed_effects(delta)
+	if taunt_time > 0.0:
+		taunt_time -= delta
 
 func setup(target_player: Player) -> void:
 	player = target_player
@@ -98,6 +103,12 @@ func apply_slow(percent: float, duration: float, source = null) -> void:
 
 func apply_damage_reduction(percent: float, duration: float, source = null) -> void:
 	damage_reduction_effects[str(source)] = {"value": clampf(percent, 0.0, 0.9), "time_left": duration}
+
+func apply_taunt(source: Node2D, duration: float) -> void:
+	if source == null or duration <= 0.0:
+		return
+	taunt_target = source
+	taunt_time = duration
 
 func _current_speed_multiplier() -> float:
 	var strongest: float = 0.0
@@ -145,11 +156,21 @@ func _on_contact_area_body_entered(body: Node) -> void:
 	if body is Player:
 		_try_contact_damage(body)
 
-func _try_contact_damage(target_player: Player) -> void:
+func _try_contact_damage(target: Node) -> void:
 	if contact_damage_cooldown > 0.0:
 		return
-	target_player.take_damage(int(ceil(float(contact_damage) * _current_damage_multiplier())))
+	if target != null and target.has_method("take_damage"):
+		var damage := int(ceil(float(contact_damage) * _current_damage_multiplier()))
+		if target is Player:
+			target.call("take_damage", damage)
+		else:
+			target.call("take_damage", damage, self)
 	contact_damage_cooldown = contact_damage_interval
+
+func _current_target() -> Node2D:
+	if taunt_time > 0.0 and is_instance_valid(taunt_target):
+		return taunt_target
+	return player
 
 func _spawn_damage_number(amount: float) -> void:
 	var label: Label = Label.new()

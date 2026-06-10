@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "kick"
 display_name = "腿"
-description = "贴身旋风扫腿，对周围一圈敌人造成较高伤害并轻微击退。"
+description = "贴身旋身扫腿，对周围一圈敌人造成较高伤害并轻微击退。"
 icon = ExtResource("2")
 system_tag = "体修"
 attribute_tag = "雷"
@@ -19,3 +19,7 @@ duration = 0.22
 knockback_force = 90.0
 visual_color = Color(0.65, 0.82, 1, 0.38)
 price = 6
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

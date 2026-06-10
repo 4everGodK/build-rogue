@@ -147,6 +147,10 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 		ArtifactStarConfig.apply_star3_bonus(effective)
 	if synergy_manager != null and effective.attack_template == "formation":
 		effective.radius *= float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
+	if synergy_manager != null and effective.attack_template == "summon":
+		effective.summon_base_count += int(synergy_manager.get_effect_value("summon_extra_count", 0))
+		effective.summon_respawn_time *= float(synergy_manager.get_effect_value("summon_respawn_time_multiplier", 1.0))
+		effective.summon_death_burst = bool(synergy_manager.get_effect_value("summon_death_burst_enabled", false))
 	return effective
 
 func _make_runtime_data(player: Node2D) -> ArtifactData:

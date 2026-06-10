@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "poison_bug"
+display_name = "毒虫"
+description = "召唤轻量虫群近战撕咬并附加中毒。敌人死亡时有概率补充毒虫，但总数不会超过上限。"
+system_tag = "召唤"
+attribute_tag = "毒"
+attack_template = "summon"
+attack_shape = "stab"
+damage = 5.0
+cooldown = 0.5
+range = 450.0
+length = 32.0
+poison_dps = 2.0
+poison_duration = 3.0
+summon_base_count = 3
+summon_hp = 30.0
+summon_attack = 5.0
+summon_attack_speed = 2.0
+summon_move_speed = 235.0
+summon_combat_radius = 450.0
+summon_return_radius = 650.0
+summon_respawn_time = 3.0
+summon_behavior_type = "swarm"
+summon_special_effect = "虫海战术，击杀20%概率补充毒虫"
+visual_color = Color(0.42, 1, 0.22, 1)
+price = 7
+tier = "通天灵宝"
+cost = 5
+cultivation_requirement = ""
+shop_weight = 1.0

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "iron_guard_puppet"
+display_name = "铁卫傀儡"
+description = "召唤高生命铁卫傀儡，尽量挡在玩家与怪群之间，并周期性嘲讽附近敌人。死亡后会重生。"
+system_tag = "召唤"
+attribute_tag = "土"
+attack_template = "summon"
+attack_shape = "stab"
+damage = 8.0
+cooldown = 1.43
+range = 450.0
+radius = 300.0
+length = 46.0
+summon_base_count = 1
+summon_hp = 300.0
+summon_attack = 8.0
+summon_attack_speed = 0.7
+summon_move_speed = 150.0
+summon_combat_radius = 450.0
+summon_return_radius = 600.0
+summon_respawn_time = 8.0
+summon_behavior_type = "tank"
+summon_special_effect = "前排坦克，5秒嘲讽"
+visual_color = Color(0.72, 0.60, 0.42, 1)
+price = 9
+tier = "古宝"
+cost = 4
+cultivation_requirement = ""
+shop_weight = 1.0

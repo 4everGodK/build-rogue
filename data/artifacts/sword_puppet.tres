@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sword_puppet"
+display_name = "剑傀儡"
+description = "召唤持续存在的剑傀儡，追击最近敌人并用近战扇形挥砍。死亡后会在短时间后重生。"
+system_tag = "召唤"
+attribute_tag = "金"
+attack_template = "summon"
+attack_shape = "slash"
+damage = 15.0
+cooldown = 1.0
+range = 500.0
+length = 58.0
+width = 52.0
+summon_base_count = 1
+summon_hp = 100.0
+summon_attack = 15.0
+summon_attack_speed = 1.0
+summon_move_speed = 230.0
+summon_combat_radius = 500.0
+summon_return_radius = 700.0
+summon_respawn_time = 6.0
+summon_behavior_type = "melee"
+summon_special_effect = "近战主力输出"
+visual_color = Color(0.95, 0.86, 0.45, 1)
+price = 8
+tier = "凡品"
+cost = 1
+cultivation_requirement = ""
+shop_weight = 1.0

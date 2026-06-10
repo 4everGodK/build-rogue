@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "crossbow_puppet"
+display_name = "弩傀儡"
+description = "召唤后排弩傀儡，和敌人保持距离并持续发射灵能箭。死亡后会在短时间后重生。"
+system_tag = "召唤"
+attribute_tag = "雷"
+attack_template = "summon"
+attack_shape = "projectile"
+damage = 10.0
+cooldown = 0.67
+range = 600.0
+projectile_speed = 560.0
+bounce_range = 180.0
+summon_base_count = 1
+summon_hp = 70.0
+summon_attack = 10.0
+summon_attack_speed = 1.5
+summon_move_speed = 185.0
+summon_combat_radius = 600.0
+summon_return_radius = 700.0
+summon_respawn_time = 6.0
+summon_behavior_type = "ranged"
+summon_special_effect = "后排持续输出"
+visual_color = Color(0.48, 0.82, 1, 1)
+price = 8
+tier = "灵器"
+cost = 3
+cultivation_requirement = ""
+shop_weight = 1.0

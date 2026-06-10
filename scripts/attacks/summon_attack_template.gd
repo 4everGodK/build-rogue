@@ -1,6 +1,8 @@
 extends RefCounted
 class_name SummonAttackTemplate
 
-# Phase two hook. Returning null keeps summon artifacts from blocking the core system.
-static func create(_player: Node2D, _container: Node, _data: ArtifactData) -> Node:
-	return null
+static func create(player: Node2D, container: Node, data: ArtifactData) -> Node:
+	var controller := SummonController.new()
+	container.add_child(controller)
+	controller.setup(player, data)
+	return controller

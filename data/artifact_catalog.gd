@@ -25,6 +25,12 @@ const ARTIFACT_PATHS := {
 	"blood_slash": "res://data/artifacts/blood_slash.tres",
 	"poison_needle": "res://data/artifacts/poison_needle.tres",
 	"heaven_eye": "res://data/artifacts/heaven_eye.tres",
+	"sword_puppet": "res://data/artifacts/sword_puppet.tres",
+	"crossbow_puppet": "res://data/artifacts/crossbow_puppet.tres",
+	"iron_guard_puppet": "res://data/artifacts/iron_guard_puppet.tres",
+	"turret": "res://data/artifacts/turret.tres",
+	"ghost": "res://data/artifacts/ghost.tres",
+	"poison_bug": "res://data/artifacts/poison_bug.tres",
 }
 
 static func all_ids() -> Array:

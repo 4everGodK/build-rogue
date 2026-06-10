@@ -6,7 +6,7 @@ class_name ArtifactData
 @export_multiline var description: String = ""
 @export var icon: Texture2D
 @export_enum("剑修", "法修", "体修", "阵法", "召唤", "魔修") var system_tag: String = "剑修"
-@export_enum("金", "木", "水", "火", "土", "风", "雷", "毒", "暗") var attribute_tag: String = "金"
+@export_enum("金", "木", "水", "火", "土", "雷", "毒") var attribute_tag: String = "金"
 @export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon") var attack_template: String = "projectile"
 @export_enum("slash", "stab", "circle", "line", "projectile", "beam", "aura") var attack_shape: String = "projectile"
 @export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction") var effect_type: String = "damage"
@@ -51,6 +51,29 @@ class_name ArtifactData
 @export var delayed_strike_interval: float = 0.15
 @export var visual_color: Color = Color.WHITE
 @export var price: int = 6
+@export_enum("凡品", "法器", "灵器", "古宝", "通天灵宝") var tier: String = "凡品"
+@export var cost: int = 0
+@export var cultivation_requirement: String = ""
+@export var shop_weight: float = 1.0
+
+const ACTIVE_ATTRIBUTE_TAGS: Array[String] = ["金", "木", "水", "火", "土", "雷", "毒"]
+const LEGACY_ATTRIBUTE_FALLBACKS: Dictionary = {
+	"风": "雷",
+	"暗": "毒",
+}
+
+@export_group("Summon")
+@export var summon_base_count: int = 0
+@export var summon_hp: float = 0.0
+@export var summon_attack: float = 0.0
+@export var summon_attack_speed: float = 1.0
+@export var summon_move_speed: float = 0.0
+@export var summon_combat_radius: float = 0.0
+@export var summon_return_radius: float = 0.0
+@export var summon_respawn_time: float = 0.0
+@export var summon_behavior_type: String = ""
+@export_multiline var summon_special_effect: String = ""
+@export var summon_death_burst: bool = false
 
 @export_group("Star Growth")
 @export var star2_damage_mult: float = 0.0
@@ -71,18 +94,30 @@ class_name ArtifactData
 @export var movement_speed_bonus: float = 0.0
 @export var melee_arc_multiplier: float = 1.0
 
+func get_attribute_tag() -> String:
+	var normalized: String = str(LEGACY_ATTRIBUTE_FALLBACKS.get(attribute_tag, attribute_tag))
+	return normalized if normalized in ACTIVE_ATTRIBUTE_TAGS else "金"
+
+func get_shop_cost() -> int:
+	return cost if cost > 0 else CultivationManager.cost_for_tier(tier)
+
 func to_offer() -> Dictionary:
+	var normalized_attribute: String = get_attribute_tag()
 	return {
 		"id": id,
 		"display_name": display_name,
 		"description": description,
 		"icon": icon,
 		"system_tag": system_tag,
-		"attribute_tag": attribute_tag,
-		"tags": [system_tag, attribute_tag],
+		"attribute_tag": normalized_attribute,
+		"tags": [system_tag, normalized_attribute],
 		"attack_template": attack_template,
 		"level": 1,
-		"price": price,
+		"tier": tier,
+		"cost": get_shop_cost(),
+		"cultivation_requirement": cultivation_requirement,
+		"shop_weight": shop_weight,
+		"price": get_shop_cost(),
 		"damage": damage,
 		"cooldown": cooldown,
 		"range": range,
@@ -113,4 +148,14 @@ func to_offer() -> Dictionary:
 		"star2_cooldown_mult": star2_cooldown_mult,
 		"star3_damage_mult": star3_damage_mult,
 		"star3_cooldown_mult": star3_cooldown_mult,
+		"summon_base_count": summon_base_count,
+		"summon_hp": summon_hp,
+		"summon_attack": summon_attack,
+		"summon_attack_speed": summon_attack_speed,
+		"summon_move_speed": summon_move_speed,
+		"summon_combat_radius": summon_combat_radius,
+		"summon_return_radius": summon_return_radius,
+		"summon_respawn_time": summon_respawn_time,
+		"summon_behavior_type": summon_behavior_type,
+		"summon_special_effect": summon_special_effect,
 	}

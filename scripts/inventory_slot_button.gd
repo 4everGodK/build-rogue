@@ -104,7 +104,7 @@ func _build_slot_content() -> void:
 	text_box.add_child(name_label)
 
 	var tag_label: Label = Label.new()
-	tag_label.text = "%s / %s" % [stack.artifact_data.system_tag, stack.artifact_data.attribute_tag]
+	tag_label.text = "%s / %s" % [stack.artifact_data.system_tag, stack.artifact_data.get_attribute_tag()]
 	tag_label.clip_text = true
 	tag_label.add_theme_font_size_override("font_size", 12 if slot_area == "battle" else 10)
 	tag_label.add_theme_color_override("font_color", Color(0.55, 0.78, 1.0) if slot_area == "battle" else Color(0.46, 0.50, 0.56))

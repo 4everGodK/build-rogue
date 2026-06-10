@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "fist"
 display_name = "拳"
-description = "快速近身拳风打击最近敌人，伤害高于远程法宝。"
+description = "快速近身拳劲打击最近敌人，伤害高于远程法宝。"
 icon = ExtResource("2")
 system_tag = "体修"
 attribute_tag = "火"
@@ -20,3 +20,7 @@ duration = 0.1
 knockback_force = 120.0
 visual_color = Color(1, 0.42, 0.12, 0.65)
 price = 5
+tier = "凡品"
+cost = 1
+cultivation_requirement = ""
+shop_weight = 1.0
