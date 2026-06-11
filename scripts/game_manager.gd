@@ -128,6 +128,7 @@ func _initialize() -> void:
 func _start_battle() -> void:
 	in_shop = false
 	shop_panel.close_shop()
+	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(false)
 	room_kill_count = 0
 	room_spirit_stones = 0
@@ -140,6 +141,7 @@ func _start_battle() -> void:
 
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
+	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
 	combat_room_timer.stop_room()
@@ -273,9 +275,10 @@ func _update_battle_ui(refresh_artifacts: bool = false) -> void:
 
 func _synergy_effect_text() -> String:
 	var parts: Array[String] = []
-	var sword: float = float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
-	if sword > 0.0:
-		parts.append("剑修: %d%%双击" % int(round(sword * 100.0)))
+	var sword_per_stack: float = float(synergy_manager.get_effect_value("sword_attack_speed_per_stack", 0.0))
+	var sword_max_stacks: int = int(synergy_manager.get_effect_value("sword_attack_speed_max_stacks", 0))
+	if sword_per_stack > 0.0:
+		parts.append("剑修: 每次伤害攻速+%d%%，上限%d层" % [int(round(sword_per_stack * 100.0)), sword_max_stacks])
 	var extra: int = int(synergy_manager.get_effect_value("projectile_extra_count", 0))
 	if extra > 0:
 		parts.append("法修: 额外发射物+%d" % extra)
@@ -307,6 +310,7 @@ func _on_player_died() -> void:
 	if run_ended:
 		return
 	run_ended = true
+	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
 	_clear_attack_nodes()
@@ -318,6 +322,7 @@ func _on_demo_completed() -> void:
 		return
 	run_ended = true
 	in_shop = false
+	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
 	_clear_attack_nodes()

@@ -56,6 +56,7 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 		return
 	last_hits[key] = now
 	body.call("take_damage", data.damage * 0.25, player)
+	_notify_artifact_damage()
 	HitEffectManager.spawn_hit(get_tree(), orbiter.global_position, "sword", orbiter.global_transform.x, 14.0)
 	_flash_orbiter(orbiter)
 
@@ -66,7 +67,10 @@ func _try_counter_attack() -> void:
 	var orbiter: Area2D = _first_ready_orbiter()
 	if orbiter == null:
 		return
-	counter_cooldown_remaining = maxf(0.12, data.cooldown)
+	var cooldown_multiplier: float = 1.0
+	if player != null and player.has_method("get_sword_artifact_cooldown_multiplier"):
+		cooldown_multiplier = float(player.call("get_sword_artifact_cooldown_multiplier", data))
+	counter_cooldown_remaining = maxf(0.12, data.cooldown * cooldown_multiplier)
 	_counter_stab(orbiter, target)
 
 func _find_nearest_counter_target() -> Node2D:
@@ -108,6 +112,7 @@ func _counter_stab(orbiter: Area2D, target: Node2D) -> void:
 		return
 	if is_instance_valid(target) and target.has_method("take_damage"):
 		target.call("take_damage", data.damage, player)
+		_notify_artifact_damage()
 		HitEffectManager.spawn_hit(get_tree(), target.global_position, "sword", start_position.direction_to(target_position), 18.0)
 	_flash_orbiter(orbiter)
 	var return_time: float = clampf(target_position.distance_to(player.global_position) / maxf(1.0, data.counter_speed), 0.06, 0.18)
@@ -121,3 +126,7 @@ func _flash_orbiter(orbiter: Area2D) -> void:
 	orbiter.modulate = Color(1.8, 1.8, 1.4, 1.0)
 	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(orbiter, "modulate", Color.WHITE, 0.1)
+
+func _notify_artifact_damage() -> void:
+	if player != null and player.has_method("notify_artifact_damage"):
+		player.call("notify_artifact_damage", data)

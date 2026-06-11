@@ -18,6 +18,15 @@ func configure(player: Node2D, container: Node) -> void:
 func set_synergy_manager(manager: SynergyManager) -> void:
 	synergy_manager = manager
 
+func notify_artifact_damage(data: ArtifactData) -> void:
+	if synergy_manager != null:
+		synergy_manager.notify_artifact_damage(data)
+
+func get_sword_artifact_cooldown_multiplier(data: ArtifactData) -> float:
+	if synergy_manager == null or data == null or data.system_tag != "剑修":
+		return 1.0
+	return synergy_manager.get_sword_cooldown_multiplier()
+
 func clear_artifacts() -> void:
 	for instance in artifacts:
 		instance.dispose()

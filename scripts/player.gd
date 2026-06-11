@@ -111,6 +111,12 @@ func set_artifact_move_speed_multiplier(multiplier: float) -> void:
 func get_artifact_cooldown_multiplier() -> float:
 	return artifact_cooldown_multiplier
 
+func notify_artifact_damage(data: ArtifactData) -> void:
+	artifact_manager.notify_artifact_damage(data)
+
+func get_sword_artifact_cooldown_multiplier(data: ArtifactData) -> float:
+	return artifact_manager.get_sword_artifact_cooldown_multiplier(data)
+
 func get_hp_ratio() -> float:
 	return float(hp) / float(max_hp)
 

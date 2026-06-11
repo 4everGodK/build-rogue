@@ -35,6 +35,11 @@ func _physics_process(delta: float) -> void:
 	if tick_remaining <= 0.0:
 		tick_remaining = maxf(0.05, data.tick_interval)
 		target.call("take_damage", data.damage, player)
+		_notify_artifact_damage()
 		HitEffectManager.spawn_hit(get_tree(), target.global_position, "blood" if data.id == "heaven_eye" else "flash", eye_position.direction_to(target.global_position), 12.0)
 	if time_left <= 0.0:
 		queue_free()
+
+func _notify_artifact_damage() -> void:
+	if player != null and player.has_method("notify_artifact_damage"):
+		player.call("notify_artifact_damage", data)

@@ -79,6 +79,9 @@ static func make_melee_visual(data: ArtifactData) -> Node2D:
 			else:
 				root.add_child(_fan_visual(Color(1.0, 0.78, 0.25, 0.46), maxf(130.0, data.length), deg_to_rad(70.0)))
 				root.add_child(_slash_line(Color(1.0, 0.9, 0.52, 0.56), data.length, maxf(8.0, data.width * 0.16)))
+		"fire_gourd":
+			root.add_child(_fan_visual(Color(1.0, 0.26, 0.03, 0.5), maxf(120.0, data.length), deg_to_rad(68.0)))
+			root.add_child(_fan_visual(Color(1.0, 0.72, 0.12, 0.32), maxf(90.0, data.length * 0.72), deg_to_rad(46.0)))
 		"two_handed_sword":
 			root.add_child(_fan_visual(Color(0.86, 0.68, 0.34, 0.58), maxf(130.0, data.length), deg_to_rad(72.0)))
 			root.add_child(_slash_line(Color(1.0, 0.86, 0.48, 0.5), data.length * 0.92, maxf(7.0, data.width * 0.16)))
@@ -104,6 +107,8 @@ static func make_melee_visual(data: ArtifactData) -> Node2D:
 
 static func melee_hit_kind(data: ArtifactData) -> String:
 	match data.id:
+		"fire_gourd":
+			return "fire"
 		"blood_sword":
 			return "blood"
 		"dagger":

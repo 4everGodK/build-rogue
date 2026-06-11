@@ -5,6 +5,8 @@ const STATE_FOLLOW := "Follow"
 const STATE_COMBAT := "Combat"
 const STATE_RETURN := "Return"
 const STATE_RESPAWN := "Respawn"
+const SUMMON_COLLISION_LAYER: int = 8
+const WALL_COLLISION_LAYER: int = 4
 
 var player: Node2D
 var data: ArtifactData
@@ -34,8 +36,8 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData, owner_controller: 
 	max_hp = maxf(1.0, data.summon_hp)
 	hp = max_hp
 	taunt_cooldown = randf_range(0.2, 1.0)
-	collision_layer = 0
-	collision_mask = 0
+	collision_layer = SUMMON_COLLISION_LAYER
+	collision_mask = SUMMON_COLLISION_LAYER | WALL_COLLISION_LAYER
 	add_to_group("summons")
 	_build_collision()
 	_build_visual()
@@ -279,6 +281,7 @@ func damage_enemy(enemy: Node2D, damage: float) -> void:
 	if enemy == null or not enemy.has_method("take_damage"):
 		return
 	var killed: bool = bool(enemy.call("take_damage", damage, player))
+	_notify_artifact_damage()
 	if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
 		enemy.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
 	if killed and data.id == "poison_bug" and randf() < 0.2 and controller != null:
@@ -298,6 +301,7 @@ func _shockwave() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				candidate.call("take_damage", data.summon_attack, player)
+				_notify_artifact_damage()
 
 func _die() -> void:
 	if controller != null:
@@ -310,7 +314,14 @@ func _die() -> void:
 		collision.disabled = true
 
 func _reset_attack_cooldown() -> void:
-	attack_cooldown = 1.0 / maxf(0.1, data.summon_attack_speed)
+	var cooldown_multiplier: float = 1.0
+	if data.system_tag == "剑修" and player != null and player.has_method("get_sword_artifact_cooldown_multiplier"):
+		cooldown_multiplier = float(player.call("get_sword_artifact_cooldown_multiplier", data))
+	attack_cooldown = (1.0 / maxf(0.1, data.summon_attack_speed)) * cooldown_multiplier
+
+func _notify_artifact_damage() -> void:
+	if player != null and player.has_method("notify_artifact_damage"):
+		player.call("notify_artifact_damage", data)
 
 func _follow_offset() -> Vector2:
 	var angle := TAU * float(slot_index) / float(maxi(1, data.summon_base_count))

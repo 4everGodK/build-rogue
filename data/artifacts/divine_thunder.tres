@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://art/icons/heaven_eye.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "divine_thunder"
+display_name = "神雷术"
+description = "锁定一名敌人降下神雷，以该敌人为中心造成范围伤害。三星时神雷范围大幅增加。"
+icon = ExtResource("2")
+system_tag = "法修"
+attribute_tag = "雷"
+attack_template = "target_aoe"
+attack_shape = "circle"
+damage = 82.0
+cooldown = 2.8
+range = 760.0
+radius = 92.0
+duration = 0.22
+visual_color = Color(0.58, 0.9, 1.0, 0.86)
+price = 5
+tier = "仙宝"
+cost = 5
+cultivation_requirement = ""
+shop_weight = 1.0
+star2_damage_mult = 1.65
+star2_cooldown_mult = 0.9
+star3_damage_mult = 2.35
+star3_cooldown_mult = 0.85

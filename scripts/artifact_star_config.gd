@@ -49,6 +49,8 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 			data.width = maxf(data.width, 130.0)
 			data.duration = maxf(data.duration, 0.42)
 			data.max_targets = 0
+		"divine_thunder":
+			data.radius = maxf(data.radius, 260.0)
 		"one_handed_sword":
 			data.extra_melee_wave_damage_mult = 0.55
 			data.extra_melee_wave_range = 90.0
@@ -164,6 +166,8 @@ static func get_star3_description(id: String) -> String:
 	match id:
 		"giant_sword_art":
 			return "巨剑以角色为中心横扫一整圈，对大范围敌人造成伤害"
+		"divine_thunder":
+			return "神雷范围大幅增加"
 		"one_handed_sword":
 			return "挥砍末端额外发出一道短距离剑气"
 		"flying_sword":

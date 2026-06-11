@@ -17,7 +17,7 @@ class_name GameUI
 const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "阵法", "召唤", "魔修"]
 const ATTRIBUTE_TAGS: Array[String] = ["火", "毒", "雷", "水", "土", "金", "木"]
 const SYSTEM_THRESHOLDS: Dictionary = {
-	"剑修": [2, 4, 6],
+	"剑修": [3, 6, 9],
 	"法修": [2, 4, 6],
 	"体修": [2, 4],
 	"阵法": [2, 4],
@@ -40,7 +40,7 @@ const COLOR_ACTIVE: String = "#7ee36d"
 const COLOR_ADVANCED: String = "#f1c45d"
 const COLOR_COMPLETE: String = "#ff73d1"
 const SYNERGY_EFFECTS: Dictionary = {
-	"剑修": "2: 20% 双击\n4: 35% 双击\n6: 50% 双击",
+	"剑修": "3: 每次造成伤害，剑修法宝攻击速度 +2%，上限20层\n6: 每次造成伤害，剑修法宝攻击速度 +3%，上限40层\n9: 每次造成伤害，剑修法宝攻击速度 +4%，上限60层",
 	"法修": "2: 额外发射物 +1，额外弹体 50% 伤害\n4: 额外发射物 +1，额外弹体 75% 伤害\n6: 额外发射物 +2，额外弹体 75% 伤害",
 	"体修": "2: 生命上限 +20\n4: 受伤反震",
 	"阵法": "2: 阵法范围 +25%\n4: 阵法范围 +50%",

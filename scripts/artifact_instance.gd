@@ -62,20 +62,14 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 			BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
 		"line_delayed":
 			LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
-	if source_data != null and source_data.system_tag == "剑修" and randf() < _sword_double_chance():
-		match data.attack_template:
-			"melee":
-				MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
-			"projectile":
-				ProjectileAttackTemplate.execute(player, attack_container, runtime_data, direction, projectile_extra_count, _projectile_extra_damage_multiplier(), projectile_extra_directions)
-			"beam":
-				BeamAttackTemplate.execute(player, attack_container, runtime_data, target)
-			"line_delayed":
-				LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
+		"target_aoe":
+			load("res://scripts/attacks/target_aoe_attack_template.gd").execute(player, attack_container, runtime_data, target)
 	_reserve_target_damage(target, estimated_damage, target_reservations)
 	var cooldown_multiplier := 1.0
 	if player.has_method("get_artifact_cooldown_multiplier"):
 		cooldown_multiplier = float(player.call("get_artifact_cooldown_multiplier"))
+	if synergy_manager != null and source_data != null and source_data.system_tag == "剑修":
+		cooldown_multiplier *= synergy_manager.get_sword_cooldown_multiplier()
 	cooldown_remaining = maxf(0.05, data.cooldown * cooldown_multiplier)
 
 func dispose() -> void:
@@ -133,14 +127,14 @@ func _get_target_search_range() -> float:
 			return maxf(1.0, data.length)
 		"line_delayed":
 			return maxf(1.0, data.length)
+		"target_aoe":
+			return maxf(1.0, data.range)
 		_:
 			return maxf(1.0, data.range)
 
 func _estimate_attack_damage(player: Node2D) -> float:
 	var runtime := _make_runtime_data(player)
 	var estimate: float = runtime.damage
-	if source_data != null and source_data.system_tag == "剑修":
-		estimate *= 1.0 + _sword_double_chance()
 	return maxf(0.0, estimate)
 
 func _get_projectile_extra_directions(player: Node2D, primary_target: Node2D, extra_count: int) -> Array[Vector2]:
@@ -197,11 +191,6 @@ func _make_runtime_data(player: Node2D) -> ArtifactData:
 			if source_data != null and source_data.system_tag == "魔修":
 				runtime.damage *= float(synergy_manager.get_effect_value("demon_low_hp_magic_damage_multiplier", 1.0))
 	return runtime
-
-func _sword_double_chance() -> float:
-	if synergy_manager == null:
-		return 0.0
-	return float(synergy_manager.get_effect_value("sword_double_chance", 0.0))
 
 func _projectile_extra_count() -> int:
 	if synergy_manager == null or source_data == null or source_data.system_tag != "法修":

@@ -20,17 +20,29 @@ func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 	collision_mask = 2
 	monitoring = true
 
-	var collision: CollisionShape2D = CollisionShape2D.new()
 	if data.attack_shape == "circle":
+		var collision: CollisionShape2D = CollisionShape2D.new()
 		var circle: CircleShape2D = CircleShape2D.new()
 		circle.radius = data.radius
 		collision.shape = circle
+		add_child(collision)
+	elif data.attack_shape == "cone":
+		var collision_polygon := CollisionPolygon2D.new()
+		var half_width: float = maxf(8.0, data.width * 0.5)
+		collision_polygon.polygon = PackedVector2Array([
+			Vector2(0.0, -half_width * 0.22),
+			Vector2(data.length, -half_width),
+			Vector2(data.length, half_width),
+			Vector2(0.0, half_width * 0.22),
+		])
+		add_child(collision_polygon)
 	else:
+		var collision: CollisionShape2D = CollisionShape2D.new()
 		var rectangle: RectangleShape2D = RectangleShape2D.new()
 		rectangle.size = Vector2(data.length, data.width)
 		collision.position.x = data.length * 0.5
 		collision.shape = rectangle
-	add_child(collision)
+		add_child(collision)
 
 	var visual: Node2D = ArtifactVisuals.make_melee_visual(data)
 	add_child(visual)
@@ -47,6 +59,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	var killed: bool = bool(body.call("take_damage", _roll_damage(), source))
+	_notify_artifact_damage()
 	_apply_kill_heal(killed)
 	if data.knockback_force > 0.0 and source is Node2D and body.has_method("apply_knockback"):
 		body.call("apply_knockback", (source as Node2D).global_position, data.knockback_force)
@@ -63,6 +76,10 @@ func _apply_kill_heal(killed: bool) -> void:
 		return
 	if source != null and source.has_method("heal"):
 		source.call("heal", data.kill_heal_amount)
+
+func _notify_artifact_damage() -> void:
+	if source != null and source.has_method("notify_artifact_damage"):
+		source.call("notify_artifact_damage", data)
 
 func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 	var wave: Area2D = Area2D.new()
@@ -93,6 +110,7 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 			return
 		wave_hits[body] = true
 		var killed: bool = bool(body.call("take_damage", damage * data.extra_melee_wave_damage_mult, source))
+		_notify_artifact_damage()
 		_apply_kill_heal(killed)
 		if body is Node2D:
 			HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "sword", direction, 14.0)

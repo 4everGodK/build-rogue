@@ -63,6 +63,7 @@ func _strike(center: Vector2) -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if center.distance_to((candidate as Node2D).global_position) <= data.radius:
 				candidate.call("take_damage", data.damage, player)
+				_notify_artifact_damage()
 	if data.id == "brush":
 		HitEffectManager.spawn_hit(get_tree(), center, "ink", direction, data.radius)
 	else:
@@ -84,6 +85,7 @@ func _damage_brush_line() -> void:
 			var enemy: Node2D = candidate as Node2D
 			if _distance_to_segment(enemy.global_position, start, end) <= hit_radius:
 				candidate.call("take_damage", data.damage, player)
+				_notify_artifact_damage()
 				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "ink", direction, maxf(10.0, hit_radius * 0.7))
 
 func _distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
@@ -110,3 +112,7 @@ func _circle_points(circle_radius: float) -> PackedVector2Array:
 		var angle: float = TAU * float(index) / 18.0
 		points.append(Vector2(cos(angle), sin(angle)) * circle_radius)
 	return points
+
+func _notify_artifact_damage() -> void:
+	if player != null and player.has_method("notify_artifact_damage"):
+		player.call("notify_artifact_damage", data)
