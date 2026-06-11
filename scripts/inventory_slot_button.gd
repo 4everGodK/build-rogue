@@ -139,6 +139,8 @@ func _make_drag_preview() -> Control:
 
 func _apply_style(is_drop_target: bool) -> void:
 	var base_border: Color = Color(0.32, 0.72, 1.0) if slot_area == "battle" else Color(0.31, 0.30, 0.28)
+	if stack != null and stack.artifact_data != null:
+		base_border = _tier_border_color(stack.artifact_data.tier)
 	var filled_bg: Color = Color(0.11, 0.16, 0.21, 0.97) if slot_area == "battle" else Color(0.09, 0.09, 0.10, 0.82)
 	var empty_bg: Color = Color(0.055, 0.09, 0.12, 0.86) if slot_area == "battle" else Color(0.055, 0.055, 0.06, 0.70)
 	var border: Color = Color(1.0, 0.82, 0.32) if is_drop_target else base_border
@@ -147,6 +149,21 @@ func _apply_style(is_drop_target: bool) -> void:
 	add_theme_stylebox_override("hover", _make_style(bg.lightened(0.08), Color(0.78, 0.9, 1.0), 2))
 	add_theme_stylebox_override("pressed", _make_style(bg.darkened(0.08), Color(1.0, 0.82, 0.32), 3))
 	add_theme_stylebox_override("disabled", _make_style(Color(0.06, 0.06, 0.08, 0.8), Color(0.24, 0.26, 0.32), 1))
+
+func _tier_border_color(tier: String) -> Color:
+	match tier:
+		"凡器":
+			return Color(0.58, 0.62, 0.66)
+		"法器":
+			return Color(0.35, 0.86, 0.42)
+		"灵器":
+			return Color(0.34, 0.62, 1.0)
+		"灵宝":
+			return Color(0.72, 0.42, 1.0)
+		"仙宝":
+			return Color(1.0, 0.78, 0.22)
+		_:
+			return Color(0.31, 0.30, 0.28)
 
 func _make_style(bg_color: Color, border_color: Color, border_width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()

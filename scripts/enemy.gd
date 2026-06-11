@@ -11,7 +11,7 @@ signal died(gold_reward: int)
 @export var contact_damage_interval: float = 0.8
 @export var gold_reward: int = 2
 @export var death_animation_duration: float = 0.15
-@export var arena_half_size: Vector2 = Vector2(980.0, 580.0)
+@export var arena_half_size: Vector2 = Vector2(784.0, 464.0)
 
 var hp: float = max_hp
 var player: Player
@@ -178,7 +178,25 @@ func _try_contact_damage(target: Node) -> void:
 func _current_target() -> Node2D:
 	if taunt_time > 0.0 and is_instance_valid(taunt_target):
 		return taunt_target
-	return player
+	var nearest: Node2D = player
+	var nearest_distance_squared: float = INF
+	if is_instance_valid(player):
+		nearest_distance_squared = global_position.distance_squared_to(player.global_position)
+	for candidate in get_tree().get_nodes_in_group("summons"):
+		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if candidate.has_method("has_enemy_aggro") and not bool(candidate.call("has_enemy_aggro")):
+			continue
+		if candidate.is_queued_for_deletion() or not bool(candidate.get("visible")):
+			continue
+		if str(candidate.get("state")) == "Respawn":
+			continue
+		var summon := candidate as Node2D
+		var distance_squared: float = global_position.distance_squared_to(summon.global_position)
+		if distance_squared < nearest_distance_squared:
+			nearest = summon
+			nearest_distance_squared = distance_squared
+	return nearest
 
 func _spawn_damage_number(amount: float) -> void:
 	var label: Label = Label.new()

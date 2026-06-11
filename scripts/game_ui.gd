@@ -14,13 +14,12 @@ class_name GameUI
 @onready var artifact_bar: PanelContainer = $Root/ArtifactBar
 @onready var artifact_slots: HBoxContainer = $Root/ArtifactBar/ArtifactMargin/ArtifactSlots
 
-const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "阵法", "召唤", "魔修"]
+const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "召唤", "魔修"]
 const ATTRIBUTE_TAGS: Array[String] = ["火", "毒", "雷", "水", "土", "金", "木"]
 const SYSTEM_THRESHOLDS: Dictionary = {
 	"剑修": [3, 6, 9],
 	"法修": [2, 4, 6],
-	"体修": [2, 4],
-	"阵法": [2, 4],
+	"体修": [3, 6, 9],
 	"召唤": [2, 4, 6],
 	"魔修": [2, 4],
 }
@@ -42,8 +41,7 @@ const COLOR_COMPLETE: String = "#ff73d1"
 const SYNERGY_EFFECTS: Dictionary = {
 	"剑修": "3: 每次造成伤害，剑修法宝攻击速度 +2%，上限20层\n6: 每次造成伤害，剑修法宝攻击速度 +3%，上限40层\n9: 每次造成伤害，剑修法宝攻击速度 +4%，上限60层",
 	"法修": "2: 额外发射物 +1，额外弹体 50% 伤害\n4: 额外发射物 +1，额外弹体 75% 伤害\n6: 额外发射物 +2，额外弹体 75% 伤害",
-	"体修": "2: 生命上限 +20\n4: 受伤反震",
-	"阵法": "2: 阵法范围 +25%\n4: 阵法范围 +50%",
+	"体修": "3: 生命 +30% 体型 +10%\n6: 生命 +80% 体型 +25%\n9: 生命 +150% 体型 +50%",
 	"召唤": "2: 所有召唤法宝数量上限 +1\n4: 数量上限额外 +1，重生时间 -50%\n6: 数量上限额外 +2，召唤物死亡释放灵力冲击",
 	"魔修": "2: 低血量魔修法宝伤害提升\n4: 低血量全部伤害提升",
 	"火": "属性羁绊预留：火属性 Build 方向",
@@ -122,7 +120,7 @@ func _make_artifact_slot(stack: ArtifactStack, instance: ArtifactInstance) -> Co
 	var panel: PanelContainer = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(92, 68)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.07, 0.09, 0.74), Color(0.36, 0.42, 0.48, 0.78), 1, 5))
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.07, 0.09, 0.74), _tier_border_color(stack.artifact_data.tier), 2, 5))
 
 	var margin: MarginContainer = MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -309,3 +307,18 @@ func _make_panel_style(bg_color: Color, border_color: Color, border_width: int, 
 	style.corner_radius_bottom_left = radius
 	style.corner_radius_bottom_right = radius
 	return style
+
+func _tier_border_color(tier: String) -> Color:
+	match tier:
+		"凡器":
+			return Color(0.58, 0.62, 0.66, 0.86)
+		"法器":
+			return Color(0.35, 0.86, 0.42, 0.9)
+		"灵器":
+			return Color(0.34, 0.62, 1.0, 0.92)
+		"灵宝":
+			return Color(0.72, 0.42, 1.0, 0.94)
+		"仙宝":
+			return Color(1.0, 0.78, 0.22, 0.96)
+		_:
+			return Color(0.36, 0.42, 0.48, 0.78)

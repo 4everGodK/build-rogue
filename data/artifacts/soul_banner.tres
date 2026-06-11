@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://art/icons/poison_needle.png" id="2"]
+[resource]
+script = ExtResource("1")
+id = "soul_banner"
+display_name = "招魂幡"
+description = "连接多名敌人并压制，持续造成伤害。敌人死亡后化为幽魂冲击其他敌人，接触后爆炸并消失。"
+icon = ExtResource("2")
+system_tag = "魔修"
+attribute_tag = "木"
+attack_template = "soul_banner"
+attack_shape = "beam"
+effect_type = "slow"
+damage = 8.0
+cooldown = 3.2
+range = 230.0
+width = 24.0
+duration = 2.0
+tick_interval = 0.32
+max_targets = 4
+life_cost_flat = 5.0
+life_cost_min_hp_ratio = 0.3
+explosion_radius = 58.0
+damage_reduction_percent = 0.25
+slow_percent = 0.45
+counter_speed = 620.0
+visual_color = Color(0.38, 1, 0.5, 0.52)
+price = 9
+tier = "仙宝"
+cost = 5
+cultivation_requirement = ""
+shop_weight = 1.0

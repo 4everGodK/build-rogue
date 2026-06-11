@@ -98,9 +98,18 @@ static func make_melee_visual(data: ArtifactData) -> Node2D:
 			root.add_child(_fan_visual(Color(0.42, 0.85, 1.0, 0.42), maxf(72.0, data.length), deg_to_rad(70.0) * data.melee_arc_multiplier))
 		"kick":
 			root.add_child(_spiral_visual(Color(0.66, 0.86, 1.0, 0.52), data.radius))
+		"roar":
+			root.add_child(_fan_visual(Color(0.62, 0.9, 1.0, 0.38), maxf(110.0, data.length), deg_to_rad(72.0)))
+			root.add_child(_fan_visual(Color(1.0, 1.0, 1.0, 0.22), maxf(82.0, data.length * 0.7), deg_to_rad(44.0)))
 		"blood_sword":
 			root.add_child(_fan_visual(Color(0.95, 0.02, 0.08, 0.58), maxf(90.0, data.length), deg_to_rad(52.0)))
 			root.add_child(_slash_line(Color(1.0, 0.08, 0.12, 0.45), data.length * 0.9, maxf(6.0, data.width * 0.18)))
+		"scythe":
+			root.add_child(_thrust_line(Color(0.45, 0.9, 1.0, 0.28), data.length, maxf(4.0, data.width * 0.08)))
+			var blade := _slash_line(Color(0.62, 0.96, 1.0, 0.68), maxf(54.0, data.width * 1.4), maxf(7.0, data.width * 0.16))
+			blade.position.x = data.length
+			blade.rotation = deg_to_rad(-22.0)
+			root.add_child(blade)
 		_:
 			root.add_child(_fan_visual(data.visual_color, maxf(data.length, data.radius), deg_to_rad(48.0)))
 	return root
@@ -109,13 +118,13 @@ static func melee_hit_kind(data: ArtifactData) -> String:
 	match data.id:
 		"fire_gourd":
 			return "fire"
-		"blood_sword":
+		"blood_sword", "scythe":
 			return "blood"
 		"dagger":
 			return "poison"
 		"long_spear", "one_handed_sword", "two_handed_sword", "giant_sword_art":
 			return "sword"
-		"fist", "palm", "kick":
+		"fist", "palm", "kick", "roar":
 			return "flash"
 		_:
 			return "flash"
@@ -136,18 +145,14 @@ static func make_formation_visual(data: ArtifactData) -> Node2D:
 	var inner := _ring_visual(Color(color.r, color.g, color.b, color.a * 0.45), data.radius * 0.68)
 	root.add_child(inner)
 	match data.id:
-		"slow_formation":
-			_add_runes(root, color, data.radius, "cross")
-		"attack_speed_formation":
-			_add_runes(root, color, data.radius, "thunder")
-		"healing_formation":
-			_add_runes(root, color, data.radius, "water")
-		"damage_formation":
-			_add_runes(root, color, data.radius, "fire")
-		"flame_robe":
-			root.add_child(_ring_visual(Color(1.0, 0.18, 0.04, 0.18), data.radius * 0.75))
-		"golden_shield":
+		"body_barrier":
+			root.add_child(_ring_visual(Color(0.3, 0.72, 1.0, 0.2), data.radius * 0.78))
+		"thorn_armor":
 			root.add_child(_ring_visual(Color(1.0, 0.82, 0.22, 0.22), data.radius * 0.85))
+			_add_runes(root, color, data.radius, "cross")
+		"golden_body_avatar":
+			root.position = Vector2(0.0, -62.0)
+			root.add_child(_avatar_visual(data.radius))
 		_:
 			_add_runes(root, color, data.radius, "cross")
 	return root
@@ -182,18 +187,12 @@ static func _trail_color(data: ArtifactData) -> Color:
 
 static func _formation_color(data: ArtifactData) -> Color:
 	match data.id:
-		"slow_formation":
-			return Color(0.28, 0.95, 0.38, 0.42)
-		"attack_speed_formation":
-			return Color(0.25, 1.0, 0.86, 0.4)
-		"healing_formation":
-			return Color(0.2, 0.64, 1.0, 0.38)
-		"damage_formation":
-			return Color(1.0, 0.18, 0.05, 0.42)
-		"flame_robe":
-			return Color(1.0, 0.16, 0.04, 0.22)
-		"golden_shield":
+		"body_barrier":
+			return Color(0.28, 0.7, 1.0, 0.34)
+		"thorn_armor":
 			return Color(1.0, 0.82, 0.22, 0.34)
+		"golden_body_avatar":
+			return Color(0.9, 0.72, 0.36, 0.28)
 		_:
 			return data.visual_color
 
@@ -306,6 +305,32 @@ static func _giant_sword_sweep_visual(data: ArtifactData) -> Node2D:
 	var sword := _sword_polygon(Color(1.0, 0.82, 0.24, 0.78), Color(1.0, 0.96, 0.62, 0.92), maxf(160.0, data.length), maxf(20.0, data.width * 0.24))
 	sword.position.x = sweep_radius * 0.58
 	root.add_child(sword)
+	return root
+
+static func _avatar_visual(radius: float) -> Node2D:
+	var root := Node2D.new()
+	root.modulate = Color(1.0, 0.86, 0.42, 0.34)
+	var body := Polygon2D.new()
+	var size := maxf(130.0, radius * 1.1)
+	body.polygon = PackedVector2Array([
+		Vector2(0, -size * 0.75),
+		Vector2(-size * 0.42, -size * 0.15),
+		Vector2(-size * 0.28, size * 0.55),
+		Vector2(0, size * 0.78),
+		Vector2(size * 0.28, size * 0.55),
+		Vector2(size * 0.42, -size * 0.15),
+	])
+	body.color = Color(1.0, 0.72, 0.22, 0.2)
+	root.add_child(body)
+	root.add_child(_ring_visual(Color(1.0, 0.88, 0.38, 0.22), size * 0.42))
+	var arm_left := _thrust_line(Color(1.0, 0.84, 0.3, 0.3), size * 0.55, 10.0)
+	arm_left.position = Vector2(-size * 0.35, -size * 0.08)
+	arm_left.rotation = deg_to_rad(34.0)
+	root.add_child(arm_left)
+	var arm_right := _thrust_line(Color(1.0, 0.84, 0.3, 0.3), size * 0.55, 10.0)
+	arm_right.position = Vector2(size * 0.35, -size * 0.08)
+	arm_right.rotation = deg_to_rad(146.0)
+	root.add_child(arm_right)
 	return root
 
 static func _add_runes(root: Node2D, color: Color, radius: float, kind: String) -> void:

@@ -46,9 +46,10 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 	var direction: Vector2 = player.global_position.direction_to(target.global_position)
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
-	if data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
+	var spends_life_during_attack: bool = data.attack_template == "beam"
+	if not spends_life_during_attack and data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
 		player.call("spend_life_percent", data.life_cost_percent)
-	if data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
+	if not spends_life_during_attack and data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
 		player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
 	var runtime_data := _make_runtime_data(player)
 	var projectile_extra_count: int = _projectile_extra_count()
@@ -64,6 +65,8 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 			LineDelayedAttackTemplate.execute(player, attack_container, runtime_data, direction)
 		"target_aoe":
 			load("res://scripts/attacks/target_aoe_attack_template.gd").execute(player, attack_container, runtime_data, target)
+		"soul_banner":
+			load("res://scripts/attacks/soul_banner_attack_template.gd").execute(player, attack_container, runtime_data, target)
 	_reserve_target_damage(target, estimated_damage, target_reservations)
 	var cooldown_multiplier := 1.0
 	if player.has_method("get_artifact_cooldown_multiplier"):
@@ -129,6 +132,8 @@ func _get_target_search_range() -> float:
 			return maxf(1.0, data.length)
 		"target_aoe":
 			return maxf(1.0, data.range)
+		"soul_banner":
+			return maxf(1.0, data.range)
 		_:
 			return maxf(1.0, data.range)
 
@@ -174,8 +179,8 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 	ArtifactStarConfig.apply_numeric_growth(effective, artifact_data, star)
 	if star >= 3:
 		ArtifactStarConfig.apply_star3_bonus(effective)
-	if synergy_manager != null and effective.attack_template == "formation":
-		effective.radius *= float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
+	if synergy_manager != null and effective.system_tag == "体修":
+		_apply_body_range_multiplier(effective, float(synergy_manager.get_effect_value("body_size_multiplier", 1.0)))
 	if synergy_manager != null and effective.attack_template == "summon":
 		effective.summon_base_count += int(synergy_manager.get_effect_value("summon_extra_count", 0))
 		effective.summon_respawn_time *= float(synergy_manager.get_effect_value("summon_respawn_time_multiplier", 1.0))
@@ -201,3 +206,15 @@ func _projectile_extra_damage_multiplier() -> float:
 	if synergy_manager == null or source_data == null or source_data.system_tag != "法修":
 		return 0.0
 	return float(synergy_manager.get_effect_value("projectile_extra_damage_multiplier", 0.0))
+
+func _apply_body_range_multiplier(effective: ArtifactData, multiplier: float) -> void:
+	if multiplier <= 1.0:
+		return
+	effective.range *= multiplier
+	effective.radius *= multiplier
+	effective.width *= multiplier
+	effective.length *= multiplier
+	effective.counter_range *= multiplier
+	effective.explosion_radius *= multiplier
+	effective.extra_melee_wave_range *= multiplier
+	effective.extra_melee_wave_width *= multiplier

@@ -62,7 +62,7 @@ func _strike(center: Vector2) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if center.distance_to((candidate as Node2D).global_position) <= data.radius:
-				candidate.call("take_damage", data.damage, player)
+				candidate.call("take_damage", _get_damage(), player)
 				_notify_artifact_damage()
 	if data.id == "brush":
 		HitEffectManager.spawn_hit(get_tree(), center, "ink", direction, data.radius)
@@ -84,7 +84,7 @@ func _damage_brush_line() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			var enemy: Node2D = candidate as Node2D
 			if _distance_to_segment(enemy.global_position, start, end) <= hit_radius:
-				candidate.call("take_damage", data.damage, player)
+				candidate.call("take_damage", _get_damage(), player)
 				_notify_artifact_damage()
 				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "ink", direction, maxf(10.0, hit_radius * 0.7))
 
@@ -116,3 +116,8 @@ func _circle_points(circle_radius: float) -> PackedVector2Array:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _get_damage() -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		return float(player.call("get_artifact_damage", data, data.damage))
+	return data.damage

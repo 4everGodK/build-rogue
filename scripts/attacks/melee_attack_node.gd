@@ -26,6 +26,13 @@ func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 		circle.radius = data.radius
 		collision.shape = circle
 		add_child(collision)
+	elif data.attack_shape == "head_slash":
+		var collision: CollisionShape2D = CollisionShape2D.new()
+		var circle: CircleShape2D = CircleShape2D.new()
+		circle.radius = maxf(12.0, data.width * 0.5)
+		collision.position.x = data.length
+		collision.shape = circle
+		add_child(collision)
 	elif data.attack_shape == "cone":
 		var collision_polygon := CollisionPolygon2D.new()
 		var half_width: float = maxf(8.0, data.width * 0.5)
@@ -58,18 +65,26 @@ func _on_body_entered(body: Node) -> void:
 	if max_targets > 0 and hit_enemies.size() >= max_targets:
 		return
 	hit_enemies[body] = true
-	var killed: bool = bool(body.call("take_damage", _roll_damage(), source))
+	var dealt_damage: float = _roll_damage()
+	var killed: bool = bool(body.call("take_damage", dealt_damage, source))
 	_notify_artifact_damage()
+	if data.id == "scythe" and data.heal_amount > 0.0 and source != null and source.has_method("heal"):
+		source.call("heal", dealt_damage * data.heal_amount)
 	_apply_kill_heal(killed)
 	if data.knockback_force > 0.0 and source is Node2D and body.has_method("apply_knockback"):
 		body.call("apply_knockback", (source as Node2D).global_position, data.knockback_force)
+	if data.slow_percent > 0.0 and body.has_method("apply_slow"):
+		body.call("apply_slow", data.slow_percent, maxf(0.2, data.debuff_duration), self)
 	if body is Node2D:
 		HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, ArtifactVisuals.melee_hit_kind(data), direction, 18.0)
 
 func _roll_damage() -> float:
+	var final_damage: float = damage
+	if source != null and source.has_method("get_artifact_damage"):
+		final_damage = float(source.call("get_artifact_damage", data, damage))
 	if data != null and data.crit_chance > 0.0 and randf() < data.crit_chance:
-		return damage * maxf(1.0, data.crit_damage_mult)
-	return damage
+		return final_damage * maxf(1.0, data.crit_damage_mult)
+	return final_damage
 
 func _apply_kill_heal(killed: bool) -> void:
 	if not killed or data == null or data.kill_heal_amount <= 0.0:
@@ -109,7 +124,10 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 		if wave_hits.has(body) or not body.has_method("take_damage"):
 			return
 		wave_hits[body] = true
-		var killed: bool = bool(body.call("take_damage", damage * data.extra_melee_wave_damage_mult, source))
+		var wave_damage: float = damage * data.extra_melee_wave_damage_mult
+		if source != null and source.has_method("get_artifact_damage"):
+			wave_damage = float(source.call("get_artifact_damage", data, wave_damage))
+		var killed: bool = bool(body.call("take_damage", wave_damage, source))
 		_notify_artifact_damage()
 		_apply_kill_heal(killed)
 		if body is Node2D:

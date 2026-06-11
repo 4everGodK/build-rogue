@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ArtifactData" load_steps=3 format=3]
+[ext_resource type="Script" path="res://scripts/artifact_data.gd" id="1"]
+
+[ext_resource type="Texture2D" path="res://art/icons/flame_robe.png" id="2"]
+[resource]
+script = ExtResource("1")
+id = "roar"
+display_name = "吼"
+description = "向目标方向发出锥形声浪，造成伤害并减速敌人。"
+icon = ExtResource("2")
+system_tag = "体修"
+attribute_tag = "雷"
+attack_template = "melee"
+attack_shape = "cone"
+damage = 16.0
+max_hp_damage_coefficient = 0.01
+cooldown = 1.55
+width = 170.0
+length = 190.0
+duration = 0.22
+debuff_duration = 1.2
+slow_percent = 0.35
+knockback_force = 80.0
+visual_color = Color(0.62, 0.9, 1, 0.45)
+price = 6
+tier = "法器"
+cost = 2
+cultivation_requirement = ""
+shop_weight = 1.0

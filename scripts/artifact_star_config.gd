@@ -87,18 +87,17 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 			data.melee_arc_multiplier *= 1.5
 		"kick":
 			data.radius *= 1.5
-		"flame_robe":
+		"roar":
+			data.width *= 1.35
+			data.length *= 1.25
+			data.slow_percent += 0.1
+		"body_barrier":
 			data.radius *= 1.5
-		"golden_shield":
-			data.shield_knockback_force = 260.0
-		"slow_formation":
-			data.slow_percent += 0.2
-		"attack_speed_formation":
-			data.movement_speed_bonus = 0.2
-		"healing_formation":
-			data.heal_amount *= 1.5
-		"damage_formation":
-			data.tick_interval /= 1.5
+		"thorn_armor":
+			data.radius *= 1.45
+		"golden_body_avatar":
+			data.radius *= 1.45
+			data.max_hp_damage_coefficient *= 1.25
 		"blood_sword":
 			data.kill_heal_amount += 3.0
 		"blood_slash":
@@ -108,6 +107,11 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 			data.poison_explosion_radius = maxf(22.0, data.width * 4.5)
 		"heaven_eye":
 			data.radius *= 1.5
+		"scythe":
+			data.width *= 1.25
+			data.heal_amount *= 1.4
+		"soul_banner":
+			data.max_targets = 0
 		"sword_puppet":
 			data.length *= 1.3
 			data.summon_special_effect += "\nthird_attack_double"
@@ -136,6 +140,8 @@ static func describe_star_effect(data: ArtifactData, star_level: int) -> String:
 		"伤害 %.0f" % effective_damage,
 		"攻速 %.2f/秒" % attack_speed,
 	]
+	if data.max_hp_damage_coefficient > 0.0:
+		lines.append("最大生命系数 %.1f%%" % (data.max_hp_damage_coefficient * 100.0))
 	if star_level >= 3:
 		lines.append("")
 		lines.append("三星效果:")
@@ -151,6 +157,7 @@ static func describe_offer(offer: Dictionary, star_level: int = 1) -> String:
 	data.id = str(offer.get("id", ""))
 	data.attack_template = str(offer.get("attack_template", data.attack_template))
 	data.damage = float(offer.get("damage", data.damage))
+	data.max_hp_damage_coefficient = float(offer.get("max_hp_damage_coefficient", 0.0))
 	data.cooldown = float(offer.get("cooldown", data.cooldown))
 	data.summon_base_count = int(offer.get("summon_base_count", 0))
 	data.summon_hp = float(offer.get("summon_hp", 0.0))
@@ -194,18 +201,14 @@ static func get_star3_description(id: String) -> String:
 			return "掌劲角度 +50%"
 		"kick":
 			return "旋身腿范围 +50%"
-		"flame_robe":
-			return "灼烧范围 +50%"
-		"golden_shield":
-			return "获得护盾时击退附近敌人"
-		"slow_formation":
-			return "减速效果额外 +20%"
-		"attack_speed_formation":
-			return "阵内角色移速 +20%"
-		"healing_formation":
-			return "回血量额外 +50%"
-		"damage_formation":
-			return "伤害触发频率 +50%"
+		"roar":
+			return "声浪范围增加，减速效果提高"
+		"body_barrier":
+			return "震荡波范围 +50%"
+		"thorn_armor":
+			return "反击范围大幅增加"
+		"golden_body_avatar":
+			return "法相体型更大，砸地范围更大，伤害更高"
 		"blood_sword":
 			return "击杀回复 +3"
 		"blood_slash":
@@ -214,6 +217,10 @@ static func get_star3_description(id: String) -> String:
 			return "命中位置产生毒爆，造成毒针伤害的50%"
 		"heaven_eye":
 			return "光束宽度 +50%"
+		"scythe":
+			return "镰刀头部范围增加，吸血提高"
+		"soul_banner":
+			return "压制范围内所有敌人"
 		"sword_puppet":
 			return "攻击范围 +30%，每第三次攻击造成 200% 伤害"
 		"crossbow_puppet":

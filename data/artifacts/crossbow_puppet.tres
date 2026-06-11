@@ -5,8 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "crossbow_puppet"
-display_name = "弩傀儡"
-description = "召唤后排弩傀儡，和敌人保持距离并持续发射灵能箭。死亡后会在短时间后重生。"
+display_name = "远程傀儡"
+description = "召唤后排远程傀儡，和敌人保持距离并持续发射灵能箭。死亡后会在短时间后重生。"
 system_tag = "召唤"
 attribute_tag = "雷"
 attack_template = "summon"
@@ -27,8 +27,8 @@ summon_respawn_time = 6.0
 summon_behavior_type = "ranged"
 summon_special_effect = "后排持续输出"
 visual_color = Color(0.48, 0.82, 1, 1)
-price = 8
-tier = "灵器"
-cost = 3
+price = 5
+tier = "凡器"
+cost = 1
 cultivation_requirement = ""
 shop_weight = 1.0

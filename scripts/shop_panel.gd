@@ -30,13 +30,12 @@ signal sell_requested(from_area: String, from_index: int)
 @onready var breakthrough_button: Button = $Panel/MarginContainer/Root/TopActionRow/BreakthroughButton
 @onready var continue_button: Button = $Panel/MarginContainer/Root/TopActionRow/ContinueButton
 
-const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "阵法", "召唤", "魔修"]
+const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "召唤", "魔修"]
 const ATTRIBUTE_TAGS: Array[String] = ["金", "木", "水", "火", "土", "雷", "毒"]
 const SYSTEM_THRESHOLDS: Dictionary = {
 	"剑修": [3, 6, 9],
 	"法修": [2, 4, 6],
-	"体修": [2, 4],
-	"阵法": [2, 4],
+	"体修": [3, 6, 9],
 	"召唤": [2, 4, 6],
 	"魔修": [2, 4],
 }
@@ -57,8 +56,7 @@ const SYNERGY_PARTIAL_COLOR: String = "#79b8ff"
 const SYNERGY_EFFECTS: Dictionary = {
 	"剑修": "3: 每次造成伤害，剑修法宝攻击速度 +2%，上限20层\n6: 每次造成伤害，剑修法宝攻击速度 +3%，上限40层\n9: 每次造成伤害，剑修法宝攻击速度 +4%，上限60层",
 	"法修": "2: 额外发射物 +1，额外弹体 50% 伤害\n4: 额外发射物 +1，额外弹体 75% 伤害\n6: 额外发射物 +2，额外弹体 75% 伤害",
-	"体修": "2: 生命上限 +20\n4: 受伤反震",
-	"阵法": "2: 阵法范围 +25%\n4: 阵法范围 +50%",
+	"体修": "3: 生命 +30% 体型 +10%\n6: 生命 +80% 体型 +25%\n9: 生命 +150% 体型 +50%",
 	"召唤": "2: 所有召唤法宝数量上限 +1\n4: 数量上限额外 +1，重生时间 -50%\n6: 数量上限额外 +2，召唤物死亡释放灵力冲击",
 	"魔修": "2: 低血量魔修法宝伤害提升\n4: 低血量全部伤害提升",
 	"火": "属性羁绊预留：火属性 Build 方向",
@@ -191,7 +189,7 @@ func _render_offers() -> void:
 		button.text = ""
 		button.tooltip_text = "" if offer.is_empty() else _make_offer_tooltip(offer)
 		button.focus_mode = Control.FOCUS_NONE
-		_apply_offer_card_style(button)
+		_apply_offer_card_style(button, offer)
 		if offer.is_empty():
 			_build_empty_offer_card(button)
 		else:
@@ -538,12 +536,28 @@ func _apply_responsive_layout() -> void:
 	var bag_width: float = floor((left_width - 8.0 * (responsive_bag_count - 1.0)) / responsive_bag_count)
 	bag_slot_size = Vector2(clampf(bag_width, 96.0, 165.0), 58.0)
 
-func _apply_offer_card_style(button: Button) -> void:
+func _apply_offer_card_style(button: Button, offer: Dictionary = {}) -> void:
 	var bg: Color = Color(0.10, 0.115, 0.14, 0.96)
-	button.add_theme_stylebox_override("normal", _make_card_style(bg, Color(0.44, 0.39, 0.24), 2))
-	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.08), Color(0.98, 0.78, 0.34), 3))
-	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), Color(1.0, 0.92, 0.62), 3))
+	var border: Color = _tier_border_color(str(offer.get("tier", "")))
+	button.add_theme_stylebox_override("normal", _make_card_style(bg, border, 2))
+	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.08), border.lightened(0.22), 3))
+	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), border.lightened(0.38), 3))
 	button.add_theme_stylebox_override("disabled", _make_card_style(Color(0.06, 0.06, 0.08, 0.86), Color(0.23, 0.23, 0.27), 1))
+
+func _tier_border_color(tier: String) -> Color:
+	match tier:
+		"凡器":
+			return Color(0.58, 0.62, 0.66)
+		"法器":
+			return Color(0.35, 0.86, 0.42)
+		"灵器":
+			return Color(0.34, 0.62, 1.0)
+		"灵宝":
+			return Color(0.72, 0.42, 1.0)
+		"仙宝":
+			return Color(1.0, 0.78, 0.22)
+		_:
+			return Color(0.44, 0.39, 0.24)
 
 func _make_panel_style(bg_color: Color, border_color: Color, border_width: int) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()

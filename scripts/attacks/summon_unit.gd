@@ -23,6 +23,7 @@ var taunt_cooldown: float = 0.0
 var redeploy_remaining: float = 0.0
 var dash_remaining: float = 0.0
 var dash_direction: Vector2 = Vector2.RIGHT
+var dash_destination: Vector2 = Vector2.ZERO
 var damaged_during_dash: Dictionary = {}
 var battle_paused: bool = false
 var visual: Node2D
@@ -75,6 +76,8 @@ func set_battle_paused(paused: bool) -> void:
 	velocity = Vector2.ZERO
 
 func take_damage(amount: float, _source = null) -> bool:
+	if data != null and data.id == "ghost":
+		return false
 	if state == STATE_RESPAWN:
 		return false
 	hp -= amount
@@ -196,19 +199,30 @@ func _process_tank(delta: float) -> void:
 
 func _process_ghost(delta: float) -> void:
 	if dash_remaining > 0.0:
-		global_position += dash_direction * data.summon_move_speed * 1.7 * delta
+		var speed: float = data.summon_move_speed * 2.4
+		global_position = global_position.move_toward(dash_destination, speed * delta)
 		dash_remaining -= delta
 		_damage_dash_contacts()
+		if global_position.distance_to(dash_destination) <= 6.0 or dash_remaining <= 0.0:
+			global_position = dash_destination
+			dash_remaining = 0.0
+			target = null
 		return
 	if attack_cooldown <= 0.0:
+		if not _target_is_valid(target):
+			target = _find_target()
+		if target == null:
+			state = STATE_FOLLOW
+			return
 		damaged_during_dash.clear()
 		dash_direction = global_position.direction_to(target.global_position)
 		if dash_direction == Vector2.ZERO:
 			dash_direction = Vector2.RIGHT
-		dash_remaining = 0.28
+		dash_destination = target.global_position + dash_direction * maxf(48.0, data.length)
+		dash_remaining = maxf(0.16, global_position.distance_to(dash_destination) / maxf(1.0, data.summon_move_speed * 2.4))
 		_reset_attack_cooldown()
 	else:
-		_move_toward(target.global_position, delta, 1.0)
+		velocity = Vector2.ZERO
 
 func _process_swarm(delta: float) -> void:
 	if global_position.distance_to(player.global_position) > data.summon_return_radius * 1.25:
@@ -269,7 +283,7 @@ func _damage_dash_contacts() -> void:
 		if damaged_during_dash.has(candidate) or not candidate is Node2D or not candidate.has_method("take_damage"):
 			continue
 		var enemy := candidate as Node2D
-		if global_position.distance_to(enemy.global_position) <= 28.0:
+		if global_position.distance_to(enemy.global_position) <= maxf(28.0, data.width * 0.5):
 			damaged_during_dash[candidate] = true
 			damage_enemy(enemy, data.summon_attack)
 			if player.has_method("heal"):
@@ -329,6 +343,9 @@ func _follow_offset() -> Vector2:
 
 func _has_special(key: String) -> bool:
 	return data.summon_special_effect.find(key) >= 0
+
+func has_enemy_aggro() -> bool:
+	return data != null and data.id != "ghost" and data.id != "poison_bug"
 
 func _build_collision() -> void:
 	collision = CollisionShape2D.new()

@@ -5,13 +5,14 @@ class_name ArtifactData
 @export var display_name: String = ""
 @export_multiline var description: String = ""
 @export var icon: Texture2D
-@export_enum("剑修", "法修", "体修", "阵法", "召唤", "魔修") var system_tag: String = "剑修"
+@export_enum("剑修", "法修", "体修", "召唤", "魔修") var system_tag: String = "剑修"
 @export_enum("金", "木", "水", "火", "土", "雷", "毒") var attribute_tag: String = "金"
-@export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon", "target_aoe") var attack_template: String = "projectile"
-@export_enum("slash", "stab", "circle", "line", "cone", "projectile", "beam", "aura") var attack_shape: String = "projectile"
-@export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction") var effect_type: String = "damage"
+@export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon", "target_aoe", "soul_banner") var attack_template: String = "projectile"
+@export_enum("slash", "stab", "circle", "line", "cone", "head_slash", "projectile", "beam", "aura") var attack_shape: String = "projectile"
+@export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction", "counter_damage", "avatar_slam") var effect_type: String = "damage"
 
 @export var damage: float = 10.0
+@export var max_hp_damage_coefficient: float = 0.0
 @export var cooldown: float = 1.0
 @export var range: float = 320.0
 @export var radius: float = 32.0
@@ -119,6 +120,7 @@ func to_offer() -> Dictionary:
 		"shop_weight": shop_weight,
 		"price": get_shop_cost(),
 		"damage": damage,
+		"max_hp_damage_coefficient": max_hp_damage_coefficient,
 		"cooldown": cooldown,
 		"range": range,
 		"radius": radius,

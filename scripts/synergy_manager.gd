@@ -9,6 +9,12 @@ const SWORD_ATTACK_SPEED_TIERS: Array[Dictionary] = [
 	{"required": 3, "per_stack": 0.02, "max_stacks": 20},
 ]
 
+const BODY_GROWTH_TIERS: Array[Dictionary] = [
+	{"required": 9, "max_hp_multiplier": 2.5, "size_multiplier": 1.5},
+	{"required": 6, "max_hp_multiplier": 1.8, "size_multiplier": 1.25},
+	{"required": 3, "max_hp_multiplier": 1.3, "size_multiplier": 1.1},
+]
+
 var system_counts: Dictionary = {}
 var attribute_counts: Dictionary = {}
 var effects: Dictionary = {}
@@ -59,9 +65,6 @@ func _update_effects() -> void:
 		effects["projectile_extra_count"] = 0
 		effects["projectile_extra_damage_multiplier"] = 0.0
 
-	var formation_count: int = int(system_counts.get("阵法", 0))
-	effects["formation_radius_multiplier"] = 1.5 if formation_count >= 4 else 1.25 if formation_count >= 2 else 1.0
-
 	var summon_count: int = int(system_counts.get("召唤", 0))
 	if summon_count >= 6:
 		effects["summon_extra_count"] = 4
@@ -81,9 +84,15 @@ func _update_effects() -> void:
 		effects["summon_death_burst_enabled"] = false
 
 	var body_count: int = int(system_counts.get("体修", 0))
-	effects["body_max_hp_bonus"] = 20 if body_count >= 2 else 0
-	effects["body_counter_enabled"] = body_count >= 4
-	effects["body_counter_damage"] = 8.0
+	var body_max_hp_multiplier: float = 1.0
+	var body_size_multiplier: float = 1.0
+	for tier in BODY_GROWTH_TIERS:
+		if body_count >= int(tier["required"]):
+			body_max_hp_multiplier = float(tier["max_hp_multiplier"])
+			body_size_multiplier = float(tier["size_multiplier"])
+			break
+	effects["body_max_hp_multiplier"] = body_max_hp_multiplier
+	effects["body_size_multiplier"] = body_size_multiplier
 
 	var demon_count: int = int(system_counts.get("魔修", 0))
 	effects["demon_low_hp_magic_damage_multiplier"] = 1.3 if demon_count >= 2 else 1.0

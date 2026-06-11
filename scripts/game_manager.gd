@@ -202,9 +202,8 @@ func _on_inventory_changed() -> void:
 func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
 	game_ui.set_synergies(system_counts, attribute_counts)
 	player.set_body_synergy(
-		int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)),
-		bool(synergy_manager.get_effect_value("body_counter_enabled", false)),
-		float(synergy_manager.get_effect_value("body_counter_damage", 8.0))
+		float(synergy_manager.get_effect_value("body_max_hp_multiplier", 1.0)),
+		float(synergy_manager.get_effect_value("body_size_multiplier", 1.0))
 	)
 	if in_shop:
 		shop_panel.set_synergies(system_counts, attribute_counts)
@@ -282,9 +281,6 @@ func _synergy_effect_text() -> String:
 	var extra: int = int(synergy_manager.get_effect_value("projectile_extra_count", 0))
 	if extra > 0:
 		parts.append("法修: 额外发射物+%d" % extra)
-	var formation: float = float(synergy_manager.get_effect_value("formation_radius_multiplier", 1.0))
-	if formation > 1.0:
-		parts.append("阵法: 范围+%d%%" % int(round((formation - 1.0) * 100.0)))
 	var summon_extra: int = int(synergy_manager.get_effect_value("summon_extra_count", 0))
 	if summon_extra > 0:
 		parts.append("召唤: 数量+%d" % summon_extra)
@@ -292,10 +288,13 @@ func _synergy_effect_text() -> String:
 		parts.append("召唤: 重生-50%")
 	if bool(synergy_manager.get_effect_value("summon_death_burst_enabled", false)):
 		parts.append("召唤: 死亡灵力冲击")
-	if int(synergy_manager.get_effect_value("body_max_hp_bonus", 0)) > 0:
-		parts.append("体修: 生命+20")
-	if bool(synergy_manager.get_effect_value("body_counter_enabled", false)):
-		parts.append("体修: 受伤反震")
+	var body_hp: float = float(synergy_manager.get_effect_value("body_max_hp_multiplier", 1.0))
+	var body_size: float = float(synergy_manager.get_effect_value("body_size_multiplier", 1.0))
+	if body_hp > 1.0 or body_size > 1.0:
+		parts.append("体修: 生命+%d%% 体型+%d%%" % [
+			int(round((body_hp - 1.0) * 100.0)),
+			int(round((body_size - 1.0) * 100.0)),
+		])
 	if float(synergy_manager.get_effect_value("demon_low_hp_magic_damage_multiplier", 1.0)) > 1.0:
 		parts.append("魔修: 低血增伤")
 	return "羁绊效果: 无" if parts.is_empty() else "羁绊效果: " + "；".join(parts)

@@ -5,10 +5,10 @@
 [resource]
 script = ExtResource("1")
 id = "sword_puppet"
-display_name = "剑傀儡"
-description = "召唤持续存在的剑傀儡，追击最近敌人并用近战扇形挥砍。死亡后会在短时间后重生。"
+display_name = "近战傀儡"
+description = "召唤持续存在的近战傀儡，追击最近敌人并用近战挥砍。死亡后会在短时间后重生。"
 system_tag = "召唤"
-attribute_tag = "金"
+attribute_tag = "木"
 attack_template = "summon"
 attack_shape = "slash"
 damage = 15.0

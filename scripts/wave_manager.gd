@@ -10,13 +10,17 @@ const BOSS_HP_GROWTH_PER_WAVE: float = 0.18
 const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.08
 const BASE_SPAWN_INTERVAL: float = 1.15
 const MIN_SPAWN_INTERVAL: float = 0.28
+const LATE_WAVE_START: int = 5
+const LATE_WAVE_EXTRA_PACKS: int = 1
+const LATE_WAVE_EXTRA_PACK_EVERY: int = 3
+const LATE_WAVE_INTERVAL_BONUS: float = 0.12
 
 @export var basic_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
 @export var tank_enemy_scene: PackedScene
 @export var boss_scene: PackedScene
 @export var spawn_margin: float = 60.0
-@export var arena_size: Vector2 = Vector2(2000.0, 1200.0)
+@export var arena_size: Vector2 = Vector2(1600.0, 960.0)
 @export var survival_mode: bool = true
 
 var player: Player
@@ -39,7 +43,8 @@ func _process(delta: float) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		_spawn_survival_pack()
-		var interval: float = maxf(MIN_SPAWN_INTERVAL, BASE_SPAWN_INTERVAL - room_elapsed * 0.018)
+		var late_wave_bonus: float = maxf(0.0, float(wave_number - LATE_WAVE_START + 1)) * LATE_WAVE_INTERVAL_BONUS
+		var interval: float = maxf(MIN_SPAWN_INTERVAL, BASE_SPAWN_INTERVAL - room_elapsed * 0.018 - late_wave_bonus)
 		spawn_timer = interval
 
 func start_next_wave() -> void:
@@ -112,10 +117,17 @@ func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 		alive_enemies += 1
 
 func _spawn_survival_pack() -> void:
-	var scene: PackedScene = _roll_survival_enemy_scene()
-	_spawn_many(scene, 1, normal_hp_multiplier)
-	if wave_number >= 3 and randf() < 0.25:
+	var pack_count: int = _survival_pack_count()
+	for _index in range(pack_count):
 		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
+	var extra_chance: float = 0.25 + maxf(0.0, float(wave_number - LATE_WAVE_START + 1)) * 0.08
+	if wave_number >= 3 and randf() < minf(0.85, extra_chance):
+		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
+
+func _survival_pack_count() -> int:
+	if wave_number < LATE_WAVE_START:
+		return 1
+	return 1 + LATE_WAVE_EXTRA_PACKS + int(float(maxi(0, wave_number - LATE_WAVE_START)) / float(LATE_WAVE_EXTRA_PACK_EVERY))
 
 func _roll_survival_enemy_scene() -> PackedScene:
 	var roll: float = randf()

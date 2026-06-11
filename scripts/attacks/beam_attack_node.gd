@@ -34,8 +34,14 @@ func _physics_process(delta: float) -> void:
 	tick_remaining -= delta
 	if tick_remaining <= 0.0:
 		tick_remaining = maxf(0.05, data.tick_interval)
-		target.call("take_damage", data.damage, player)
+		if data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
+			player.call("spend_life_percent", data.life_cost_percent)
+		if data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
+			player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
+		var killed: bool = bool(target.call("take_damage", _get_damage(), player))
 		_notify_artifact_damage()
+		if killed and data.kill_heal_amount > 0.0 and player.has_method("heal"):
+			player.call("heal", data.kill_heal_amount)
 		HitEffectManager.spawn_hit(get_tree(), target.global_position, "blood" if data.id == "heaven_eye" else "flash", eye_position.direction_to(target.global_position), 12.0)
 	if time_left <= 0.0:
 		queue_free()
@@ -43,3 +49,8 @@ func _physics_process(delta: float) -> void:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _get_damage() -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		return float(player.call("get_artifact_damage", data, data.damage))
+	return data.damage

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "iron_guard_puppet"
-display_name = "铁卫傀儡"
+display_name = "铁甲傀儡"
 description = "召唤高生命铁卫傀儡，尽量挡在玩家与怪群之间，并周期性嘲讽附近敌人。死亡后会重生。"
 system_tag = "召唤"
 attribute_tag = "土"
@@ -27,8 +27,8 @@ summon_respawn_time = 8.0
 summon_behavior_type = "tank"
 summon_special_effect = "前排坦克，5秒嘲讽"
 visual_color = Color(0.72, 0.60, 0.42, 1)
-price = 9
-tier = "灵宝"
-cost = 4
+price = 6
+tier = "法器"
+cost = 2
 cultivation_requirement = ""
 shop_weight = 1.0

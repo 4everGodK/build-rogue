@@ -3,13 +3,14 @@ class_name Player
 
 signal hp_changed(current_hp: int, max_hp: int)
 signal shield_changed(current_shield: float, max_shield: float)
+signal damaged(amount: float)
 signal died
 
 @export var move_speed: float = 220.0
 @export var max_hp: int = 100
 @export var invincible_duration: float = 0.5
 @export var counter_radius: float = 92.0
-@export var arena_half_size: Vector2 = Vector2(980.0, 580.0)
+@export var arena_half_size: Vector2 = Vector2(784.0, 464.0)
 
 var hp: int = max_hp
 var base_max_hp: int = 100
@@ -19,8 +20,8 @@ var shield: float = 0.0
 var shield_limit: float = 0.0
 var artifact_cooldown_multiplier: float = 1.0
 var artifact_move_speed_multiplier: float = 1.0
-var body_counter_enabled: bool = false
-var body_counter_damage: float = 8.0
+var body_max_hp_multiplier: float = 1.0
+var body_size_multiplier: float = 1.0
 
 @onready var visual: Polygon2D = $Visual
 @onready var artifact_manager: ArtifactManager = $ArtifactManager
@@ -44,7 +45,7 @@ func _physics_process(delta: float) -> void:
 		visual.modulate = Color(1.0, 0.25, 0.25, 0.85) if int(Time.get_ticks_msec() / 80) % 2 == 0 else Color.WHITE
 	else:
 		visual.modulate = Color.WHITE
-		visual.scale = visual.scale.move_toward(Vector2.ONE, delta * 8.0)
+		visual.scale = visual.scale.move_toward(_body_visual_scale(), delta * 8.0)
 
 func _read_move_input() -> Vector2:
 	var direction := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -68,11 +69,10 @@ func take_damage(amount: int) -> void:
 	hp = max(0, hp - int(ceil(remaining_damage)))
 	invincible_time = invincible_duration
 	visual.modulate = Color(1.0, 0.2, 0.2, 1.0)
-	visual.scale = Vector2(1.18, 1.18)
+	visual.scale = _body_visual_scale() * 1.18
 	hp_changed.emit(hp, max_hp)
 	shield_changed.emit(shield, shield_limit)
-	if body_counter_enabled:
-		_counter_nearby_enemies()
+	damaged.emit(remaining_damage)
 	if hp <= 0:
 		died.emit()
 
@@ -120,13 +120,25 @@ func get_sword_artifact_cooldown_multiplier(data: ArtifactData) -> float:
 func get_hp_ratio() -> float:
 	return float(hp) / float(max_hp)
 
-func set_body_synergy(max_hp_bonus: int, counter_enabled: bool, counter_damage: float) -> void:
+func set_body_synergy(max_hp_multiplier: float, size_multiplier: float) -> void:
 	var old_max_hp := max_hp
-	max_hp = base_max_hp + max_hp_bonus
+	body_max_hp_multiplier = maxf(1.0, max_hp_multiplier)
+	body_size_multiplier = maxf(1.0, size_multiplier)
+	max_hp = int(round(float(base_max_hp) * body_max_hp_multiplier))
 	hp = mini(max_hp, hp + max(0, max_hp - old_max_hp))
-	body_counter_enabled = counter_enabled
-	body_counter_damage = counter_damage
+	visual.scale = _body_visual_scale()
 	hp_changed.emit(hp, max_hp)
+
+func get_artifact_damage(artifact_data: ArtifactData, base_damage: float = -1.0) -> float:
+	if artifact_data == null:
+		return maxf(0.0, base_damage)
+	var final_damage: float = artifact_data.damage if base_damage < 0.0 else base_damage
+	if artifact_data.max_hp_damage_coefficient > 0.0:
+		final_damage += float(max_hp) * artifact_data.max_hp_damage_coefficient
+	return final_damage
+
+func get_body_artifact_range_multiplier() -> float:
+	return body_size_multiplier
 
 func reset_combat_state() -> void:
 	artifact_manager.clear_artifacts()
@@ -134,14 +146,17 @@ func reset_combat_state() -> void:
 	shield_limit = 0.0
 	artifact_cooldown_multiplier = 1.0
 	artifact_move_speed_multiplier = 1.0
+	body_max_hp_multiplier = 1.0
+	body_size_multiplier = 1.0
+	max_hp = base_max_hp
+	hp = mini(hp, max_hp)
+	visual.scale = _body_visual_scale()
+	hp_changed.emit(hp, max_hp)
 	shield_changed.emit(shield, shield_limit)
 
 func set_battle_paused(paused: bool) -> void:
 	movement_paused = paused
 	artifact_manager.set_battle_paused(paused)
 
-func _counter_nearby_enemies() -> void:
-	for candidate in get_tree().get_nodes_in_group("enemies"):
-		if candidate is Node2D and candidate.has_method("take_damage"):
-			if global_position.distance_to((candidate as Node2D).global_position) <= counter_radius:
-				candidate.call("take_damage", body_counter_damage, self)
+func _body_visual_scale() -> Vector2:
+	return Vector2.ONE * body_size_multiplier

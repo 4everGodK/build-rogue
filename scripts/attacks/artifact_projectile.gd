@@ -76,7 +76,8 @@ func _on_body_entered(body: Node) -> void:
 	if hit_enemies.has(body) or not body.has_method("take_damage"):
 		return
 	hit_enemies[body] = true
-	var killed: bool = bool(body.call("take_damage", damage, source))
+	var hit_damage: float = _get_damage(damage)
+	var killed: bool = bool(body.call("take_damage", hit_damage, source))
 	_notify_artifact_damage()
 	_apply_kill_heal(killed)
 	if data.poison_dps > 0.0 and body.has_method("apply_poison"):
@@ -112,7 +113,7 @@ func _explode(direct_target: Node) -> void:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= explosion_radius:
-				var killed: bool = bool(candidate.call("take_damage", damage, source))
+				var killed: bool = bool(candidate.call("take_damage", _get_damage(damage), source))
 				_notify_artifact_damage()
 				_apply_kill_heal(killed)
 	var blast: Polygon2D = Polygon2D.new()
@@ -126,7 +127,7 @@ func _explode(direct_target: Node) -> void:
 
 func _poison_explode() -> void:
 	var blast_radius: float = data.poison_explosion_radius if data.poison_explosion_radius > 0.0 else maxf(18.0, visual_radius * 3.0)
-	var poison_damage: float = damage * data.poison_explosion_damage_mult
+	var poison_damage: float = _get_damage(damage * data.poison_explosion_damage_mult)
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= blast_radius:
@@ -144,6 +145,11 @@ func _apply_kill_heal(killed: bool) -> void:
 func _notify_artifact_damage() -> void:
 	if source != null and source.has_method("notify_artifact_damage"):
 		source.call("notify_artifact_damage", data)
+
+func _get_damage(base_damage: float) -> float:
+	if source != null and source.has_method("get_artifact_damage"):
+		return float(source.call("get_artifact_damage", data, base_damage))
+	return base_damage
 
 func _bounce_to_next_enemy() -> bool:
 	var next_enemy: Node2D

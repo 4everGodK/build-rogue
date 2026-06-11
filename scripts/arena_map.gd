@@ -1,7 +1,7 @@
 extends Node2D
 class_name ArenaMap
 
-@export var arena_size: Vector2 = Vector2(2000.0, 1200.0)
+@export var arena_size: Vector2 = Vector2(1600.0, 960.0)
 @export var grid_size: float = 100.0
 @export var obstacle_color: Color = Color(0.18, 0.2, 0.24, 1.0)
 
@@ -32,6 +32,7 @@ func _spawn_obstacles() -> void:
 		Rect2(Vector2(-760, 250), Vector2(120, 120)),
 	]
 	for rect in obstacles:
+		rect.position *= 0.8
 		var body := StaticBody2D.new()
 		body.collision_layer = 4
 		body.collision_mask = 0
@@ -62,7 +63,7 @@ func _spawn_decorations() -> void:
 		Vector2(520, 420),
 	]
 	for position in stones:
-		_add_stone(position)
+		_add_stone(position * 0.8)
 
 	var trees := [
 		Vector2(-880, -120),
@@ -72,7 +73,7 @@ func _spawn_decorations() -> void:
 		Vector2(860, 300),
 	]
 	for position in trees:
-		_add_tree(position)
+		_add_tree(position * 0.8)
 
 func _add_stone(position: Vector2) -> void:
 	var stone := Polygon2D.new()

@@ -13,6 +13,7 @@ attribute_tag = "火"
 attack_template = "melee"
 attack_shape = "stab"
 damage = 10.0
+max_hp_damage_coefficient = 0.0
 cooldown = 0.38
 width = 32.0
 length = 76.0

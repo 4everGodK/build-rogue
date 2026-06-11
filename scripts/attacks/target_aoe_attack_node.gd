@@ -18,7 +18,7 @@ func _strike() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			var enemy := candidate as Node2D
 			if enemy.global_position.distance_to(target_position) <= radius:
-				candidate.call("take_damage", data.damage, player)
+				candidate.call("take_damage", _get_damage(), player)
 				_notify_artifact_damage()
 	_spawn_visual(radius)
 	get_tree().create_timer(maxf(0.08, data.duration)).timeout.connect(queue_free)
@@ -47,6 +47,11 @@ func _spawn_visual(radius: float) -> void:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _get_damage() -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		return float(player.call("get_artifact_damage", data, data.damage))
+	return data.damage
 
 func _circle_points(radius: float, segments: int) -> PackedVector2Array:
 	var points := PackedVector2Array()

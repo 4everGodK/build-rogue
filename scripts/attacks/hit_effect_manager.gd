@@ -29,6 +29,9 @@ static func spawn_hit(tree: SceneTree, position: Vector2, kind: String = "flash"
 			_spawn_splash(tree, position, Color(0.78, 0.0, 0.08, 0.65), radius, 5)
 		"shield":
 			_spawn_ring(tree, position, Color(1.0, 0.84, 0.22, 0.55), radius, radius * 1.9, 0.22)
+		"earth":
+			_spawn_ring(tree, position, Color(0.86, 0.66, 0.32, 0.52), radius * 0.45, radius * 1.75, 0.2)
+			_spawn_sparks(tree, position, Color(0.95, 0.78, 0.42, 0.68), 10, radius * 0.7)
 		_:
 			_spawn_flash(tree, position, Color(1.0, 1.0, 1.0, 0.85), radius, 0.12)
 
