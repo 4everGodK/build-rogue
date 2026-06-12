@@ -69,8 +69,11 @@ func _tick_damage() -> void:
 			enemy.call("apply_slow", data.slow_percent, maxf(data.tick_interval * 1.5, 0.3), self)
 		if data.damage_reduction_percent > 0.0 and enemy.has_method("apply_damage_reduction"):
 			enemy.call("apply_damage_reduction", data.damage_reduction_percent, maxf(data.tick_interval * 1.5, 0.3), self)
-		var killed: bool = bool(enemy.call("take_damage", _get_damage(), player))
+		var hit_damage: float = _get_damage()
+		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
+		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
 		_notify_artifact_damage()
+		_apply_attribute_on_hit(enemy, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", player.global_position.direction_to(enemy.global_position), 14.0)
 		if killed:
 			var origin: Vector2 = enemy.global_position
@@ -120,8 +123,10 @@ func _explode_soul(origin: Vector2) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if _target_valid(candidate):
 			if origin.distance_to((candidate as Node2D).global_position) <= radius:
+				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
 				candidate.call("take_damage", soul_damage, player)
 				_notify_artifact_damage()
+				_apply_attribute_on_hit(candidate, soul_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 	HitEffectManager.spawn_hit(get_tree(), origin, "poison", Vector2.UP, radius)
 
 func _nearest_enemy(origin: Vector2) -> Node2D:
@@ -173,6 +178,15 @@ func _get_damage() -> float:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if player != null and player.has_method("apply_attribute_on_hit"):
+		player.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _circle_points(radius: float, segments: int) -> PackedVector2Array:
 	var points := PackedVector2Array()

@@ -77,8 +77,10 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	var hit_damage: float = _get_damage(damage)
+	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 	var killed: bool = bool(body.call("take_damage", hit_damage, source))
 	_notify_artifact_damage()
+	_apply_attribute_on_hit(body, hit_damage, global_position, pre_hit_hp_ratio)
 	_apply_kill_heal(killed)
 	if data.poison_dps > 0.0 and body.has_method("apply_poison"):
 		body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
@@ -145,6 +147,15 @@ func _apply_kill_heal(killed: bool) -> void:
 func _notify_artifact_damage() -> void:
 	if source != null and source.has_method("notify_artifact_damage"):
 		source.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if source != null and source.has_method("apply_attribute_on_hit"):
+		source.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _get_damage(base_damage: float) -> float:
 	if source != null and source.has_method("get_artifact_damage"):

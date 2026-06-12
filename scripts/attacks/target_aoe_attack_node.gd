@@ -18,8 +18,11 @@ func _strike() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			var enemy := candidate as Node2D
 			if enemy.global_position.distance_to(target_position) <= radius:
-				candidate.call("take_damage", _get_damage(), player)
+				var hit_damage: float = _get_damage()
+				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
+				candidate.call("take_damage", hit_damage, player)
 				_notify_artifact_damage()
+				_apply_attribute_on_hit(candidate, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 	_spawn_visual(radius)
 	get_tree().create_timer(maxf(0.08, data.duration)).timeout.connect(queue_free)
 
@@ -47,6 +50,15 @@ func _spawn_visual(radius: float) -> void:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if player != null and player.has_method("apply_attribute_on_hit"):
+		player.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _get_damage() -> float:
 	if player != null and player.has_method("get_artifact_damage"):

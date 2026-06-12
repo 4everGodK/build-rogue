@@ -294,8 +294,10 @@ func _damage_dash_contacts() -> void:
 func damage_enemy(enemy: Node2D, damage: float) -> void:
 	if enemy == null or not enemy.has_method("take_damage"):
 		return
+	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
 	var killed: bool = bool(enemy.call("take_damage", damage, player))
 	_notify_artifact_damage()
+	_apply_attribute_on_hit(enemy, damage, enemy.global_position, pre_hit_hp_ratio)
 	if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
 		enemy.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
 	if killed and data.id == "poison_bug" and randf() < 0.2 and controller != null:
@@ -314,8 +316,10 @@ func _shockwave() -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
+				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
 				candidate.call("take_damage", data.summon_attack, player)
 				_notify_artifact_damage()
+				_apply_attribute_on_hit(candidate, data.summon_attack, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 
 func _die() -> void:
 	if controller != null:
@@ -336,6 +340,15 @@ func _reset_attack_cooldown() -> void:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if player != null and player.has_method("apply_attribute_on_hit"):
+		player.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _follow_offset() -> Vector2:
 	var angle := TAU * float(slot_index) / float(maxi(1, data.summon_base_count))

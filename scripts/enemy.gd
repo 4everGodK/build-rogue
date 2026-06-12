@@ -20,6 +20,10 @@ var dying: bool = false
 var poison_stacks: Array[Dictionary] = []
 var knockback_velocity: Vector2 = Vector2.ZERO
 var slow_effects: Dictionary = {}
+var root_effects: Dictionary = {}
+var stun_effects: Dictionary = {}
+var damage_taken_effects: Dictionary = {}
+var effect_cooldowns: Dictionary = {}
 var damage_reduction_effects: Dictionary = {}
 var contact_damage_cooldown: float = 0.0
 var taunt_target: Node2D
@@ -36,8 +40,12 @@ func _physics_process(delta: float) -> void:
 		return
 	if contact_damage_cooldown > 0.0:
 		contact_damage_cooldown -= delta
+	_tick_cooldowns(delta)
 	var current_target := _current_target()
-	if is_instance_valid(current_target):
+	if _is_stunned():
+		velocity = Vector2.ZERO
+		move_and_slide()
+	elif is_instance_valid(current_target):
 		var to_target: Vector2 = global_position.direction_to(current_target.global_position)
 		if to_target == Vector2.ZERO:
 			to_target = Vector2.RIGHT.rotated(randf() * TAU)
@@ -53,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		clamp_to_arena()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
 		var contact_distance: float = global_position.distance_to(current_target.global_position)
-		if contact_distance <= maxf(contact_radius, separation_radius):
+		if contact_distance <= maxf(contact_radius, separation_radius) and not _is_stunned():
 			_try_contact_damage(current_target)
 
 	if flash_time > 0.0:
@@ -83,20 +91,27 @@ func clamp_to_arena() -> void:
 func take_damage(amount: float, _source = null) -> bool:
 	if dying or hp <= 0.0 or is_queued_for_deletion():
 		return false
-	hp -= amount
+	var final_amount: float = amount * _current_incoming_damage_multiplier()
+	hp -= final_amount
 	flash_time = 0.08
-	_spawn_damage_number(amount)
+	_spawn_damage_number(final_amount)
 	if hp <= 0.0:
 		_die()
 		return true
 	return false
 
-func apply_poison(dps: float, duration: float, can_stack: bool) -> void:
+func apply_poison(dps: float, duration: float, can_stack: bool, source = null, burst_radius: float = 0.0, burst_damage: float = 0.0) -> void:
 	if dps <= 0.0 or duration <= 0.0:
 		return
 	if not can_stack:
 		poison_stacks.clear()
-	poison_stacks.append({"dps": dps, "time_left": duration})
+	poison_stacks.append({
+		"dps": dps,
+		"time_left": duration,
+		"source": source,
+		"burst_radius": burst_radius,
+		"burst_damage": burst_damage,
+	})
 
 func get_hp_ratio() -> float:
 	return hp / max_hp
@@ -109,6 +124,33 @@ func apply_knockback(from_position: Vector2, force: float) -> void:
 func apply_slow(percent: float, duration: float, source = null) -> void:
 	slow_effects[str(source)] = {"value": clampf(percent, 0.0, 0.9), "time_left": duration}
 
+func apply_root(duration: float, source = null, internal_cooldown: float = 0.0) -> bool:
+	if duration <= 0.0:
+		return false
+	var key: String = "root:%s" % str(source)
+	if float(effect_cooldowns.get(key, 0.0)) > 0.0:
+		return false
+	root_effects[str(source)] = {"value": 1.0, "time_left": duration}
+	if internal_cooldown > 0.0:
+		effect_cooldowns[key] = internal_cooldown
+	return true
+
+func apply_stun(duration: float, source = null, internal_cooldown: float = 0.0) -> bool:
+	if duration <= 0.0:
+		return false
+	var key: String = "stun:%s" % str(source)
+	if float(effect_cooldowns.get(key, 0.0)) > 0.0:
+		return false
+	stun_effects[str(source)] = {"value": 1.0, "time_left": duration}
+	if internal_cooldown > 0.0:
+		effect_cooldowns[key] = internal_cooldown
+	return true
+
+func apply_damage_taken_multiplier(percent: float, duration: float, source = null) -> void:
+	if percent <= 0.0 or duration <= 0.0:
+		return
+	damage_taken_effects[str(source)] = {"value": maxf(0.0, percent), "time_left": duration}
+
 func apply_damage_reduction(percent: float, duration: float, source = null) -> void:
 	damage_reduction_effects[str(source)] = {"value": clampf(percent, 0.0, 0.9), "time_left": duration}
 
@@ -119,10 +161,24 @@ func apply_taunt(source: Node2D, duration: float) -> void:
 	taunt_time = duration
 
 func _current_speed_multiplier() -> float:
+	if _is_rooted() or _is_stunned():
+		return 0.0
 	var strongest: float = 0.0
 	for effect in slow_effects.values():
 		strongest = maxf(strongest, float(effect.get("value", 0.0)))
 	return 1.0 - strongest
+
+func _is_rooted() -> bool:
+	return not root_effects.is_empty()
+
+func _is_stunned() -> bool:
+	return not stun_effects.is_empty()
+
+func _current_incoming_damage_multiplier() -> float:
+	var strongest: float = 0.0
+	for effect in damage_taken_effects.values():
+		strongest = maxf(strongest, float(effect.get("value", 0.0)))
+	return 1.0 + strongest
 
 func _current_damage_multiplier() -> float:
 	var strongest: float = 0.0
@@ -132,6 +188,9 @@ func _current_damage_multiplier() -> float:
 
 func _process_timed_effects(delta: float) -> void:
 	_tick_effect_dictionary(slow_effects, delta)
+	_tick_effect_dictionary(root_effects, delta)
+	_tick_effect_dictionary(stun_effects, delta)
+	_tick_effect_dictionary(damage_taken_effects, delta)
 	_tick_effect_dictionary(damage_reduction_effects, delta)
 
 func _tick_effect_dictionary(effects: Dictionary, delta: float) -> void:
@@ -142,6 +201,14 @@ func _tick_effect_dictionary(effects: Dictionary, delta: float) -> void:
 			effects.erase(key)
 		else:
 			effects[key] = effect
+
+func _tick_cooldowns(delta: float) -> void:
+	for key in effect_cooldowns.keys():
+		var time_left: float = float(effect_cooldowns.get(key, 0.0)) - delta
+		if time_left <= 0.0:
+			effect_cooldowns.erase(key)
+		else:
+			effect_cooldowns[key] = time_left
 
 func _process_poison(delta: float) -> void:
 	if poison_stacks.is_empty():
@@ -210,6 +277,7 @@ func _spawn_damage_number(amount: float) -> void:
 	tween.tween_callback(label.queue_free)
 
 func _die() -> void:
+	_try_poison_death_burst()
 	dying = true
 	set_physics_process(false)
 	died.emit(gold_reward)
@@ -217,3 +285,24 @@ func _die() -> void:
 	tween.tween_property(self, "scale", Vector2.ZERO, death_animation_duration)
 	tween.parallel().tween_property(self, "modulate:a", 0.0, death_animation_duration)
 	tween.tween_callback(queue_free)
+
+func _try_poison_death_burst() -> void:
+	var best_radius: float = 0.0
+	var best_damage: float = 0.0
+	var burst_source = null
+	for poison in poison_stacks:
+		var radius: float = float(poison.get("burst_radius", 0.0))
+		var damage: float = float(poison.get("burst_damage", 0.0))
+		if radius > 0.0 and damage > best_damage:
+			best_radius = radius
+			best_damage = damage
+			burst_source = poison.get("source", null)
+	if best_radius <= 0.0 or best_damage <= 0.0:
+		return
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate == self:
+			continue
+		if candidate is Node2D and candidate.has_method("take_damage"):
+			if global_position.distance_to((candidate as Node2D).global_position) <= best_radius:
+				candidate.call("take_damage", best_damage, burst_source)
+	HitEffectManager.spawn_hit(get_tree(), global_position, "poison", Vector2.UP, best_radius)

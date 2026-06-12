@@ -66,8 +66,10 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	var dealt_damage: float = _roll_damage()
+	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 	var killed: bool = bool(body.call("take_damage", dealt_damage, source))
 	_notify_artifact_damage()
+	_apply_attribute_on_hit(body, dealt_damage, (body as Node2D).global_position if body is Node2D else global_position, pre_hit_hp_ratio)
 	if data.id == "scythe" and data.heal_amount > 0.0 and source != null and source.has_method("heal"):
 		source.call("heal", dealt_damage * data.heal_amount)
 	_apply_kill_heal(killed)
@@ -95,6 +97,15 @@ func _apply_kill_heal(killed: bool) -> void:
 func _notify_artifact_damage() -> void:
 	if source != null and source.has_method("notify_artifact_damage"):
 		source.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if source != null and source.has_method("apply_attribute_on_hit"):
+		source.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 	var wave: Area2D = Area2D.new()
@@ -127,8 +138,10 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 		var wave_damage: float = damage * data.extra_melee_wave_damage_mult
 		if source != null and source.has_method("get_artifact_damage"):
 			wave_damage = float(source.call("get_artifact_damage", data, wave_damage))
+		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 		var killed: bool = bool(body.call("take_damage", wave_damage, source))
 		_notify_artifact_damage()
+		_apply_attribute_on_hit(body, wave_damage, (body as Node2D).global_position if body is Node2D else wave.global_position, pre_hit_hp_ratio)
 		_apply_kill_heal(killed)
 		if body is Node2D:
 			HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "sword", direction, 14.0)

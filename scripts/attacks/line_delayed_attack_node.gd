@@ -62,8 +62,11 @@ func _strike(center: Vector2) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if center.distance_to((candidate as Node2D).global_position) <= data.radius:
-				candidate.call("take_damage", _get_damage(), player)
+				var hit_damage: float = _get_damage()
+				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
+				candidate.call("take_damage", hit_damage, player)
 				_notify_artifact_damage()
+				_apply_attribute_on_hit(candidate, hit_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 	if data.id == "brush":
 		HitEffectManager.spawn_hit(get_tree(), center, "ink", direction, data.radius)
 	else:
@@ -84,8 +87,11 @@ func _damage_brush_line() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			var enemy: Node2D = candidate as Node2D
 			if _distance_to_segment(enemy.global_position, start, end) <= hit_radius:
-				candidate.call("take_damage", _get_damage(), player)
+				var hit_damage: float = _get_damage()
+				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
+				candidate.call("take_damage", hit_damage, player)
 				_notify_artifact_damage()
+				_apply_attribute_on_hit(candidate, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "ink", direction, maxf(10.0, hit_radius * 0.7))
 
 func _distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
@@ -116,6 +122,15 @@ func _circle_points(circle_radius: float) -> PackedVector2Array:
 func _notify_artifact_damage() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):
 		player.call("notify_artifact_damage", data)
+
+func _apply_attribute_on_hit(target: Node, base_damage: float, hit_position: Vector2, pre_hit_hp_ratio: float = -1.0) -> void:
+	if player != null and player.has_method("apply_attribute_on_hit"):
+		player.call("apply_attribute_on_hit", data, target, base_damage, hit_position, pre_hit_hp_ratio)
+
+func _pre_hit_hp_ratio(target: Node) -> float:
+	if target != null and target.has_method("get_hp_ratio"):
+		return float(target.call("get_hp_ratio"))
+	return -1.0
 
 func _get_damage() -> float:
 	if player != null and player.has_method("get_artifact_damage"):

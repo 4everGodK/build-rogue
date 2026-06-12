@@ -22,6 +22,10 @@ func notify_artifact_damage(data: ArtifactData) -> void:
 	if synergy_manager != null:
 		synergy_manager.notify_artifact_damage(data)
 
+func apply_attribute_on_hit(data: ArtifactData, target: Node, base_damage: float, source: Node = null, hit_position: Vector2 = Vector2.ZERO, pre_hit_hp_ratio: float = -1.0) -> void:
+	if synergy_manager != null:
+		synergy_manager.apply_attribute_on_hit(data, target, base_damage, source, hit_position, pre_hit_hp_ratio)
+
 func get_sword_artifact_cooldown_multiplier(data: ArtifactData) -> float:
 	if synergy_manager == null or data == null or data.system_tag != "剑修":
 		return 1.0
