@@ -79,10 +79,10 @@ func set_wave_status(wave: int, _status: String) -> void:
 	current_wave = maxi(1, wave)
 	set_wave_info(current_wave, 0.0, 0)
 
-func set_wave_info(wave: int, elapsed_seconds: float, remaining_enemies: int) -> void:
+func set_wave_info(wave: int, remaining_seconds: float, remaining_enemies: int) -> void:
 	current_wave = maxi(1, wave)
 	wave_label.text = "第 %d 波" % current_wave
-	timer_label.text = _format_time(elapsed_seconds)
+	timer_label.text = "剩余 %s" % _format_time(remaining_seconds)
 	enemy_label.text = "剩余敌人：%d" % maxi(0, remaining_enemies)
 
 func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> void:

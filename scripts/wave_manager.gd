@@ -7,7 +7,7 @@ signal enemy_killed(gold_reward: int)
 
 const NORMAL_HP_GROWTH_PER_WAVE: float = 0.12
 const BOSS_HP_GROWTH_PER_WAVE: float = 0.18
-const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.08
+const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.35
 const BASE_SPAWN_INTERVAL: float = 1.15
 const MIN_SPAWN_INTERVAL: float = 0.28
 const LATE_WAVE_START: int = 5
@@ -93,13 +93,13 @@ func _wave_config(number: int) -> Dictionary:
 		1:
 			return {"basic": 5}
 		2:
-			return {"basic": 8, "fast": 2}
+			return {"basic": 10, "fast": 3}
 		3:
-			return {"basic": 10, "fast": 4, "tank": 2}
+			return {"basic": 6, "fast": 2, "tank": 1}
 		4:
-			return {"basic": 15, "fast": 5, "tank": 4}
+			return {"basic": 11, "fast": 4, "tank": 2}
 		_:
-			return {"boss": 1}
+			return {"basic": 8, "fast": 4, "tank": 2, "boss": 1}
 
 func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 	if scene == null:
@@ -121,19 +121,29 @@ func _spawn_survival_pack() -> void:
 	for _index in range(pack_count):
 		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
 	var extra_chance: float = 0.25 + maxf(0.0, float(wave_number - LATE_WAVE_START + 1)) * 0.08
+	if wave_number == 3:
+		extra_chance = 0.45
+	if wave_number >= 3:
+		extra_chance *= 0.7
 	if wave_number >= 3 and randf() < minf(0.85, extra_chance):
 		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
 
 func _survival_pack_count() -> int:
-	if wave_number < LATE_WAVE_START:
+	if wave_number <= 2:
 		return 1
-	return 1 + LATE_WAVE_EXTRA_PACKS + int(float(maxi(0, wave_number - LATE_WAVE_START)) / float(LATE_WAVE_EXTRA_PACK_EVERY))
+	if wave_number == 3:
+		return 1
+	if wave_number == 4:
+		return 2
+	return 2 + int(float(maxi(0, wave_number - LATE_WAVE_START)) / float(LATE_WAVE_EXTRA_PACK_EVERY))
 
 func _roll_survival_enemy_scene() -> PackedScene:
 	var roll: float = randf()
-	if wave_number >= 4 and tank_enemy_scene != null and roll < 0.18:
+	if wave_number >= 3 and tank_enemy_scene != null and roll < 0.12:
 		return tank_enemy_scene
-	if wave_number >= 2 and fast_enemy_scene != null and roll < 0.45:
+	if wave_number >= 4 and tank_enemy_scene != null and roll < 0.22:
+		return tank_enemy_scene
+	if wave_number >= 2 and fast_enemy_scene != null and roll < 0.48:
 		return fast_enemy_scene
 	return basic_enemy_scene
 

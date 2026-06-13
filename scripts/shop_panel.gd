@@ -2,6 +2,7 @@ extends Control
 class_name ShopPanel
 
 signal buy_requested(offer_index: int)
+signal lock_requested(offer_index: int)
 signal reroll_requested
 signal breakthrough_requested
 signal continue_requested
@@ -74,7 +75,11 @@ var current_bag_slots: Array = []
 var current_stones: int = 0
 var current_realm: String = "炼气"
 var current_breakthrough_cost: int = 10
+var current_cultivation_progress: int = 0
+var current_breakthrough_requirement: int = 120
+var current_cultivation_gain: int = 10
 var current_is_max_realm: bool = false
+var current_reroll_cost: int = ShopManager.REROLL_COST
 var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
@@ -121,23 +126,47 @@ func set_debug_catalog_mode(enabled: bool) -> void:
 func set_economy(stones: int) -> void:
 	current_stones = stones
 	stone_label.text = "灵石：%d" % current_stones
-	reroll_button.text = "刷新：%d" % ShopManager.REROLL_COST
+	reroll_button.text = "刷新：%d" % current_reroll_cost
 	reroll_button.disabled = debug_catalog_mode
 	_update_cultivation_display()
 	_render_offers()
 
-func set_cultivation(realm: String, breakthrough_cost: int, is_max_realm: bool) -> void:
+func set_reroll_cost(cost: int) -> void:
+	current_reroll_cost = maxi(0, cost)
+	if is_node_ready():
+		reroll_button.text = "刷新：%d" % current_reroll_cost
+
+func set_cultivation(
+	realm: String,
+	breakthrough_cost: int,
+	is_max_realm: bool,
+	cultivation_progress: int = 0,
+	breakthrough_requirement: int = 0,
+	cultivation_gain: int = 10
+) -> void:
 	current_realm = realm
 	current_breakthrough_cost = breakthrough_cost
 	current_is_max_realm = is_max_realm
+	current_cultivation_progress = cultivation_progress
+	current_breakthrough_requirement = breakthrough_requirement
+	current_cultivation_gain = cultivation_gain
 	_update_cultivation_display()
 
 func _update_cultivation_display() -> void:
 	if not is_node_ready():
 		return
-	cultivation_label.text = "修为：%s" % current_realm
-	breakthrough_button.text = "突破：已满" if current_is_max_realm else "突破：%d" % current_breakthrough_cost
-	breakthrough_button.disabled = current_is_max_realm
+	if current_is_max_realm:
+		cultivation_label.text = "修为：%s（已达上限）" % current_realm
+		breakthrough_button.text = "已达上限"
+		breakthrough_button.disabled = true
+		return
+	cultivation_label.text = "修为：%s %d/%d" % [
+		current_realm,
+		current_cultivation_progress,
+		current_breakthrough_requirement,
+	]
+	breakthrough_button.text = "加修为：%d（+%d）" % [current_breakthrough_cost, current_cultivation_gain]
+	breakthrough_button.disabled = current_stones < current_breakthrough_cost
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)
@@ -193,7 +222,7 @@ func _render_offers() -> void:
 		if offer.is_empty():
 			_build_empty_offer_card(button)
 		else:
-			_build_offer_card(button, offer)
+			_build_offer_card(button, offer, index)
 			button.pressed.connect(_on_offer_button_pressed.bind(index))
 		offer_box.add_child(button)
 
@@ -234,6 +263,9 @@ func _make_slot_button(area: String, index: int, stack: ArtifactStack) -> Invent
 func _on_offer_button_pressed(offer_index: int) -> void:
 	buy_requested.emit(offer_index)
 
+func _on_lock_button_pressed(offer_index: int) -> void:
+	lock_requested.emit(offer_index)
+
 func _on_reroll_button_pressed() -> void:
 	reroll_requested.emit()
 
@@ -257,7 +289,7 @@ func _build_empty_offer_card(button: Button) -> void:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(label)
 
-func _build_offer_card(button: Button, offer: Dictionary) -> void:
+func _build_offer_card(button: Button, offer: Dictionary, offer_index: int) -> void:
 	var box: VBoxContainer = VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.anchor_right = 1.0
@@ -268,6 +300,22 @@ func _build_offer_card(button: Button, offer: Dictionary) -> void:
 	box.offset_bottom = -7.0
 	box.add_theme_constant_override("separation", 4)
 	button.add_child(box)
+
+	var lock_button: Button = Button.new()
+	lock_button.text = "锁" if bool(offer.get("locked", false)) else "开"
+	lock_button.tooltip_text = "取消锁定" if bool(offer.get("locked", false)) else "锁定此法宝"
+	lock_button.custom_minimum_size = Vector2(34, 26)
+	lock_button.anchor_left = 1.0
+	lock_button.anchor_right = 1.0
+	lock_button.offset_left = -42.0
+	lock_button.offset_top = 6.0
+	lock_button.offset_right = -8.0
+	lock_button.offset_bottom = 32.0
+	lock_button.focus_mode = Control.FOCUS_NONE
+	lock_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	lock_button.pressed.connect(_on_lock_button_pressed.bind(offer_index))
+	_apply_lock_button_style(lock_button, bool(offer.get("locked", false)))
+	button.add_child(lock_button)
 
 	var top_row: HBoxContainer = HBoxContainer.new()
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -539,10 +587,20 @@ func _apply_responsive_layout() -> void:
 func _apply_offer_card_style(button: Button, offer: Dictionary = {}) -> void:
 	var bg: Color = Color(0.10, 0.115, 0.14, 0.96)
 	var border: Color = _tier_border_color(str(offer.get("tier", "")))
+	if bool(offer.get("locked", false)):
+		border = Color(1.0, 0.78, 0.22)
 	button.add_theme_stylebox_override("normal", _make_card_style(bg, border, 2))
 	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.08), border.lightened(0.22), 3))
 	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), border.lightened(0.38), 3))
 	button.add_theme_stylebox_override("disabled", _make_card_style(Color(0.06, 0.06, 0.08, 0.86), Color(0.23, 0.23, 0.27), 1))
+
+func _apply_lock_button_style(button: Button, locked: bool) -> void:
+	var bg: Color = Color(0.22, 0.18, 0.08, 0.96) if locked else Color(0.08, 0.095, 0.12, 0.96)
+	var border: Color = Color(1.0, 0.78, 0.22) if locked else Color(0.42, 0.46, 0.52)
+	button.add_theme_stylebox_override("normal", _make_card_style(bg, border, 1))
+	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.12), border.lightened(0.20), 1))
+	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), border.lightened(0.32), 1))
+	button.add_theme_color_override("font_color", Color(1.0, 0.86, 0.36) if locked else Color(0.78, 0.82, 0.88))
 
 func _tier_border_color(tier: String) -> Color:
 	match tier:

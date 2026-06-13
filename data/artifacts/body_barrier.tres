@@ -21,6 +21,6 @@ heal_amount = 2.0
 visual_color = Color(0.28, 0.7, 1, 0.16)
 price = 7
 tier = "灵器"
-cost = 3
+cost = 30
 cultivation_requirement = ""
 shop_weight = 1.0

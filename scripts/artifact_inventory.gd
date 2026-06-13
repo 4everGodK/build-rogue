@@ -45,6 +45,9 @@ func add_artifact(data: ArtifactData) -> bool:
 		bag_slots[index] = stack
 		_after_inventory_changed()
 		return true
+	if _merge_incoming_stack(stack):
+		_after_inventory_changed()
+		return true
 	inventory_message.emit("出战区和储物袋已满")
 	return false
 
@@ -106,6 +109,26 @@ func _auto_merge_all() -> void:
 					matches[remove_index]["slots"][matches[remove_index]["index"]] = null
 				merged = true
 				break
+
+func _merge_incoming_stack(incoming: ArtifactStack) -> bool:
+	if incoming == null or incoming.artifact_data == null or incoming.star_level >= 3:
+		return false
+	var all_slots := _all_slot_refs()
+	var matches: Array = []
+	for slot_ref in all_slots:
+		var candidate: ArtifactStack = slot_ref["slots"][slot_ref["index"]] as ArtifactStack
+		if incoming.is_same_artifact_and_star(candidate):
+			matches.append(slot_ref)
+			if matches.size() >= 2:
+				break
+	if matches.size() < 2:
+		return false
+	var first: ArtifactStack = matches[0]["slots"][matches[0]["index"]] as ArtifactStack
+	if first == null:
+		return false
+	first.star_level += 1
+	matches[1]["slots"][matches[1]["index"]] = null
+	return true
 
 func _all_slot_refs() -> Array:
 	var refs: Array = []

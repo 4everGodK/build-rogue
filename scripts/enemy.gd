@@ -9,7 +9,7 @@ signal died(gold_reward: int)
 @export var contact_radius: float = 24.0
 @export var separation_radius: float = 36.0
 @export var contact_damage_interval: float = 0.8
-@export var gold_reward: int = 2
+@export var gold_reward: int = 1
 @export var death_animation_duration: float = 0.15
 @export var arena_half_size: Vector2 = Vector2(784.0, 464.0)
 

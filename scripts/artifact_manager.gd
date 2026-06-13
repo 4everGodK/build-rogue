@@ -36,6 +36,10 @@ func clear_artifacts() -> void:
 		instance.dispose()
 	artifacts.clear()
 
+func dispose_persistent_artifacts() -> void:
+	for instance in artifacts:
+		instance.dispose()
+
 func sync_from_battle_slots(battle_slots: Array) -> void:
 	clear_artifacts()
 	for raw_stack in battle_slots:
@@ -56,8 +60,19 @@ func set_battle_paused(paused: bool) -> void:
 			instance.persistent_node.call("set_battle_paused", paused)
 
 func refresh_persistent_artifacts() -> void:
+	var summon_controllers: Array[Node] = []
+	var total_summon_count: int = 0
 	for instance in artifacts:
 		instance.start(owner_player, attack_container)
+		if is_instance_valid(instance.persistent_node) and instance.persistent_node.has_method("redeploy_all_units"):
+			summon_controllers.append(instance.persistent_node)
+			if instance.persistent_node.has_method("get_deploy_count"):
+				total_summon_count += int(instance.persistent_node.call("get_deploy_count"))
+	var start_index: int = 0
+	for controller in summon_controllers:
+		var deploy_count: int = int(controller.call("get_deploy_count")) if controller.has_method("get_deploy_count") else 0
+		controller.call("redeploy_all_units", start_index, total_summon_count)
+		start_index += deploy_count
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(owner_player) or not is_instance_valid(attack_container):

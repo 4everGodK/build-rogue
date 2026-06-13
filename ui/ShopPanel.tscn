@@ -89,7 +89,7 @@ text = "灵石: 0"
 
 [node name="CultivationLabel" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader"]
 layout_mode = 2
-text = "修为: 炼气"
+text = "修为: 炼气 0/120"
 
 [node name="OfferScroll" type="ScrollContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox"]
 custom_minimum_size = Vector2(0, 360)

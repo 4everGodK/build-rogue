@@ -60,23 +60,23 @@ func _collect_targets(primary_target: Node2D) -> void:
 
 func _tick_damage() -> void:
 	for index in range(targets.size() - 1, -1, -1):
-		var enemy := targets[index]
+		var enemy: Variant = targets[index]
 		if not _target_valid(enemy):
 			targets.remove_at(index)
 			continue
-		enemy = enemy as Node2D
-		if data.slow_percent > 0.0 and enemy.has_method("apply_slow"):
-			enemy.call("apply_slow", data.slow_percent, maxf(data.tick_interval * 1.5, 0.3), self)
-		if data.damage_reduction_percent > 0.0 and enemy.has_method("apply_damage_reduction"):
-			enemy.call("apply_damage_reduction", data.damage_reduction_percent, maxf(data.tick_interval * 1.5, 0.3), self)
+		var enemy_node := enemy as Node2D
+		if data.slow_percent > 0.0 and enemy_node.has_method("apply_slow"):
+			enemy_node.call("apply_slow", data.slow_percent, maxf(data.tick_interval * 1.5, 0.3), self)
+		if data.damage_reduction_percent > 0.0 and enemy_node.has_method("apply_damage_reduction"):
+			enemy_node.call("apply_damage_reduction", data.damage_reduction_percent, maxf(data.tick_interval * 1.5, 0.3), self)
 		var hit_damage: float = _get_damage()
-		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy_node)
+		var killed: bool = bool(enemy_node.call("take_damage", hit_damage, player))
 		_notify_artifact_damage()
-		_apply_attribute_on_hit(enemy, hit_damage, enemy.global_position, pre_hit_hp_ratio)
-		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", player.global_position.direction_to(enemy.global_position), 14.0)
+		_apply_attribute_on_hit(enemy_node, hit_damage, enemy_node.global_position, pre_hit_hp_ratio)
+		HitEffectManager.spawn_hit(get_tree(), enemy_node.global_position, "blood", player.global_position.direction_to(enemy_node.global_position), 14.0)
 		if killed:
-			var origin: Vector2 = enemy.global_position
+			var origin: Vector2 = enemy_node.global_position
 			targets.remove_at(index)
 			_spawn_soul(origin)
 

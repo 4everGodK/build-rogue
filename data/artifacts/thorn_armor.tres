@@ -20,6 +20,6 @@ tick_interval = 999.0
 visual_color = Color(1, 0.82, 0.22, 0.13)
 price = 8
 tier = "灵宝"
-cost = 4
+cost = 40
 cultivation_requirement = ""
 shop_weight = 1.0

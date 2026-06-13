@@ -7,11 +7,15 @@ const STATE_RETURN := "Return"
 const STATE_RESPAWN := "Respawn"
 const SUMMON_COLLISION_LAYER: int = 8
 const WALL_COLLISION_LAYER: int = 4
+const DEFAULT_ARENA_SIZE: Vector2 = Vector2(1600.0, 960.0)
+const SUMMON_ARENA_INSET: float = 42.0
 
 var player: Node2D
 var data: ArtifactData
 var controller: SummonController
 var slot_index: int = 0
+var formation_index: int = 0
+var formation_count: int = 1
 var state: String = STATE_FOLLOW
 var hp: float = 1.0
 var max_hp: float = 1.0
@@ -39,9 +43,14 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData, owner_controller: 
 	taunt_cooldown = randf_range(0.2, 1.0)
 	collision_layer = SUMMON_COLLISION_LAYER
 	collision_mask = SUMMON_COLLISION_LAYER | WALL_COLLISION_LAYER
+	set_formation_slot(index, maxi(1, data.summon_base_count))
 	add_to_group("summons")
 	_build_collision()
 	_build_visual()
+
+func set_formation_slot(index: int, total_count: int) -> void:
+	formation_index = maxi(0, index)
+	formation_count = maxi(1, total_count)
 
 func _physics_process(delta: float) -> void:
 	if battle_paused:
@@ -94,7 +103,10 @@ func force_respawn(position: Vector2) -> void:
 	visible = true
 	if collision != null:
 		collision.disabled = false
-	global_position = position
+	global_position = _safe_position(position)
+	target = null
+	velocity = Vector2.ZERO
+	dash_remaining = 0.0
 	state = STATE_FOLLOW
 
 func _process_follow(delta: float) -> void:
@@ -142,7 +154,7 @@ func _process_respawn(delta: float) -> void:
 	set_physics_process(true)
 	if collision != null:
 		collision.disabled = false
-	global_position = player.global_position + _follow_offset()
+	global_position = _safe_position(player.global_position + _follow_offset())
 	state = STATE_FOLLOW
 
 func _process_turret(delta: float) -> void:
@@ -150,7 +162,7 @@ func _process_turret(delta: float) -> void:
 	if redeploy_remaining > 0.0:
 		redeploy_remaining -= delta
 		if redeploy_remaining <= 0.0:
-			global_position = player.global_position + _follow_offset()
+			global_position = _safe_position(player.global_position + _follow_offset())
 			visible = true
 		return
 	if global_position.distance_to(player.global_position) > 900.0:
@@ -226,7 +238,7 @@ func _process_ghost(delta: float) -> void:
 
 func _process_swarm(delta: float) -> void:
 	if global_position.distance_to(player.global_position) > data.summon_return_radius * 1.25:
-		global_position = player.global_position + _follow_offset()
+		global_position = _safe_position(player.global_position + _follow_offset())
 		state = STATE_FOLLOW
 		return
 	_process_melee(delta)
@@ -253,10 +265,17 @@ func _target_is_valid(enemy: Node2D) -> bool:
 func _move_toward(destination: Vector2, delta: float, multiplier: float) -> void:
 	var speed := data.summon_move_speed * multiplier
 	if speed <= 0.0:
+		velocity = Vector2.ZERO
 		return
-	var direction := global_position.direction_to(destination)
-	velocity = direction * speed
+	var safe_destination := _safe_position(destination)
+	var distance := global_position.distance_to(safe_destination)
+	if distance <= 4.0:
+		velocity = Vector2.ZERO
+		return
+	var direction := global_position.direction_to(safe_destination)
+	velocity = direction * minf(speed, distance / maxf(delta, 0.001))
 	move_and_slide()
+	global_position = _safe_position(global_position)
 
 func _swing(origin: Vector2, damage: float, attack_range: float) -> void:
 	var direction := global_position.direction_to(origin)
@@ -351,8 +370,23 @@ func _pre_hit_hp_ratio(target: Node) -> float:
 	return -1.0
 
 func _follow_offset() -> Vector2:
-	var angle := TAU * float(slot_index) / float(maxi(1, data.summon_base_count))
-	return Vector2(cos(angle), sin(angle)) * (54.0 + float(slot_index % 3) * 18.0)
+	var angle := TAU * float(formation_index) / float(formation_count)
+	return Vector2(cos(angle), sin(angle)) * (54.0 + float(formation_index % 3) * 18.0)
+
+func _safe_position(position: Vector2) -> Vector2:
+	var arena_size := DEFAULT_ARENA_SIZE
+	var scene := get_tree().current_scene
+	if scene != null:
+		var arena := scene.find_child("Arena_Demo", true, false)
+		if arena != null:
+			var value: Variant = arena.get("arena_size")
+			if value is Vector2:
+				arena_size = value
+	var half_size := arena_size * 0.5
+	return Vector2(
+		clampf(position.x, -half_size.x + SUMMON_ARENA_INSET, half_size.x - SUMMON_ARENA_INSET),
+		clampf(position.y, -half_size.y + SUMMON_ARENA_INSET, half_size.y - SUMMON_ARENA_INSET)
+	)
 
 func _has_special(key: String) -> bool:
 	return data.summon_special_effect.find(key) >= 0

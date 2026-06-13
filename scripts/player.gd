@@ -82,6 +82,10 @@ func heal(amount: float) -> void:
 	hp = mini(max_hp, hp + int(ceil(amount)))
 	hp_changed.emit(hp, max_hp)
 
+func restore_full_health() -> void:
+	hp = max_hp
+	hp_changed.emit(hp, max_hp)
+
 func add_shield(amount: float, maximum: float = 0.0) -> void:
 	if maximum > 0.0:
 		shield_limit = maxf(shield_limit, maximum)

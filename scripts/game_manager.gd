@@ -14,12 +14,15 @@ class_name GameManager
 @export var shop_path: NodePath
 @export var result_panel_path: NodePath
 @export var run_summary_path: NodePath
-@export var starting_spirit_stones: int = 3
+@export var starting_spirit_stones: int = 10
 @export var room_duration: float = 30.0
 @export var debug_test_room: bool = false
 @export var debug_shop_toggle_key: int = KEY_B
 
 const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
+const EARLY_ROOM_DURATION: float = 30.0
+const MID_ROOM_DURATION: float = 45.0
+const LATE_ROOM_DURATION: float = 60.0
 
 var player: Player
 var attack_container: Node2D
@@ -49,7 +52,7 @@ func _process(delta: float) -> void:
 		return
 	if not in_shop and not run_ended and wave_manager.active:
 		wave_elapsed_time += delta
-	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), wave_elapsed_time, wave_manager.alive_enemies)
+	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), _current_room_time_left(), wave_manager.alive_enemies)
 	artifact_hud_refresh_remaining -= delta
 	if artifact_hud_refresh_remaining <= 0.0:
 		artifact_hud_refresh_remaining = 0.12
@@ -99,6 +102,7 @@ func _initialize() -> void:
 	shop_manager.offers_changed.connect(_on_shop_offers_changed)
 	shop_manager.shop_message.connect(_show_shop_message)
 	shop_panel.buy_requested.connect(shop_manager.buy_offer)
+	shop_panel.lock_requested.connect(shop_manager.toggle_offer_lock)
 	shop_panel.reroll_requested.connect(shop_manager.reroll)
 	shop_panel.breakthrough_requested.connect(_on_breakthrough_requested)
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
@@ -130,14 +134,28 @@ func _start_battle() -> void:
 	shop_panel.close_shop()
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(false)
+	player.restore_full_health()
 	room_kill_count = 0
 	room_spirit_stones = 0
 	wave_manager.start_next_wave()
+	player.artifact_manager.refresh_persistent_artifacts()
 	if debug_test_room:
 		combat_room_timer.stop_room()
 	else:
-		combat_room_timer.start_room(room_duration)
+		combat_room_timer.start_room(_room_duration_for_wave(wave_manager.wave_number))
 	_update_battle_ui(true)
+
+func _room_duration_for_wave(wave_number: int) -> float:
+	if wave_number <= 2:
+		return EARLY_ROOM_DURATION
+	if wave_number <= 4:
+		return MID_ROOM_DURATION
+	return LATE_ROOM_DURATION
+
+func _current_room_time_left() -> float:
+	if combat_room_timer == null or not combat_room_timer.active:
+		return 0.0
+	return combat_room_timer.time_left
 
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
@@ -152,6 +170,7 @@ func _enter_shop(cleared_wave: int) -> void:
 		shop_manager.generate_offers()
 	_update_shop_cultivation()
 	shop_panel.set_debug_catalog_mode(debug_test_room)
+	shop_panel.set_reroll_cost(shop_manager.get_reroll_cost())
 	shop_panel.open_shop(
 		cleared_wave,
 		shop_manager.get_offer_dictionaries(),
@@ -211,6 +230,7 @@ func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictiona
 
 func _on_shop_offers_changed(offers: Array) -> void:
 	if in_shop and shop_panel.visible:
+		shop_panel.set_reroll_cost(shop_manager.get_reroll_cost())
 		shop_panel.set_offers(offers)
 		shop_panel.set_economy(economy_manager.spirit_stones)
 
@@ -230,11 +250,7 @@ func _shop_status_text() -> String:
 	return prefix + _synergy_effect_text()
 
 func _on_breakthrough_requested() -> void:
-	if cultivation_manager.try_breakthrough(economy_manager):
-		if debug_test_room:
-			shop_manager.generate_all_offers()
-		else:
-			shop_manager.generate_offers()
+	cultivation_manager.try_breakthrough(economy_manager)
 	_update_shop_cultivation()
 
 func _on_cultivation_changed(_realm: String, _realm_index: int) -> void:
@@ -247,7 +263,10 @@ func _update_shop_cultivation() -> void:
 	shop_panel.set_cultivation(
 		cultivation_manager.get_realm(),
 		cultivation_manager.get_breakthrough_cost(),
-		cultivation_manager.is_max_realm()
+		cultivation_manager.is_max_realm(),
+		cultivation_manager.get_cultivation_progress(),
+		cultivation_manager.get_breakthrough_requirement(),
+		cultivation_manager.get_cultivation_gain_per_click()
 	)
 
 func _on_sell_requested(from_area: String, from_index: int) -> void:
@@ -268,7 +287,7 @@ func _on_enemy_killed(gold_reward: int) -> void:
 func _update_battle_ui(refresh_artifacts: bool = false) -> void:
 	if game_ui == null or wave_manager == null or player == null or inventory == null:
 		return
-	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), wave_elapsed_time, wave_manager.alive_enemies)
+	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), _current_room_time_left(), wave_manager.alive_enemies)
 	if refresh_artifacts:
 		game_ui.set_equipped_artifacts(inventory.battle_slots, player.artifact_manager.artifacts)
 
@@ -300,6 +319,8 @@ func _synergy_effect_text() -> String:
 	return "羁绊效果: 无" if parts.is_empty() else "羁绊效果: " + "；".join(parts)
 
 func _clear_attack_nodes() -> void:
+	if player != null and player.artifact_manager != null:
+		player.artifact_manager.dispose_persistent_artifacts()
 	for attack in attack_container.get_children():
 		attack.queue_free()
 	for projectile in get_tree().get_nodes_in_group("boss_projectiles"):
