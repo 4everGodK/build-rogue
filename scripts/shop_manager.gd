@@ -5,8 +5,8 @@ signal offers_changed(offers: Array)
 signal shop_message(message: String)
 signal purchase_completed
 
-const REROLL_COST: int = 1
-const REROLL_COST_GROWTH: int = 1
+const REROLL_COST: int = 5
+const REROLL_COST_GROWTH: int = 5
 const OFFER_COUNT: int = 5
 
 var current_offers: Array = []
@@ -14,13 +14,21 @@ var locked_offers: Array[bool] = []
 var economy: EconomyManager
 var inventory: ArtifactInventory
 var cultivation: CultivationManager
+var destiny = null
+var encounter = null
 var unlimited_catalog_mode: bool = false
 var reroll_count: int = 0
+var current_cleared_wave: int = 0
 
-func configure(next_economy: EconomyManager, next_inventory: ArtifactInventory, next_cultivation: CultivationManager = null) -> void:
+func configure(next_economy: EconomyManager, next_inventory: ArtifactInventory, next_cultivation: CultivationManager = null, next_destiny = null, next_encounter = null) -> void:
 	economy = next_economy
 	inventory = next_inventory
 	cultivation = next_cultivation
+	destiny = next_destiny
+	encounter = next_encounter
+
+func set_shop_wave(cleared_wave: int) -> void:
+	current_cleared_wave = maxi(0, cleared_wave)
 
 func generate_offers(reset_reroll_count: bool = true) -> void:
 	if reset_reroll_count:
@@ -30,7 +38,7 @@ func generate_offers(reset_reroll_count: bool = true) -> void:
 	current_offers.clear()
 	locked_offers.clear()
 	unlimited_catalog_mode = false
-	for index in range(OFFER_COUNT):
+	for index in range(get_offer_count()):
 		var keep_locked: bool = index < previous_locks.size() and previous_locks[index]
 		var locked_data: ArtifactData = previous_offers[index] as ArtifactData if index < previous_offers.size() else null
 		if keep_locked and locked_data != null:
@@ -112,11 +120,12 @@ func buy_offer(index: int) -> void:
 	var offer_data: ArtifactData = current_offers[index] as ArtifactData
 	if offer_data == null:
 		return
-	var cost: int = offer_data.get_shop_cost()
+	var cost: int = get_offer_cost(offer_data)
 	if not economy.spend_spirit_stones(cost):
 		shop_message.emit("灵石不足")
 		return
-	if not inventory.add_artifact(offer_data):
+	var purchase_star: int = encounter.consume_next_purchase_star(offer_data) if encounter != null else 1
+	if not inventory.add_artifact(offer_data, purchase_star):
 		economy.add_spirit_stones(cost)
 		shop_message.emit("储物袋已满")
 		return
@@ -129,14 +138,30 @@ func buy_offer(index: int) -> void:
 func reroll() -> void:
 	if economy == null:
 		return
-	if not economy.spend_spirit_stones(get_reroll_cost()):
+	if get_reroll_cost() > 0 and not economy.spend_spirit_stones(get_reroll_cost()):
 		shop_message.emit("灵石不足")
 		return
 	reroll_count += 1
 	generate_offers(false)
 
 func get_reroll_cost() -> int:
-	return REROLL_COST + reroll_count * REROLL_COST_GROWTH
+	var base_cost: int = REROLL_COST + reroll_count * REROLL_COST_GROWTH
+	if encounter != null and encounter.is_reroll_free():
+		return 0
+	var multiplier: float = destiny.get_reroll_cost_multiplier() if destiny != null else 1.0
+	return maxi(0, int(ceil(float(base_cost) * multiplier)))
+
+func get_offer_count() -> int:
+	var extra_count: int = destiny.get_extra_offer_count() if destiny != null else 0
+	return maxi(1, OFFER_COUNT + extra_count)
+
+func get_offer_cost(data: ArtifactData) -> int:
+	if data == null:
+		return 0
+	var multiplier: float = destiny.get_shop_price_multiplier(current_cleared_wave) if destiny != null else 1.0
+	if encounter != null:
+		multiplier *= encounter.get_shop_price_multiplier()
+	return maxi(1, int(ceil(float(data.get_shop_cost()) * multiplier)))
 
 func toggle_offer_lock(index: int) -> void:
 	if unlimited_catalog_mode:
@@ -160,6 +185,8 @@ func get_offer_dictionaries() -> Array:
 		var offer: Dictionary = data.to_offer()
 		offer["star_level"] = 1
 		offer["locked"] = locked_offers[index]
+		offer["cost"] = get_offer_cost(data)
+		offer["price"] = offer["cost"]
 		result.append(offer)
 	return result
 

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
@@ -18,6 +18,10 @@
 [ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="17_result"]
 [ext_resource type="Script" path="res://scripts/cultivation_manager.gd" id="18_cultivation"]
 [ext_resource type="Script" path="res://scripts/combat_room_timer.gd" id="19_room_timer"]
+[ext_resource type="Script" path="res://scripts/destiny_manager.gd" id="20_destiny"]
+[ext_resource type="PackedScene" path="res://ui/DestinyPanel.tscn" id="21_destiny_panel"]
+[ext_resource type="Script" path="res://scripts/encounter_manager.gd" id="22_encounter"]
+[ext_resource type="PackedScene" path="res://ui/EncounterPanel.tscn" id="23_encounter_panel"]
 
 [node name="Main" type="Node2D"]
 
@@ -34,9 +38,13 @@ cultivation_manager_path = NodePath("../CultivationManager")
 inventory_path = NodePath("../ArtifactInventory")
 synergy_manager_path = NodePath("../SynergyManager")
 shop_manager_path = NodePath("../ShopManager")
+destiny_manager_path = NodePath("../DestinyManager")
+encounter_manager_path = NodePath("../EncounterManager")
 combat_room_timer_path = NodePath("../CombatRoomTimer")
 ui_path = NodePath("../UI")
 shop_path = NodePath("../UI/ShopPanel")
+destiny_panel_path = NodePath("../UI/DestinyPanel")
+encounter_panel_path = NodePath("../UI/EncounterPanel")
 result_panel_path = NodePath("../UI/ResultPanel")
 run_summary_path = NodePath("../RunSummary")
 
@@ -67,6 +75,12 @@ script = ExtResource("9_synergy")
 [node name="ShopManager" type="Node" parent="."]
 script = ExtResource("10_shop_manager")
 
+[node name="DestinyManager" type="Node" parent="."]
+script = ExtResource("20_destiny")
+
+[node name="EncounterManager" type="Node" parent="."]
+script = ExtResource("22_encounter")
+
 [node name="CombatRoomTimer" type="Node" parent="."]
 script = ExtResource("19_room_timer")
 
@@ -76,5 +90,9 @@ script = ExtResource("16_summary")
 [node name="UI" parent="." instance=ExtResource("3_ui")]
 
 [node name="ShopPanel" parent="UI" instance=ExtResource("4_shop")]
+
+[node name="DestinyPanel" parent="UI" instance=ExtResource("21_destiny_panel")]
+
+[node name="EncounterPanel" parent="UI" instance=ExtResource("23_encounter_panel")]
 
 [node name="ResultPanel" parent="UI" instance=ExtResource("17_result")]

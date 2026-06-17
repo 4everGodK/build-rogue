@@ -314,11 +314,12 @@ func damage_enemy(enemy: Node2D, damage: float) -> void:
 	if enemy == null or not enemy.has_method("take_damage"):
 		return
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
-	var killed: bool = bool(enemy.call("take_damage", damage, player))
+	var final_damage: float = _get_damage(damage)
+	var killed: bool = bool(enemy.call("take_damage", final_damage, player))
 	_notify_artifact_damage()
-	_apply_attribute_on_hit(enemy, damage, enemy.global_position, pre_hit_hp_ratio)
+	_apply_attribute_on_hit(enemy, final_damage, enemy.global_position, pre_hit_hp_ratio)
 	if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
-		enemy.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
+		enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), data.poison_can_stack)
 	if killed and data.id == "poison_bug" and randf() < 0.2 and controller != null:
 		controller.try_spawn_extra_unit()
 
@@ -336,9 +337,10 @@ func _shockwave() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
-				candidate.call("take_damage", data.summon_attack, player)
+				var shockwave_damage: float = _get_damage(data.summon_attack)
+				candidate.call("take_damage", shockwave_damage, player)
 				_notify_artifact_damage()
-				_apply_attribute_on_hit(candidate, data.summon_attack, (candidate as Node2D).global_position, pre_hit_hp_ratio)
+				_apply_attribute_on_hit(candidate, shockwave_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 
 func _die() -> void:
 	if controller != null:
@@ -368,6 +370,17 @@ func _pre_hit_hp_ratio(target: Node) -> float:
 	if target != null and target.has_method("get_hp_ratio"):
 		return float(target.call("get_hp_ratio"))
 	return -1.0
+
+func _get_damage(base_damage: float) -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		return float(player.call("get_artifact_damage", data, base_damage))
+	return base_damage
+
+func _damage_multiplier() -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		var base_damage := maxf(1.0, data.summon_attack)
+		return float(player.call("get_artifact_damage", data, base_damage)) / base_damage
+	return 1.0
 
 func _follow_offset() -> Vector2:
 	var angle := TAU * float(formation_index) / float(formation_count)

@@ -32,9 +32,9 @@ func set_battle_slot_count(next_count: int) -> void:
 	_initialize_slots()
 	inventory_changed.emit()
 
-func add_artifact(data: ArtifactData) -> bool:
+func add_artifact(data: ArtifactData, star_level: int = 1) -> bool:
 	_initialize_slots()
-	var stack: ArtifactStack = ArtifactStack.new(data, 1)
+	var stack: ArtifactStack = ArtifactStack.new(data, star_level)
 	var index := _first_empty_index(battle_slots)
 	if index >= 0:
 		battle_slots[index] = stack
@@ -50,6 +50,39 @@ func add_artifact(data: ArtifactData) -> bool:
 		return true
 	inventory_message.emit("出战区和储物袋已满")
 	return false
+
+func upgrade_random_artifact_star() -> bool:
+	var candidates: Array[ArtifactStack] = []
+	for slot_ref in _all_slot_refs():
+		var stack: ArtifactStack = slot_ref["slots"][slot_ref["index"]] as ArtifactStack
+		if stack != null and stack.artifact_data != null and stack.star_level < 3:
+			candidates.append(stack)
+	if candidates.is_empty():
+		inventory_message.emit("没有可升星的法宝")
+		return false
+	var picked: ArtifactStack = candidates.pick_random()
+	picked.star_level += 1
+	inventory_message.emit("%s升至%d星" % [picked.artifact_data.display_name, picked.star_level])
+	inventory_changed.emit()
+	return true
+
+func reroll_all_to_higher_tier() -> bool:
+	var changed: bool = false
+	for slot_ref in _all_slot_refs():
+		var stack: ArtifactStack = slot_ref["slots"][slot_ref["index"]] as ArtifactStack
+		if stack == null or stack.artifact_data == null:
+			continue
+		var replacement: ArtifactData = _random_higher_tier_artifact(stack.artifact_data)
+		if replacement == null:
+			continue
+		stack.artifact_data = replacement
+		changed = true
+	if not changed:
+		inventory_message.emit("没有可提升品阶的法宝")
+		return false
+	inventory_message.emit("所有可提升法宝已随机升高一品阶")
+	inventory_changed.emit()
+	return true
 
 func move_stack(from_area: String, from_index: int, to_area: String, to_index: int) -> void:
 	var from_slots := _slots_for_area(from_area)
@@ -152,3 +185,17 @@ func _slots_for_area(area: String) -> Array:
 			return bag_slots
 		_:
 			return []
+
+func _random_higher_tier_artifact(data: ArtifactData) -> ArtifactData:
+	var tier_index: int = CultivationManager.TIER_NAMES.find(data.tier)
+	if tier_index < 0 or tier_index >= CultivationManager.TIER_NAMES.size() - 1:
+		return null
+	var next_tier: String = CultivationManager.TIER_NAMES[tier_index + 1]
+	var candidates: Array[ArtifactData] = []
+	for raw_id in ArtifactCatalog.all_ids():
+		var candidate: ArtifactData = ArtifactCatalog.get_data(str(raw_id))
+		if candidate != null and candidate.tier == next_tier:
+			candidates.append(candidate)
+	if candidates.is_empty():
+		return null
+	return candidates.pick_random()

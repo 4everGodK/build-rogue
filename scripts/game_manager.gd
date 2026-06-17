@@ -9,12 +9,16 @@ class_name GameManager
 @export var inventory_path: NodePath
 @export var synergy_manager_path: NodePath
 @export var shop_manager_path: NodePath
+@export var destiny_manager_path: NodePath
+@export var encounter_manager_path: NodePath
 @export var combat_room_timer_path: NodePath
 @export var ui_path: NodePath
 @export var shop_path: NodePath
+@export var destiny_panel_path: NodePath
+@export var encounter_panel_path: NodePath
 @export var result_panel_path: NodePath
 @export var run_summary_path: NodePath
-@export var starting_spirit_stones: int = 10
+@export var starting_spirit_stones: int = 20
 @export var room_duration: float = 30.0
 @export var debug_test_room: bool = false
 @export var debug_shop_toggle_key: int = KEY_B
@@ -23,6 +27,12 @@ const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
 const EARLY_ROOM_DURATION: float = 30.0
 const MID_ROOM_DURATION: float = 45.0
 const LATE_ROOM_DURATION: float = 60.0
+const BOSS_MATERIAL_BY_WAVE: Dictionary = {
+	5: 0,
+	9: 1,
+	13: 2,
+	17: 3,
+}
 
 var player: Player
 var attack_container: Node2D
@@ -32,9 +42,13 @@ var cultivation_manager: CultivationManager
 var inventory: ArtifactInventory
 var synergy_manager: SynergyManager
 var shop_manager: ShopManager
+var destiny_manager = null
+var encounter_manager = null
 var combat_room_timer: CombatRoomTimer
 var game_ui: GameUI
 var shop_panel: ShopPanel
+var destiny_panel = null
+var encounter_panel = null
 var result_panel: ResultPanel
 var run_summary: RunSummary
 var in_shop: bool = false
@@ -43,6 +57,7 @@ var wave_elapsed_time: float = 0.0
 var room_kill_count: int = 0
 var room_spirit_stones: int = 0
 var artifact_hud_refresh_remaining: float = 0.0
+var pending_encounter_wave: int = -1
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -78,9 +93,17 @@ func _initialize() -> void:
 	inventory = get_node(inventory_path)
 	synergy_manager = get_node(synergy_manager_path)
 	shop_manager = get_node(shop_manager_path)
+	if not String(destiny_manager_path).is_empty():
+		destiny_manager = get_node_or_null(destiny_manager_path)
+	if not String(encounter_manager_path).is_empty():
+		encounter_manager = get_node_or_null(encounter_manager_path)
 	combat_room_timer = get_node(combat_room_timer_path)
 	game_ui = get_node(ui_path)
 	shop_panel = get_node(shop_path)
+	if not String(destiny_panel_path).is_empty():
+		destiny_panel = get_node_or_null(destiny_panel_path) as Control
+	if not String(encounter_panel_path).is_empty():
+		encounter_panel = get_node_or_null(encounter_panel_path) as Control
 	result_panel = get_node(result_panel_path)
 	run_summary = get_node(run_summary_path)
 
@@ -88,7 +111,7 @@ func _initialize() -> void:
 	player.artifact_manager.configure(player, attack_container)
 	player.artifact_manager.set_synergy_manager(synergy_manager)
 	wave_manager.configure(player)
-	shop_manager.configure(economy_manager, inventory, cultivation_manager)
+	shop_manager.configure(economy_manager, inventory, cultivation_manager, destiny_manager, encounter_manager)
 
 	player.hp_changed.connect(game_ui.set_hp)
 	player.shield_changed.connect(game_ui.set_shield)
@@ -108,9 +131,14 @@ func _initialize() -> void:
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
 	shop_panel.inventory_move_requested.connect(inventory.move_stack)
 	shop_panel.sell_requested.connect(_on_sell_requested)
+	if destiny_panel != null:
+		destiny_panel.destiny_selected.connect(_on_destiny_selected)
+	if encounter_panel != null:
+		encounter_panel.encounter_selected.connect(_on_encounter_selected)
 	result_panel.restart_requested.connect(_restart_run)
 	result_panel.main_menu_requested.connect(_return_to_main_menu)
 	wave_manager.enemy_killed.connect(_on_enemy_killed)
+	wave_manager.boss_defeated.connect(_on_boss_defeated)
 	wave_manager.wave_started.connect(_on_wave_started)
 	wave_manager.wave_cleared.connect(_on_wave_cleared)
 	combat_room_timer.room_finished.connect(_on_room_timer_finished)
@@ -120,12 +148,18 @@ func _initialize() -> void:
 	economy_manager.reset(starting_spirit_stones)
 	if debug_test_room:
 		economy_manager.set_unlimited(true)
+	if destiny_manager != null:
+		destiny_manager.reset()
+	if encounter_manager != null:
+		encounter_manager.reset()
 	cultivation_manager.reset()
 	_on_inventory_changed()
 	game_ui.set_wave_status(1, "准备阶段")
 	_update_battle_ui(true)
 	if debug_test_room:
 		_start_battle()
+	elif destiny_manager != null and destiny_panel != null:
+		_show_destiny_selection()
 	else:
 		_enter_shop(0)
 
@@ -138,6 +172,7 @@ func _start_battle() -> void:
 	room_kill_count = 0
 	room_spirit_stones = 0
 	wave_manager.start_next_wave()
+	_apply_destiny_runtime_modifiers()
 	player.artifact_manager.refresh_persistent_artifacts()
 	if debug_test_room:
 		combat_room_timer.stop_room()
@@ -164,6 +199,10 @@ func _enter_shop(cleared_wave: int) -> void:
 	wave_manager.pause_wave(true)
 	combat_room_timer.stop_room()
 	_clear_attack_nodes()
+	_apply_destiny_runtime_modifiers()
+	shop_manager.set_shop_wave(cleared_wave)
+	if encounter_manager != null:
+		encounter_manager.begin_shop()
 	if debug_test_room:
 		shop_manager.generate_all_offers()
 	else:
@@ -181,6 +220,69 @@ func _enter_shop(cleared_wave: int) -> void:
 		synergy_manager.attribute_counts
 	)
 	shop_panel.set_message(_shop_status_text())
+
+func _show_destiny_selection() -> void:
+	player.set_battle_paused(true)
+	shop_panel.close_shop()
+	if destiny_panel != null and destiny_manager != null:
+		destiny_panel.open_choices(destiny_manager.get_starting_choices(3))
+
+func _on_destiny_selected(destiny_id: String) -> void:
+	if destiny_manager == null or not destiny_manager.select_destiny(destiny_id):
+		return
+	if destiny_panel != null:
+		destiny_panel.close_panel()
+	economy_manager.add_spirit_stones(destiny_manager.get_starting_stones_bonus())
+	player.set_destiny_max_hp_multiplier(destiny_manager.get_max_hp_multiplier())
+	_apply_destiny_runtime_modifiers()
+	_enter_shop(0)
+	_show_shop_message("已选择天命：%s" % destiny_manager.get_destiny_name())
+
+func _show_encounter_selection(cleared_wave: int) -> void:
+	in_shop = false
+	player.set_battle_paused(true)
+	shop_panel.close_shop()
+	game_ui.set_wave_status(cleared_wave, "奇遇")
+	if encounter_panel != null and encounter_manager != null:
+		encounter_panel.open_choices(encounter_manager.get_choices(3))
+	else:
+		_enter_shop(cleared_wave)
+
+func _on_encounter_selected(encounter_id: String) -> void:
+	if encounter_manager == null:
+		return
+	var encounter: Dictionary = encounter_manager.select_encounter(encounter_id)
+	if encounter.is_empty():
+		return
+	if encounter_panel != null:
+		encounter_panel.close_panel()
+	_apply_encounter_immediate_effects(encounter)
+	var cleared_wave: int = pending_encounter_wave
+	pending_encounter_wave = -1
+	_enter_shop(cleared_wave)
+	_show_shop_message("已选择奇遇：%s" % str(encounter.get("name", "奇遇")))
+
+func _apply_encounter_immediate_effects(encounter: Dictionary) -> void:
+	var synergy_tag: String = str(encounter.get("synergy_tag", ""))
+	if not synergy_tag.is_empty():
+		synergy_manager.add_synergy_bonus(synergy_tag, 1)
+	if int(encounter.get("spirit_stones", 0)) > 0:
+		economy_manager.add_spirit_stones(int(encounter["spirit_stones"]))
+	if bool(encounter.get("random_star_up", false)):
+		inventory.upgrade_random_artifact_star()
+	if bool(encounter.get("reroll_higher_tier", false)):
+		inventory.reroll_all_to_higher_tier()
+	_on_inventory_changed()
+	_apply_destiny_runtime_modifiers()
+
+func _apply_destiny_runtime_modifiers() -> void:
+	if player == null:
+		return
+	var cleared_waves: int = maxi(0, wave_manager.wave_number - 1) if wave_manager != null else 0
+	var multiplier: float = destiny_manager.get_damage_multiplier(cleared_waves) if destiny_manager != null else 1.0
+	if encounter_manager != null:
+		multiplier *= encounter_manager.get_damage_multiplier(synergy_manager.get_active_synergy_count())
+	player.set_run_damage_multiplier(multiplier)
 
 func _close_debug_shop() -> void:
 	in_shop = false
@@ -204,10 +306,16 @@ func _on_wave_started(wave_number: int) -> void:
 func _on_wave_cleared(wave_number: int) -> void:
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_update_battle_ui(true)
+	if pending_encounter_wave == wave_number and encounter_manager != null and encounter_panel != null:
+		_show_encounter_selection(wave_number)
+		return
 	_enter_shop(wave_number)
 
 func _on_room_timer_finished() -> void:
 	if run_ended or in_shop:
+		return
+	if wave_manager.is_boss_wave(wave_manager.wave_number) and wave_manager.has_alive_boss():
+		game_ui.set_wave_status(wave_manager.wave_number, "击败Boss")
 		return
 	wave_manager.finish_current_room(true)
 
@@ -247,7 +355,11 @@ func _shop_status_text() -> String:
 	var prefix: String = ""
 	if wave_manager != null and wave_manager.wave_number > 0 and not debug_test_room:
 		prefix = "本房间击杀 %d，获得灵石 %d。 " % [room_kill_count, room_spirit_stones]
-	return prefix + _synergy_effect_text()
+	var material_text: String = ""
+	if cultivation_manager != null and not cultivation_manager.is_max_realm():
+		var material_state: String = "已获得" if cultivation_manager.has_required_material() else "未获得%s" % cultivation_manager.get_required_material_name()
+		material_text = "突破材料：%s。 " % material_state
+	return prefix + material_text + _synergy_effect_text()
 
 func _on_breakthrough_requested() -> void:
 	cultivation_manager.try_breakthrough(economy_manager)
@@ -266,7 +378,10 @@ func _update_shop_cultivation() -> void:
 		cultivation_manager.is_max_realm(),
 		cultivation_manager.get_cultivation_progress(),
 		cultivation_manager.get_breakthrough_requirement(),
-		cultivation_manager.get_cultivation_gain_per_click()
+		cultivation_manager.get_cultivation_gain_per_click(),
+		cultivation_manager.get_required_material_name(),
+		cultivation_manager.has_required_material(),
+		cultivation_manager.is_cultivation_full()
 	)
 
 func _on_sell_requested(from_area: String, from_index: int) -> void:
@@ -283,6 +398,17 @@ func _on_enemy_killed(gold_reward: int) -> void:
 	room_spirit_stones += gold_reward
 	economy_manager.add_spirit_stones(gold_reward)
 	_update_battle_ui(false)
+
+func _on_boss_defeated(defeated_wave_number: int) -> void:
+	if BOSS_MATERIAL_BY_WAVE.has(defeated_wave_number):
+		cultivation_manager.add_breakthrough_material(int(BOSS_MATERIAL_BY_WAVE[defeated_wave_number]))
+		_update_shop_cultivation()
+	if wave_manager.is_final_boss_wave(defeated_wave_number):
+		_on_demo_completed()
+	elif defeated_wave_number == wave_manager.wave_number and not in_shop and not run_ended:
+		if wave_manager.is_boss_wave(defeated_wave_number):
+			pending_encounter_wave = defeated_wave_number
+		wave_manager.finish_current_room(true)
 
 func _update_battle_ui(refresh_artifacts: bool = false) -> void:
 	if game_ui == null or wave_manager == null or player == null or inventory == null:
@@ -329,6 +455,12 @@ func _clear_attack_nodes() -> void:
 func _on_player_died() -> void:
 	if run_ended:
 		return
+	if encounter_manager != null:
+		var revive_ratio: float = encounter_manager.consume_revive_ratio()
+		if revive_ratio > 0.0:
+			player.revive_with_hp_ratio(revive_ratio)
+			game_ui.set_wave_status(wave_manager.wave_number, "复活")
+			return
 	run_ended = true
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)

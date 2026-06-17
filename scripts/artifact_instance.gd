@@ -181,7 +181,7 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 		ArtifactStarConfig.apply_star3_bonus(effective)
 	if synergy_manager != null and effective.system_tag == "体修":
 		_apply_body_range_multiplier(effective, float(synergy_manager.get_effect_value("body_size_multiplier", 1.0)))
-	if synergy_manager != null and effective.attack_template == "summon":
+	if synergy_manager != null and (effective.attack_template == "summon" or effective.summon_base_count > 0):
 		effective.summon_base_count += int(synergy_manager.get_effect_value("summon_extra_count", 0))
 		effective.summon_respawn_time *= float(synergy_manager.get_effect_value("summon_respawn_time_multiplier", 1.0))
 		effective.summon_death_burst = bool(synergy_manager.get_effect_value("summon_death_burst_enabled", false))

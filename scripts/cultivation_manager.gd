@@ -9,13 +9,14 @@ const TIER_NAMES: Array[String] = ["凡器", "法器", "灵器", "灵宝", "仙�
 const TIER_COSTS: Dictionary = {
 	"凡器": 10,
 	"法器": 20,
-	"灵器": 30,
-	"灵宝": 40,
-	"仙宝": 50,
+	"灵器": 40,
+	"灵宝": 60,
+	"仙宝": 100,
 }
 const BREAKTHROUGH_REQUIREMENTS: Array[int] = [120, 240, 400, 600]
 const CULTIVATION_CLICK_COSTS: Array[int] = [10, 20, 40, 60]
 const CULTIVATION_GAINS_PER_CLICK: Array[int] = [10, 20, 40, 60]
+const BREAKTHROUGH_MATERIALS: Array[String] = ["筑基材料", "结丹材料", "元婴材料", "化神材料"]
 const BASE_BATTLE_SLOT_COUNT: int = 5
 const SHOP_TIER_WEIGHTS: Dictionary = {
 	"炼气": {"凡器": 80, "法器": 20, "灵器": 0, "灵宝": 0, "仙宝": 0},
@@ -27,10 +28,14 @@ const SHOP_TIER_WEIGHTS: Dictionary = {
 
 var realm_index: int = 0
 var cultivation_progress: int = 0
+var breakthrough_materials: Array[bool] = []
 
 func reset() -> void:
 	realm_index = 0
 	cultivation_progress = 0
+	breakthrough_materials.clear()
+	for _index in BREAKTHROUGH_MATERIALS.size():
+		breakthrough_materials.append(false)
 	cultivation_changed.emit(get_realm(), realm_index)
 
 func get_realm() -> String:
@@ -54,6 +59,34 @@ func get_cultivation_gain_per_click() -> int:
 		return 0
 	return CULTIVATION_GAINS_PER_CLICK[realm_index]
 
+func get_required_material_name() -> String:
+	if realm_index >= BREAKTHROUGH_MATERIALS.size():
+		return ""
+	return BREAKTHROUGH_MATERIALS[realm_index]
+
+func has_required_material() -> bool:
+	if realm_index >= breakthrough_materials.size():
+		return false
+	return breakthrough_materials[realm_index]
+
+func is_cultivation_full() -> bool:
+	var requirement: int = get_breakthrough_requirement()
+	return requirement > 0 and cultivation_progress >= requirement
+
+func add_breakthrough_material(material_index: int) -> bool:
+	if material_index < 0 or material_index >= BREAKTHROUGH_MATERIALS.size():
+		return false
+	if breakthrough_materials.is_empty():
+		for _index in BREAKTHROUGH_MATERIALS.size():
+			breakthrough_materials.append(false)
+	if breakthrough_materials[material_index]:
+		cultivation_message.emit("已拥有%s" % BREAKTHROUGH_MATERIALS[material_index])
+		return false
+	breakthrough_materials[material_index] = true
+	cultivation_changed.emit(get_realm(), realm_index)
+	cultivation_message.emit("获得%s" % BREAKTHROUGH_MATERIALS[material_index])
+	return true
+
 func is_max_realm() -> bool:
 	return realm_index >= REALMS.size() - 1
 
@@ -64,17 +97,22 @@ func try_breakthrough(economy: EconomyManager) -> bool:
 	if is_max_realm():
 		cultivation_message.emit("已达上限，无法继续提升修为")
 		return false
-	var cost: int = get_breakthrough_cost()
-	if economy == null or not economy.spend_spirit_stones(cost):
-		cultivation_message.emit("提升修为灵石不足")
-		return false
-	var gain: int = get_cultivation_gain_per_click()
-	cultivation_progress += gain
 	var requirement: int = get_breakthrough_requirement()
 	if cultivation_progress < requirement:
+		var cost: int = get_breakthrough_cost()
+		if economy == null or not economy.spend_spirit_stones(cost):
+			cultivation_message.emit("提升修为灵石不足")
+			return false
+		var gain: int = get_cultivation_gain_per_click()
+		cultivation_progress = mini(requirement, cultivation_progress + gain)
 		cultivation_changed.emit(get_realm(), realm_index)
 		cultivation_message.emit("修为 +%d（%d/%d）" % [gain, cultivation_progress, requirement])
 		return false
+	if not has_required_material():
+		cultivation_message.emit("修为已满，还需要击败Boss获得%s" % get_required_material_name())
+		cultivation_changed.emit(get_realm(), realm_index)
+		return false
+	breakthrough_materials[realm_index] = false
 	realm_index += 1
 	cultivation_progress = 0
 	cultivation_changed.emit(get_realm(), realm_index)

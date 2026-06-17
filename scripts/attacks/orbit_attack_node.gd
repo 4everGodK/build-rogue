@@ -55,7 +55,7 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 	if now - float(last_hits.get(key, -INF)) < data.hit_interval:
 		return
 	last_hits[key] = now
-	var hit_damage: float = data.damage * 0.25
+	var hit_damage: float = _get_damage(data.damage * 0.25)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 	body.call("take_damage", hit_damage, player)
 	_notify_artifact_damage()
@@ -115,9 +115,10 @@ func _counter_stab(orbiter: Area2D, target: Node2D) -> void:
 		return
 	if is_instance_valid(target) and target.has_method("take_damage"):
 		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(target)
-		target.call("take_damage", data.damage, player)
+		var final_damage: float = _get_damage(data.damage)
+		target.call("take_damage", final_damage, player)
 		_notify_artifact_damage()
-		_apply_attribute_on_hit(target, data.damage, target.global_position, pre_hit_hp_ratio)
+		_apply_attribute_on_hit(target, final_damage, target.global_position, pre_hit_hp_ratio)
 		HitEffectManager.spawn_hit(get_tree(), target.global_position, "sword", start_position.direction_to(target_position), 18.0)
 	_flash_orbiter(orbiter)
 	var return_time: float = clampf(target_position.distance_to(player.global_position) / maxf(1.0, data.counter_speed), 0.06, 0.18)
@@ -144,3 +145,8 @@ func _pre_hit_hp_ratio(target: Node) -> float:
 	if target != null and target.has_method("get_hp_ratio"):
 		return float(target.call("get_hp_ratio"))
 	return -1.0
+
+func _get_damage(base_damage: float) -> float:
+	if player != null and player.has_method("get_artifact_damage"):
+		return float(player.call("get_artifact_damage", data, base_damage))
+	return base_damage

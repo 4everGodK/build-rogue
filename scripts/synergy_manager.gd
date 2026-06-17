@@ -57,13 +57,17 @@ const POISON_TIERS: Array[Dictionary] = [
 
 var system_counts: Dictionary = {}
 var attribute_counts: Dictionary = {}
+var bonus_system_counts: Dictionary = {}
+var bonus_attribute_counts: Dictionary = {}
 var effects: Dictionary = {}
 var sword_attack_speed_stacks: int = 0
+var summon_template_count: int = 0
 
 func recalculate(battle_slots: Array) -> void:
 	system_counts.clear()
 	attribute_counts.clear()
 	effects.clear()
+	summon_template_count = 0
 	var counted_ids: Dictionary = {}
 	for raw_stack in battle_slots:
 		var stack: ArtifactStack = raw_stack as ArtifactStack
@@ -73,10 +77,27 @@ func recalculate(battle_slots: Array) -> void:
 			continue
 		counted_ids[stack.artifact_data.id] = true
 		system_counts[stack.artifact_data.system_tag] = int(system_counts.get(stack.artifact_data.system_tag, 0)) + 1
+		if stack.artifact_data.attack_template == "summon":
+			summon_template_count += 1
 		var attribute_tag: String = stack.artifact_data.get_attribute_tag()
 		attribute_counts[attribute_tag] = int(attribute_counts.get(attribute_tag, 0)) + 1
+	_apply_bonus_counts()
 	_update_effects()
 	synergies_changed.emit(system_counts.duplicate(), attribute_counts.duplicate())
+
+func add_synergy_bonus(tag: String, amount: int = 1) -> void:
+	if amount <= 0:
+		return
+	if tag in ["剑修", "法修", "体修", "召唤", "魔修"]:
+		bonus_system_counts[tag] = int(bonus_system_counts.get(tag, 0)) + amount
+	else:
+		bonus_attribute_counts[tag] = int(bonus_attribute_counts.get(tag, 0)) + amount
+
+func _apply_bonus_counts() -> void:
+	for tag in bonus_system_counts.keys():
+		system_counts[tag] = int(system_counts.get(tag, 0)) + int(bonus_system_counts[tag])
+	for tag in bonus_attribute_counts.keys():
+		attribute_counts[tag] = int(attribute_counts.get(tag, 0)) + int(bonus_attribute_counts[tag])
 
 func _update_effects() -> void:
 	var sword_count: int = int(system_counts.get("剑修", 0))
@@ -106,6 +127,7 @@ func _update_effects() -> void:
 		effects["projectile_extra_damage_multiplier"] = 0.0
 
 	var summon_count: int = int(system_counts.get("召唤", 0))
+	summon_count = maxi(summon_count, summon_template_count)
 	if summon_count >= 6:
 		effects["summon_extra_count"] = 4
 		effects["summon_respawn_time_multiplier"] = 0.5
@@ -185,6 +207,23 @@ func _attribute_tier(attribute_tag: String, tiers: Array[Dictionary]) -> Diction
 
 func get_effect_value(key: String, default_value = null):
 	return effects.get(key, default_value)
+
+func get_active_synergy_count() -> int:
+	var count: int = 0
+	if int(system_counts.get("剑修", 0)) >= 3:
+		count += 1
+	if int(system_counts.get("法修", 0)) >= 2:
+		count += 1
+	if int(system_counts.get("体修", 0)) >= 3:
+		count += 1
+	if int(system_counts.get("召唤", 0)) >= 2:
+		count += 1
+	if int(system_counts.get("魔修", 0)) >= 2:
+		count += 1
+	for tag in ["金", "木", "水", "火", "土", "雷", "毒"]:
+		if int(attribute_counts.get(tag, 0)) >= 2:
+			count += 1
+	return count
 
 func reset_battle_effects() -> void:
 	sword_attack_speed_stacks = 0

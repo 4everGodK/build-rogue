@@ -98,8 +98,6 @@ static func apply_star3_bonus(data: ArtifactData) -> void:
 		"golden_body_avatar":
 			data.radius *= 1.45
 			data.max_hp_damage_coefficient *= 1.25
-		"blood_sword":
-			data.kill_heal_amount += 3.0
 		"blood_slash":
 			data.range *= 1.5
 		"poison_needle":
@@ -210,7 +208,7 @@ static func get_star3_description(id: String) -> String:
 		"golden_body_avatar":
 			return "法相体型更大，砸地范围更大，伤害更高"
 		"blood_sword":
-			return "击杀回复 +3"
+			return "血剑伤害随星级提升"
 		"blood_slash":
 			return "剑气飞行距离 +50%"
 		"poison_needle":

@@ -10,9 +10,10 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	player = owner_player
 	data = artifact_data
 	global_position = player.global_position
+	z_as_relative = false
 	z_index = 1
 	if data.id == "golden_body_avatar":
-		z_index = -1
+		z_index = 2
 	collision_layer = 0
 	collision_mask = 2
 	monitoring = true

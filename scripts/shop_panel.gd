@@ -78,6 +78,9 @@ var current_breakthrough_cost: int = 10
 var current_cultivation_progress: int = 0
 var current_breakthrough_requirement: int = 120
 var current_cultivation_gain: int = 10
+var current_material_name: String = ""
+var current_has_material: bool = false
+var current_is_cultivation_full: bool = false
 var current_is_max_realm: bool = false
 var current_reroll_cost: int = ShopManager.REROLL_COST
 var debug_catalog_mode: bool = false
@@ -142,7 +145,10 @@ func set_cultivation(
 	is_max_realm: bool,
 	cultivation_progress: int = 0,
 	breakthrough_requirement: int = 0,
-	cultivation_gain: int = 10
+	cultivation_gain: int = 10,
+	material_name: String = "",
+	has_material: bool = false,
+	is_cultivation_full: bool = false
 ) -> void:
 	current_realm = realm
 	current_breakthrough_cost = breakthrough_cost
@@ -150,6 +156,9 @@ func set_cultivation(
 	current_cultivation_progress = cultivation_progress
 	current_breakthrough_requirement = breakthrough_requirement
 	current_cultivation_gain = cultivation_gain
+	current_material_name = material_name
+	current_has_material = has_material
+	current_is_cultivation_full = is_cultivation_full
 	_update_cultivation_display()
 
 func _update_cultivation_display() -> void:
@@ -165,6 +174,12 @@ func _update_cultivation_display() -> void:
 		current_cultivation_progress,
 		current_breakthrough_requirement,
 	]
+	if current_is_cultivation_full:
+		var material_state: String = "已获" if current_has_material else "缺少"
+		cultivation_label.text += "  %s：%s" % [current_material_name, material_state]
+		breakthrough_button.text = "突破：%s" % current_material_name
+		breakthrough_button.disabled = false
+		return
 	breakthrough_button.text = "加修为：%d（+%d）" % [current_breakthrough_cost, current_cultivation_gain]
 	breakthrough_button.disabled = current_stones < current_breakthrough_cost
 
@@ -570,7 +585,7 @@ func _apply_responsive_layout() -> void:
 
 	var available_left_width: float = maxf(520.0, viewport_size.x - side_width - 78.0)
 	var left_width: float = clampf(available_left_width, 520.0, 1180.0)
-	var offer_columns: int = 4 if debug_catalog_mode else ShopManager.OFFER_COUNT
+	var offer_columns: int = 4 if debug_catalog_mode else maxi(1, current_offers.size())
 	offer_box.columns = offer_columns
 	var offer_gap: float = 8.0 * float(maxi(0, offer_columns - 1))
 	var offer_width: float = floor((left_width - offer_gap) / float(offer_columns))

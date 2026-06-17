@@ -20,6 +20,8 @@ var shield: float = 0.0
 var shield_limit: float = 0.0
 var artifact_cooldown_multiplier: float = 1.0
 var artifact_move_speed_multiplier: float = 1.0
+var run_damage_multiplier: float = 1.0
+var destiny_max_hp_multiplier: float = 1.0
 var body_max_hp_multiplier: float = 1.0
 var body_size_multiplier: float = 1.0
 
@@ -86,6 +88,11 @@ func restore_full_health() -> void:
 	hp = max_hp
 	hp_changed.emit(hp, max_hp)
 
+func revive_with_hp_ratio(ratio: float) -> void:
+	hp = maxi(1, int(ceil(float(max_hp) * clampf(ratio, 0.01, 1.0))))
+	invincible_time = invincible_duration
+	hp_changed.emit(hp, max_hp)
+
 func add_shield(amount: float, maximum: float = 0.0) -> void:
 	if maximum > 0.0:
 		shield_limit = maxf(shield_limit, maximum)
@@ -112,6 +119,13 @@ func set_artifact_cooldown_multiplier(multiplier: float) -> void:
 func set_artifact_move_speed_multiplier(multiplier: float) -> void:
 	artifact_move_speed_multiplier = maxf(1.0, multiplier)
 
+func set_run_damage_multiplier(multiplier: float) -> void:
+	run_damage_multiplier = maxf(0.0, multiplier)
+
+func set_destiny_max_hp_multiplier(multiplier: float) -> void:
+	destiny_max_hp_multiplier = maxf(0.1, multiplier)
+	_recalculate_max_hp()
+
 func get_artifact_cooldown_multiplier() -> float:
 	return artifact_cooldown_multiplier
 
@@ -128,13 +142,10 @@ func get_hp_ratio() -> float:
 	return float(hp) / float(max_hp)
 
 func set_body_synergy(max_hp_multiplier: float, size_multiplier: float) -> void:
-	var old_max_hp := max_hp
 	body_max_hp_multiplier = maxf(1.0, max_hp_multiplier)
 	body_size_multiplier = maxf(1.0, size_multiplier)
-	max_hp = int(round(float(base_max_hp) * body_max_hp_multiplier))
-	hp = mini(max_hp, hp + max(0, max_hp - old_max_hp))
+	_recalculate_max_hp()
 	visual.scale = _body_visual_scale()
-	hp_changed.emit(hp, max_hp)
 
 func get_artifact_damage(artifact_data: ArtifactData, base_damage: float = -1.0) -> float:
 	if artifact_data == null:
@@ -142,7 +153,7 @@ func get_artifact_damage(artifact_data: ArtifactData, base_damage: float = -1.0)
 	var final_damage: float = artifact_data.damage if base_damage < 0.0 else base_damage
 	if artifact_data.max_hp_damage_coefficient > 0.0:
 		final_damage += float(max_hp) * artifact_data.max_hp_damage_coefficient
-	return final_damage
+	return final_damage * run_damage_multiplier
 
 func get_body_artifact_range_multiplier() -> float:
 	return body_size_multiplier
@@ -155,10 +166,8 @@ func reset_combat_state() -> void:
 	artifact_move_speed_multiplier = 1.0
 	body_max_hp_multiplier = 1.0
 	body_size_multiplier = 1.0
-	max_hp = base_max_hp
-	hp = mini(hp, max_hp)
+	_recalculate_max_hp(false)
 	visual.scale = _body_visual_scale()
-	hp_changed.emit(hp, max_hp)
 	shield_changed.emit(shield, shield_limit)
 
 func set_battle_paused(paused: bool) -> void:
@@ -167,3 +176,12 @@ func set_battle_paused(paused: bool) -> void:
 
 func _body_visual_scale() -> Vector2:
 	return Vector2.ONE * body_size_multiplier
+
+func _recalculate_max_hp(fill_increase: bool = true) -> void:
+	var old_max_hp := max_hp
+	max_hp = maxi(1, int(round(float(base_max_hp) * destiny_max_hp_multiplier * body_max_hp_multiplier)))
+	if fill_increase:
+		hp = mini(max_hp, hp + max(0, max_hp - old_max_hp))
+	else:
+		hp = mini(hp, max_hp)
+	hp_changed.emit(hp, max_hp)

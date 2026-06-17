@@ -4,6 +4,7 @@ class_name WaveManager
 signal wave_started(wave_number: int)
 signal wave_cleared(wave_number: int)
 signal enemy_killed(gold_reward: int)
+signal boss_defeated(wave_number: int)
 
 const NORMAL_HP_GROWTH_PER_WAVE: float = 0.12
 const BOSS_HP_GROWTH_PER_WAVE: float = 0.18
@@ -14,6 +15,7 @@ const LATE_WAVE_START: int = 5
 const LATE_WAVE_EXTRA_PACKS: int = 1
 const LATE_WAVE_EXTRA_PACK_EVERY: int = 3
 const LATE_WAVE_INTERVAL_BONUS: float = 0.12
+const BOSS_WAVES: Array[int] = [5, 9, 13, 17, 20]
 
 @export var basic_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
@@ -56,9 +58,23 @@ func start_next_wave() -> void:
 	spawn_timer = 0.05
 	clear_existing_enemies()
 	_update_wave_scaling(wave_number)
+	if survival_mode and is_boss_wave(wave_number):
+		_spawn_many(boss_scene, 1, boss_hp_multiplier)
 	if not survival_mode:
 		_spawn_wave(wave_number)
 	wave_started.emit(wave_number)
+
+func is_boss_wave(number: int) -> bool:
+	return BOSS_WAVES.has(number)
+
+func is_final_boss_wave(number: int) -> bool:
+	return number == 20
+
+func has_alive_boss() -> bool:
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if enemy is BossBasic and not bool(enemy.get("dying")):
+			return true
+	return false
 
 func pause_wave(paused: bool) -> void:
 	active = not paused
@@ -99,7 +115,10 @@ func _wave_config(number: int) -> Dictionary:
 		4:
 			return {"basic": 11, "fast": 4, "tank": 2}
 		_:
-			return {"basic": 8, "fast": 4, "tank": 2, "boss": 1}
+			var config: Dictionary = {"basic": 8, "fast": 4, "tank": 2}
+			if is_boss_wave(number):
+				config["boss"] = 1
+			return config
 
 func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 	if scene == null:
@@ -114,6 +133,8 @@ func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 		enemy.global_position = _random_edge_position()
 		enemy.setup(player)
 		enemy.died.connect(_on_enemy_died)
+		if enemy is BossBasic:
+			enemy.died.connect(_on_boss_died.bind(wave_number))
 		alive_enemies += 1
 
 func _spawn_survival_pack() -> void:
@@ -166,6 +187,9 @@ func _on_enemy_died(gold_reward: int) -> void:
 	if active and not survival_mode and alive_enemies <= 0:
 		active = false
 		wave_cleared.emit(wave_number)
+
+func _on_boss_died(_gold_reward: int, defeated_wave_number: int) -> void:
+	boss_defeated.emit(defeated_wave_number)
 
 func _update_wave_scaling(number: int) -> void:
 	normal_hp_multiplier = 1.0 + float(number - 1) * NORMAL_HP_GROWTH_PER_WAVE
