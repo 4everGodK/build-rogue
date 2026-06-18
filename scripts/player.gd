@@ -24,11 +24,13 @@ var run_damage_multiplier: float = 1.0
 var destiny_max_hp_multiplier: float = 1.0
 var body_max_hp_multiplier: float = 1.0
 var body_size_multiplier: float = 1.0
+var base_visual_scale: Vector2 = Vector2.ONE
 
-@onready var visual: Polygon2D = $Visual
+@onready var visual: Sprite2D = $Visual
 @onready var artifact_manager: ArtifactManager = $ArtifactManager
 
 func _ready() -> void:
+	base_visual_scale = visual.scale
 	base_max_hp = max_hp
 	hp = max_hp
 	hp_changed.emit(hp, max_hp)
@@ -40,6 +42,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	velocity = _read_move_input() * move_speed * artifact_move_speed_multiplier
+	_update_facing_from_velocity()
 	move_and_slide()
 	global_position = global_position.clamp(-arena_half_size, arena_half_size)
 	if invincible_time > 0.0:
@@ -175,7 +178,13 @@ func set_battle_paused(paused: bool) -> void:
 	artifact_manager.set_battle_paused(paused)
 
 func _body_visual_scale() -> Vector2:
-	return Vector2.ONE * body_size_multiplier
+	return base_visual_scale * body_size_multiplier
+
+func _update_facing_from_velocity() -> void:
+	if velocity.x < 0.0:
+		visual.flip_h = false
+	elif velocity.x > 0.0:
+		visual.flip_h = true
 
 func _recalculate_max_hp(fill_increase: bool = true) -> void:
 	var old_max_hp := max_hp

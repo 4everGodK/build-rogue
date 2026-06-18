@@ -29,7 +29,7 @@ var contact_damage_cooldown: float = 0.0
 var taunt_target: Node2D
 var taunt_time: float = 0.0
 
-@onready var visual: Polygon2D = $Visual
+@onready var visual: CanvasItem = $Visual
 @onready var contact_area: Area2D = $ContactArea
 
 func _ready() -> void:
@@ -57,6 +57,7 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity = Vector2.ZERO
 		velocity += knockback_velocity
+		_update_facing_from_velocity()
 		move_and_slide()
 		clamp_to_arena()
 		knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 900.0 * delta)
@@ -185,6 +186,15 @@ func _current_damage_multiplier() -> float:
 	for effect in damage_reduction_effects.values():
 		strongest = maxf(strongest, float(effect.get("value", 0.0)))
 	return 1.0 - strongest
+
+func _update_facing_from_velocity() -> void:
+	if not visual is Sprite2D:
+		return
+	var sprite := visual as Sprite2D
+	if velocity.x < 0.0:
+		sprite.flip_h = false
+	elif velocity.x > 0.0:
+		sprite.flip_h = true
 
 func _process_timed_effects(delta: float) -> void:
 	_tick_effect_dictionary(slow_effects, delta)

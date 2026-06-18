@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
+[ext_resource type="Texture2D" path="res://art/characters/enemies/wolf_demon.png" id="2_wolf_demon"]
 
 [sub_resource type="CircleShape2D" id="Body"]
 radius = 10.0
@@ -17,9 +18,9 @@ move_speed = 130.0
 contact_damage = 4
 gold_reward = 1
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(1, 0.52, 0.08, 1)
-polygon = PackedVector2Array(0, -13, 13, 10, -13, 10)
+[node name="Visual" type="Sprite2D" parent="."]
+scale = Vector2(0.13, 0.13)
+texture = ExtResource("2_wolf_demon")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("Body")
