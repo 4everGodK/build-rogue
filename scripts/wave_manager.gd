@@ -6,16 +6,59 @@ signal wave_cleared(wave_number: int)
 signal enemy_killed(gold_reward: int)
 signal boss_defeated(wave_number: int)
 
-const NORMAL_HP_GROWTH_PER_WAVE: float = 0.12
-const BOSS_HP_GROWTH_PER_WAVE: float = 0.18
+const NORMAL_HP_GROWTH_PER_WAVE: float = 0.18
+const BOSS_HP_GROWTH_PER_WAVE: float = 0.22
 const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.35
-const BASE_SPAWN_INTERVAL: float = 1.15
-const MIN_SPAWN_INTERVAL: float = 0.28
-const LATE_WAVE_START: int = 5
-const LATE_WAVE_EXTRA_PACKS: int = 1
-const LATE_WAVE_EXTRA_PACK_EVERY: int = 3
-const LATE_WAVE_INTERVAL_BONUS: float = 0.12
 const BOSS_WAVES: Array[int] = [5, 9, 13, 17, 20]
+const EARLY_NORMAL_HP_MULTIPLIERS: Dictionary = {
+	1: 0.65,
+	2: 0.75,
+	3: 0.9,
+}
+const SURVIVAL_SPAWN_INTERVALS: Dictionary = {
+	1: 1.033,
+	2: 0.936,
+	3: 0.936,
+	4: 0.725,
+	5: 0.697,
+	6: 0.54,
+	7: 0.458,
+	8: 0.606,
+	9: 0.566,
+	10: 0.521,
+	11: 0.472,
+	12: 0.434,
+	13: 0.405,
+	14: 0.495,
+	15: 0.458,
+	16: 0.422,
+	17: 0.397,
+	18: 0.372,
+	19: 0.357,
+	20: 0.351,
+}
+const SURVIVAL_PACK_SIZES: Dictionary = {
+	1: 2,
+	2: 2,
+	3: 2,
+	4: 2,
+	5: 2,
+	6: 2,
+	7: 2,
+	8: 3,
+	9: 3,
+	10: 3,
+	11: 3,
+	12: 3,
+	13: 3,
+	14: 4,
+	15: 4,
+	16: 4,
+	17: 4,
+	18: 4,
+	19: 4,
+	20: 4,
+}
 
 @export var basic_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
@@ -45,9 +88,7 @@ func _process(delta: float) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		_spawn_survival_pack()
-		var late_wave_bonus: float = maxf(0.0, float(wave_number - LATE_WAVE_START + 1)) * LATE_WAVE_INTERVAL_BONUS
-		var interval: float = maxf(MIN_SPAWN_INTERVAL, BASE_SPAWN_INTERVAL - room_elapsed * 0.018 - late_wave_bonus)
-		spawn_timer = interval
+		spawn_timer = _survival_spawn_interval(wave_number)
 
 func start_next_wave() -> void:
 	if basic_enemy_scene == null or not is_instance_valid(player):
@@ -141,22 +182,12 @@ func _spawn_survival_pack() -> void:
 	var pack_count: int = _survival_pack_count()
 	for _index in range(pack_count):
 		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
-	var extra_chance: float = 0.25 + maxf(0.0, float(wave_number - LATE_WAVE_START + 1)) * 0.08
-	if wave_number == 3:
-		extra_chance = 0.45
-	if wave_number >= 3:
-		extra_chance *= 0.7
-	if wave_number >= 3 and randf() < minf(0.85, extra_chance):
-		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
 
 func _survival_pack_count() -> int:
-	if wave_number <= 2:
-		return 1
-	if wave_number == 3:
-		return 1
-	if wave_number == 4:
-		return 2
-	return 2 + int(float(maxi(0, wave_number - LATE_WAVE_START)) / float(LATE_WAVE_EXTRA_PACK_EVERY))
+	return int(SURVIVAL_PACK_SIZES.get(wave_number, 4))
+
+func _survival_spawn_interval(number: int) -> float:
+	return float(SURVIVAL_SPAWN_INTERVALS.get(number, 0.351))
 
 func _roll_survival_enemy_scene() -> PackedScene:
 	var roll: float = randf()
@@ -192,7 +223,7 @@ func _on_boss_died(_gold_reward: int, defeated_wave_number: int) -> void:
 	boss_defeated.emit(defeated_wave_number)
 
 func _update_wave_scaling(number: int) -> void:
-	normal_hp_multiplier = 1.0 + float(number - 1) * NORMAL_HP_GROWTH_PER_WAVE
+	normal_hp_multiplier = float(EARLY_NORMAL_HP_MULTIPLIERS.get(number, 1.0 + float(number - 1) * NORMAL_HP_GROWTH_PER_WAVE))
 	boss_hp_multiplier = 1.0 + float(number - 1) * BOSS_HP_GROWTH_PER_WAVE
 	spawn_count_multiplier = 1.0 + float(number - 1) * SPAWN_COUNT_GROWTH_PER_WAVE
 	print("[Wave Scaling] wave=%d normal_hp=x%.2f boss_hp=x%.2f spawn_count=x%.2f" % [
