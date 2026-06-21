@@ -9,9 +9,9 @@ const TIER_NAMES: Array[String] = ["凡器", "法器", "灵器", "灵宝", "仙�
 const TIER_COSTS: Dictionary = {
 	"凡器": 10,
 	"法器": 20,
-	"灵器": 40,
-	"灵宝": 60,
-	"仙宝": 100,
+	"灵器": 50,
+	"灵宝": 100,
+	"仙宝": 200,
 }
 const BREAKTHROUGH_REQUIREMENTS: Array[int] = [120, 240, 400, 600]
 const CULTIVATION_CLICK_COSTS: Array[int] = [10, 20, 40, 60]

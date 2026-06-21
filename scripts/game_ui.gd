@@ -253,8 +253,9 @@ func _synergy_color(count: int, target: int, tier: int, max_tier: int) -> String
 	return COLOR_INACTIVE
 
 func _format_time(seconds: float) -> String:
-	var total: int = maxi(0, int(floor(seconds)))
-	return "%02d:%02d" % [int(total / 60), total % 60]
+	var total: int = int(floor(absf(seconds)))
+	var prefix: String = "+" if seconds < 0.0 else ""
+	return "%s%02d:%02d" % [prefix, int(total / 60), total % 60]
 
 func _apply_styles() -> void:
 	resource_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.035, 0.045, 0.055, 0.72), Color(0.30, 0.36, 0.40, 0.58), 1, 6))

@@ -24,15 +24,19 @@ class_name GameManager
 @export var debug_shop_toggle_key: int = KEY_B
 
 const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
-const EARLY_ROOM_DURATION: float = 30.0
-const MID_ROOM_DURATION: float = 45.0
+const WAVE_1_ROOM_DURATION: float = 30.0
+const WAVE_2_ROOM_DURATION: float = 40.0
+const WAVE_3_ROOM_DURATION: float = 50.0
 const LATE_ROOM_DURATION: float = 60.0
+const ENEMY_SPIRIT_STONE_DROP_MULTIPLIER: float = 0.5
+const ROOM_CLEAR_SPIRIT_STONES: int = 20
 const BOSS_MATERIAL_BY_WAVE: Dictionary = {
 	5: 0,
 	9: 1,
 	13: 2,
 	17: 3,
 }
+const BOSS_OVERTIME_BURN_MAX_HP_PER_SECOND: float = 0.05
 
 var player: Player
 var attack_container: Node2D
@@ -58,6 +62,9 @@ var room_kill_count: int = 0
 var room_spirit_stones: int = 0
 var artifact_hud_refresh_remaining: float = 0.0
 var pending_encounter_wave: int = -1
+var boss_overtime_burning: bool = false
+var boss_overtime_burn_accumulator: float = 0.0
+var enemy_spirit_stone_drop_accumulator: float = 0.0
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -67,6 +74,8 @@ func _process(delta: float) -> void:
 		return
 	if not in_shop and not run_ended and wave_manager.active:
 		wave_elapsed_time += delta
+	if boss_overtime_burning and not in_shop and not run_ended:
+		_apply_boss_overtime_burn(delta)
 	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), _current_room_time_left(), wave_manager.alive_enemies)
 	artifact_hud_refresh_remaining -= delta
 	if artifact_hud_refresh_remaining <= 0.0:
@@ -168,9 +177,9 @@ func _start_battle() -> void:
 	shop_panel.close_shop()
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(false)
-	player.restore_full_health()
 	room_kill_count = 0
 	room_spirit_stones = 0
+	_stop_boss_overtime_burn()
 	wave_manager.start_next_wave()
 	_apply_destiny_runtime_modifiers()
 	player.artifact_manager.refresh_persistent_artifacts()
@@ -181,10 +190,12 @@ func _start_battle() -> void:
 	_update_battle_ui(true)
 
 func _room_duration_for_wave(wave_number: int) -> float:
-	if wave_number <= 2:
-		return EARLY_ROOM_DURATION
-	if wave_number <= 4:
-		return MID_ROOM_DURATION
+	if wave_number == 1:
+		return WAVE_1_ROOM_DURATION
+	if wave_number == 2:
+		return WAVE_2_ROOM_DURATION
+	if wave_number == 3:
+		return WAVE_3_ROOM_DURATION
 	return LATE_ROOM_DURATION
 
 func _current_room_time_left() -> float:
@@ -194,6 +205,7 @@ func _current_room_time_left() -> float:
 
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
+	_stop_boss_overtime_burn()
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
@@ -300,10 +312,12 @@ func _on_shop_continue_requested() -> void:
 
 func _on_wave_started(wave_number: int) -> void:
 	wave_elapsed_time = 0.0
+	_stop_boss_overtime_burn()
 	game_ui.set_wave_status(wave_number, "战斗中")
 	_update_battle_ui(true)
 
 func _on_wave_cleared(wave_number: int) -> void:
+	_award_room_clear_spirit_stones()
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_update_battle_ui(true)
 	if pending_encounter_wave == wave_number and encounter_manager != null and encounter_panel != null:
@@ -315,9 +329,10 @@ func _on_room_timer_finished() -> void:
 	if run_ended or in_shop:
 		return
 	if wave_manager.is_boss_wave(wave_manager.wave_number) and wave_manager.has_alive_boss():
+		_start_boss_overtime_burn()
 		game_ui.set_wave_status(wave_manager.wave_number, "击败Boss")
 		return
-	wave_manager.finish_current_room(true)
+	_finish_room_after_timer()
 
 func _on_inventory_changed() -> void:
 	synergy_manager.recalculate(inventory.battle_slots)
@@ -393,22 +408,63 @@ func _on_sell_requested(from_area: String, from_index: int) -> void:
 	_show_shop_message("出售获得 %d 灵石" % value)
 
 func _on_enemy_killed(gold_reward: int) -> void:
-	run_summary.record_kill(gold_reward)
+	var awarded_stones: int = _scaled_enemy_spirit_stones(gold_reward)
+	run_summary.record_kill(awarded_stones)
 	room_kill_count += 1
-	room_spirit_stones += gold_reward
-	economy_manager.add_spirit_stones(gold_reward)
+	room_spirit_stones += awarded_stones
+	if awarded_stones > 0:
+		economy_manager.add_spirit_stones(awarded_stones)
 	_update_battle_ui(false)
+
+func _scaled_enemy_spirit_stones(base_reward: int) -> int:
+	if base_reward <= 0:
+		return 0
+	enemy_spirit_stone_drop_accumulator += float(base_reward) * ENEMY_SPIRIT_STONE_DROP_MULTIPLIER
+	var awarded_stones: int = int(floor(enemy_spirit_stone_drop_accumulator))
+	enemy_spirit_stone_drop_accumulator -= float(awarded_stones)
+	return awarded_stones
+
+func _award_room_clear_spirit_stones() -> void:
+	if ROOM_CLEAR_SPIRIT_STONES <= 0:
+		return
+	room_spirit_stones += ROOM_CLEAR_SPIRIT_STONES
+	economy_manager.add_spirit_stones(ROOM_CLEAR_SPIRIT_STONES)
+	run_summary.record_spirit_stones(ROOM_CLEAR_SPIRIT_STONES)
 
 func _on_boss_defeated(defeated_wave_number: int) -> void:
 	if BOSS_MATERIAL_BY_WAVE.has(defeated_wave_number):
 		cultivation_manager.add_breakthrough_material(int(BOSS_MATERIAL_BY_WAVE[defeated_wave_number]))
 		_update_shop_cultivation()
-	if wave_manager.is_final_boss_wave(defeated_wave_number):
-		_on_demo_completed()
-	elif defeated_wave_number == wave_manager.wave_number and not in_shop and not run_ended:
+	if defeated_wave_number == wave_manager.wave_number and not in_shop and not run_ended:
 		if wave_manager.is_boss_wave(defeated_wave_number):
 			pending_encounter_wave = defeated_wave_number
+		if combat_room_timer != null and combat_room_timer.time_left <= 0.0:
+			_finish_room_after_timer()
+
+func _finish_room_after_timer() -> void:
+	_stop_boss_overtime_burn()
+	if wave_manager.is_final_boss_wave(wave_manager.wave_number):
+		_on_demo_completed()
+	else:
 		wave_manager.finish_current_room(true)
+
+func _start_boss_overtime_burn() -> void:
+	boss_overtime_burning = true
+	boss_overtime_burn_accumulator = 0.0
+
+func _stop_boss_overtime_burn() -> void:
+	boss_overtime_burning = false
+	boss_overtime_burn_accumulator = 0.0
+
+func _apply_boss_overtime_burn(delta: float) -> void:
+	if player == null or not player.has_method("take_environment_damage"):
+		return
+	boss_overtime_burn_accumulator += float(player.max_hp) * BOSS_OVERTIME_BURN_MAX_HP_PER_SECOND * delta
+	var damage: int = int(floor(boss_overtime_burn_accumulator))
+	if damage <= 0:
+		return
+	boss_overtime_burn_accumulator -= float(damage)
+	player.call("take_environment_damage", damage)
 
 func _update_battle_ui(refresh_artifacts: bool = false) -> void:
 	if game_ui == null or wave_manager == null or player == null or inventory == null:
@@ -462,6 +518,7 @@ func _on_player_died() -> void:
 			game_ui.set_wave_status(wave_manager.wave_number, "复活")
 			return
 	run_ended = true
+	_stop_boss_overtime_burn()
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
@@ -474,6 +531,10 @@ func _on_demo_completed() -> void:
 		return
 	run_ended = true
 	in_shop = false
+	_award_room_clear_spirit_stones()
+	_stop_boss_overtime_burn()
+	if combat_room_timer != null:
+		combat_room_timer.stop_room()
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)

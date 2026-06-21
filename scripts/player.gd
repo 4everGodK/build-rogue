@@ -81,6 +81,15 @@ func take_damage(amount: int) -> void:
 	if hp <= 0:
 		died.emit()
 
+func take_environment_damage(amount: int) -> void:
+	if amount <= 0 or hp <= 0:
+		return
+	hp = max(0, hp - amount)
+	hp_changed.emit(hp, max_hp)
+	damaged.emit(float(amount))
+	if hp <= 0:
+		died.emit()
+
 func heal(amount: float) -> void:
 	if amount <= 0.0:
 		return
@@ -147,7 +156,7 @@ func get_hp_ratio() -> float:
 func set_body_synergy(max_hp_multiplier: float, size_multiplier: float) -> void:
 	body_max_hp_multiplier = maxf(1.0, max_hp_multiplier)
 	body_size_multiplier = maxf(1.0, size_multiplier)
-	_recalculate_max_hp()
+	_recalculate_max_hp(false)
 	visual.scale = _body_visual_scale()
 
 func get_artifact_damage(artifact_data: ArtifactData, base_damage: float = -1.0) -> float:

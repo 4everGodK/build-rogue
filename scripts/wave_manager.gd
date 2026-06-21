@@ -6,14 +6,18 @@ signal wave_cleared(wave_number: int)
 signal enemy_killed(gold_reward: int)
 signal boss_defeated(wave_number: int)
 
-const NORMAL_HP_GROWTH_PER_WAVE: float = 0.18
+const NORMAL_HP_GROWTH_PER_WAVE: float = 0.30
 const BOSS_HP_GROWTH_PER_WAVE: float = 0.22
+const GLOBAL_ENEMY_HP_MULTIPLIER: float = 2.25
+const HP_POWER_GROWTH_START_WAVE: int = 3
+const HP_POWER_GROWTH_PER_WAVE: float = 0.015
+const HP_POWER_GROWTH_EXPONENT: float = 2.0
 const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.35
 const BOSS_WAVES: Array[int] = [5, 9, 13, 17, 20]
 const EARLY_NORMAL_HP_MULTIPLIERS: Dictionary = {
-	1: 0.65,
-	2: 0.75,
-	3: 0.9,
+	1: 1.0,
+	2: 1.0,
+	3: 1.0,
 }
 const SURVIVAL_SPAWN_INTERVALS: Dictionary = {
 	1: 1.033,
@@ -223,8 +227,9 @@ func _on_boss_died(_gold_reward: int, defeated_wave_number: int) -> void:
 	boss_defeated.emit(defeated_wave_number)
 
 func _update_wave_scaling(number: int) -> void:
-	normal_hp_multiplier = float(EARLY_NORMAL_HP_MULTIPLIERS.get(number, 1.0 + float(number - 1) * NORMAL_HP_GROWTH_PER_WAVE))
-	boss_hp_multiplier = 1.0 + float(number - 1) * BOSS_HP_GROWTH_PER_WAVE
+	var power_growth_bonus := _hp_power_growth_bonus(number)
+	normal_hp_multiplier = float(EARLY_NORMAL_HP_MULTIPLIERS.get(number, 1.0 + float(number - 3) * NORMAL_HP_GROWTH_PER_WAVE + power_growth_bonus)) * GLOBAL_ENEMY_HP_MULTIPLIER
+	boss_hp_multiplier = (1.0 + float(number - 1) * BOSS_HP_GROWTH_PER_WAVE + power_growth_bonus) * GLOBAL_ENEMY_HP_MULTIPLIER
 	spawn_count_multiplier = 1.0 + float(number - 1) * SPAWN_COUNT_GROWTH_PER_WAVE
 	print("[Wave Scaling] wave=%d normal_hp=x%.2f boss_hp=x%.2f spawn_count=x%.2f" % [
 		number,
@@ -232,6 +237,10 @@ func _update_wave_scaling(number: int) -> void:
 		boss_hp_multiplier,
 		spawn_count_multiplier,
 	])
+
+func _hp_power_growth_bonus(number: int) -> float:
+	var wave_delta: int = maxi(0, number - HP_POWER_GROWTH_START_WAVE)
+	return pow(float(wave_delta), HP_POWER_GROWTH_EXPONENT) * HP_POWER_GROWTH_PER_WAVE
 
 func _scaled_spawn_count(base_count: int) -> int:
 	if base_count <= 0:

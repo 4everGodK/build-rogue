@@ -14,6 +14,9 @@ func record_kill(spirit_stones: int) -> void:
 	kill_count += 1
 	total_spirit_stones += spirit_stones
 
+func record_spirit_stones(spirit_stones: int) -> void:
+	total_spirit_stones += spirit_stones
+
 func get_elapsed_seconds() -> float:
 	if start_time_msec <= 0:
 		return 0.0

@@ -27,9 +27,9 @@ const WOOD_ROOT_TIERS: Array[Dictionary] = [
 ]
 const WOOD_ROOT_INTERNAL_COOLDOWN: float = 1.2
 const WATER_HEAL_TIERS: Array[Dictionary] = [
-	{"required": 6, "heal": 4.0, "overflow_to_shield": true, "shield_max_ratio": 0.35},
-	{"required": 4, "heal": 4.0, "overflow_to_shield": false, "shield_max_ratio": 0.0},
-	{"required": 2, "heal": 2.0, "overflow_to_shield": false, "shield_max_ratio": 0.0},
+	{"required": 6, "heal": 0.8, "overflow_to_shield": true, "shield_max_ratio": 0.35},
+	{"required": 4, "heal": 0.8, "overflow_to_shield": false, "shield_max_ratio": 0.0},
+	{"required": 2, "heal": 0.4, "overflow_to_shield": false, "shield_max_ratio": 0.0},
 ]
 const FIRE_EXPLOSION_TIERS: Array[Dictionary] = [
 	{"required": 6, "radius": 92.0, "damage_multiplier": 0.75},
