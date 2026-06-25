@@ -78,12 +78,16 @@ var alive_enemies: int = 0
 var active: bool = false
 var normal_hp_multiplier: float = 1.0
 var boss_hp_multiplier: float = 1.0
+var destiny_enemy_stat_multiplier: float = 1.0
 var spawn_count_multiplier: float = 1.0
 var room_elapsed: float = 0.0
 var spawn_timer: float = 0.0
 
 func configure(target_player: Player) -> void:
 	player = target_player
+
+func set_destiny_enemy_stat_multiplier(multiplier: float) -> void:
+	destiny_enemy_stat_multiplier = maxf(0.1, multiplier)
 
 func _process(delta: float) -> void:
 	if not active or not survival_mode:
@@ -172,7 +176,10 @@ func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 		var enemy: Enemy = scene.instantiate() as Enemy
 		if enemy == null:
 			continue
-		enemy.max_hp *= hp_multiplier
+		enemy.max_hp *= hp_multiplier * destiny_enemy_stat_multiplier
+		enemy.contact_damage = int(ceil(float(enemy.contact_damage) * destiny_enemy_stat_multiplier))
+		if enemy is BossBasic:
+			(enemy as BossBasic).bullet_damage = int(ceil(float((enemy as BossBasic).bullet_damage) * destiny_enemy_stat_multiplier))
 		get_parent().add_child(enemy)
 		enemy.hp = enemy.max_hp
 		enemy.global_position = _random_edge_position()

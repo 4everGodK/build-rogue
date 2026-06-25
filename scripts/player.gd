@@ -22,6 +22,7 @@ var artifact_cooldown_multiplier: float = 1.0
 var artifact_move_speed_multiplier: float = 1.0
 var run_damage_multiplier: float = 1.0
 var destiny_max_hp_multiplier: float = 1.0
+var destiny_max_hp_flat_penalty: int = 0
 var body_max_hp_multiplier: float = 1.0
 var body_size_multiplier: float = 1.0
 var base_visual_scale: Vector2 = Vector2.ONE
@@ -138,6 +139,10 @@ func set_destiny_max_hp_multiplier(multiplier: float) -> void:
 	destiny_max_hp_multiplier = maxf(0.1, multiplier)
 	_recalculate_max_hp()
 
+func set_destiny_max_hp_flat_penalty(penalty: int) -> void:
+	destiny_max_hp_flat_penalty = maxi(0, penalty)
+	_recalculate_max_hp(false)
+
 func get_artifact_cooldown_multiplier() -> float:
 	return artifact_cooldown_multiplier
 
@@ -165,7 +170,8 @@ func get_artifact_damage(artifact_data: ArtifactData, base_damage: float = -1.0)
 	var final_damage: float = artifact_data.damage if base_damage < 0.0 else base_damage
 	if artifact_data.max_hp_damage_coefficient > 0.0:
 		final_damage += float(max_hp) * artifact_data.max_hp_damage_coefficient
-	return final_damage * run_damage_multiplier
+	var artifact_multiplier: float = float(artifact_data.get_meta("destiny_damage_multiplier", 1.0))
+	return final_damage * run_damage_multiplier * artifact_multiplier
 
 func get_body_artifact_range_multiplier() -> float:
 	return body_size_multiplier
@@ -197,7 +203,7 @@ func _update_facing_from_velocity() -> void:
 
 func _recalculate_max_hp(fill_increase: bool = true) -> void:
 	var old_max_hp := max_hp
-	max_hp = maxi(1, int(round(float(base_max_hp) * destiny_max_hp_multiplier * body_max_hp_multiplier)))
+	max_hp = maxi(1, int(round(float(base_max_hp) * destiny_max_hp_multiplier * body_max_hp_multiplier)) - destiny_max_hp_flat_penalty)
 	if fill_increase:
 		hp = mini(max_hp, hp + max(0, max_hp - old_max_hp))
 	else:

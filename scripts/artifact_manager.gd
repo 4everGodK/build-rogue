@@ -6,6 +6,7 @@ const INITIAL_MAX_ARTIFACTS: int = 5
 var owner_player: Node2D
 var attack_container: Node
 var synergy_manager: SynergyManager
+var destiny_manager = null
 var artifacts: Array[ArtifactInstance] = []
 var battle_paused: bool = true
 
@@ -17,6 +18,9 @@ func configure(player: Node2D, container: Node) -> void:
 
 func set_synergy_manager(manager: SynergyManager) -> void:
 	synergy_manager = manager
+
+func set_destiny_manager(manager) -> void:
+	destiny_manager = manager
 
 func notify_artifact_damage(data: ArtifactData) -> void:
 	if synergy_manager != null:
@@ -42,11 +46,22 @@ func dispose_persistent_artifacts() -> void:
 
 func sync_from_battle_slots(battle_slots: Array) -> void:
 	clear_artifacts()
+	var first_system_seen: Dictionary = {}
+	var same_name_counts: Dictionary = {}
+	for raw_stack in battle_slots:
+		var count_stack: ArtifactStack = raw_stack as ArtifactStack
+		if count_stack != null and count_stack.artifact_data != null:
+			var artifact_id: String = count_stack.artifact_data.id
+			same_name_counts[artifact_id] = int(same_name_counts.get(artifact_id, 0)) + 1
 	for raw_stack in battle_slots:
 		var stack: ArtifactStack = raw_stack as ArtifactStack
 		if stack == null or stack.artifact_data == null:
 			continue
-		var instance: ArtifactInstance = ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager)
+		var is_first_system_artifact: bool = not first_system_seen.has(stack.artifact_data.system_tag)
+		first_system_seen[stack.artifact_data.system_tag] = true
+		var same_name_count: int = int(same_name_counts.get(stack.artifact_data.id, 1))
+		var destiny_damage_multiplier: float = destiny_manager.get_artifact_damage_multiplier(stack.artifact_data, stack.star_level, is_first_system_artifact, same_name_count) if destiny_manager != null else 1.0
+		var instance: ArtifactInstance = ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager, destiny_damage_multiplier)
 		artifacts.append(instance)
 		if is_instance_valid(owner_player) and is_instance_valid(attack_container):
 			instance.start(owner_player, attack_container)

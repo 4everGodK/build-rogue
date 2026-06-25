@@ -93,7 +93,7 @@ func is_max_realm() -> bool:
 func get_battle_slot_count() -> int:
 	return BASE_BATTLE_SLOT_COUNT + clampi(realm_index, 0, REALMS.size() - 1)
 
-func try_breakthrough(economy: EconomyManager) -> bool:
+func try_breakthrough(economy: EconomyManager, gain_multiplier: float = 1.0, life_cost_player: Player = null, life_cost_flat: int = 0) -> bool:
 	if is_max_realm():
 		cultivation_message.emit("已达上限，无法继续提升修为")
 		return false
@@ -103,7 +103,9 @@ func try_breakthrough(economy: EconomyManager) -> bool:
 		if economy == null or not economy.spend_spirit_stones(cost):
 			cultivation_message.emit("提升修为灵石不足")
 			return false
-		var gain: int = get_cultivation_gain_per_click()
+		if life_cost_player != null and life_cost_flat > 0:
+			life_cost_player.spend_life_flat(float(life_cost_flat))
+		var gain: int = maxi(0, int(ceil(float(get_cultivation_gain_per_click()) * maxf(0.0, gain_multiplier))))
 		cultivation_progress = mini(requirement, cultivation_progress + gain)
 		cultivation_changed.emit(get_realm(), realm_index)
 		cultivation_message.emit("修为 +%d（%d/%d）" % [gain, cultivation_progress, requirement])

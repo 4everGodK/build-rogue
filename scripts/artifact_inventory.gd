@@ -25,7 +25,7 @@ func get_battle_slot_count() -> int:
 	return battle_slot_count
 
 func set_battle_slot_count(next_count: int) -> void:
-	var normalized_count: int = maxi(INITIAL_BATTLE_SLOT_COUNT, next_count)
+	var normalized_count: int = maxi(1, next_count)
 	if battle_slot_count == normalized_count:
 		return
 	battle_slot_count = normalized_count

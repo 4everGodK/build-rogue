@@ -7,11 +7,13 @@ var star_level: int = 1
 var synergy_manager: SynergyManager
 var cooldown_remaining: float = 0.0
 var persistent_node: Node
+var destiny_damage_multiplier: float = 1.0
 
-func _init(artifact_data: ArtifactData = null, star: int = 1, manager: SynergyManager = null) -> void:
+func _init(artifact_data: ArtifactData = null, star: int = 1, manager: SynergyManager = null, artifact_destiny_damage_multiplier: float = 1.0) -> void:
 	source_data = artifact_data
 	star_level = clampi(star, 1, 3)
 	synergy_manager = manager
+	destiny_damage_multiplier = maxf(0.0, artifact_destiny_damage_multiplier)
 	data = _make_effective_data(artifact_data, star_level)
 	if data != null:
 		cooldown_remaining = randf_range(0.05, maxf(0.05, data.cooldown))
@@ -176,6 +178,7 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 	if artifact_data == null:
 		return null
 	var effective: ArtifactData = artifact_data.duplicate(true) as ArtifactData
+	effective.set_meta("destiny_damage_multiplier", destiny_damage_multiplier)
 	ArtifactStarConfig.apply_numeric_growth(effective, artifact_data, star)
 	if star >= 3:
 		ArtifactStarConfig.apply_star3_bonus(effective)
@@ -189,6 +192,7 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 
 func _make_runtime_data(player: Node2D) -> ArtifactData:
 	var runtime: ArtifactData = data.duplicate(true) as ArtifactData
+	runtime.set_meta("destiny_damage_multiplier", destiny_damage_multiplier)
 	if synergy_manager != null:
 		var low_hp: bool = player.has_method("get_hp_ratio") and float(player.call("get_hp_ratio")) < 0.5
 		if low_hp:

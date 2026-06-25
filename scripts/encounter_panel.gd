@@ -30,7 +30,12 @@ func _render_cards() -> void:
 
 func _make_card(choice: Dictionary) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(230.0, 260.0)
+	var card_width: float = 230.0
+	if current_choices.size() >= 5:
+		card_width = 150.0
+	elif current_choices.size() >= 4:
+		card_width = 190.0
+	button.custom_minimum_size = Vector2(card_width, 260.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.focus_mode = Control.FOCUS_NONE
 	button.text = ""

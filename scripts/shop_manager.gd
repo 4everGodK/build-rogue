@@ -35,6 +35,7 @@ func generate_offers(reset_reroll_count: bool = true) -> void:
 		reroll_count = 0
 	var previous_offers: Array = current_offers.duplicate()
 	var previous_locks: Array[bool] = locked_offers.duplicate()
+	var used_systems: Dictionary = {}
 	current_offers.clear()
 	locked_offers.clear()
 	unlimited_catalog_mode = false
@@ -44,9 +45,14 @@ func generate_offers(reset_reroll_count: bool = true) -> void:
 		if keep_locked and locked_data != null:
 			current_offers.append(locked_data)
 			locked_offers.append(true)
+			if destiny != null and destiny.requires_distinct_shop_systems():
+				used_systems[locked_data.system_tag] = true
 		else:
-			current_offers.append(_roll_offer())
+			var offer: ArtifactData = _roll_offer_excluding_systems(used_systems) if destiny != null and destiny.requires_distinct_shop_systems() else _roll_offer()
+			current_offers.append(offer)
 			locked_offers.append(false)
+			if offer != null and destiny != null and destiny.requires_distinct_shop_systems():
+				used_systems[offer.system_tag] = true
 	offers_changed.emit(get_offer_dictionaries())
 
 func generate_all_offers() -> void:
@@ -87,6 +93,27 @@ func _roll_offer() -> ArtifactData:
 		if roll <= running:
 			return picked_data
 	return ArtifactCatalog.get_data(ids.back())
+
+func _roll_offer_excluding_systems(used_systems: Dictionary) -> ArtifactData:
+	var candidates: Array[ArtifactData] = []
+	for raw_id in ArtifactCatalog.all_ids():
+		var data := ArtifactCatalog.get_data(str(raw_id))
+		if data != null and not used_systems.has(data.system_tag) and _meets_cultivation_requirement(data):
+			candidates.append(data)
+	if candidates.is_empty():
+		return _roll_offer()
+	var total_weight: float = 0.0
+	for data in candidates:
+		total_weight += maxf(0.0, data.shop_weight)
+	if total_weight <= 0.0:
+		return candidates.pick_random()
+	var roll: float = randf() * total_weight
+	var running: float = 0.0
+	for data in candidates:
+		running += maxf(0.0, data.shop_weight)
+		if roll <= running:
+			return data
+	return candidates.back()
 
 func _ids_for_tier(tier: String) -> Array[String]:
 	var result: Array[String] = []
@@ -130,6 +157,8 @@ func buy_offer(index: int) -> void:
 		shop_message.emit("储物袋已满")
 		return
 	if not unlimited_catalog_mode:
+		if destiny != null:
+			destiny.record_shop_spend(cost)
 		current_offers[index] = null
 		_set_offer_locked(index, false)
 	offers_changed.emit(get_offer_dictionaries())
@@ -138,9 +167,15 @@ func buy_offer(index: int) -> void:
 func reroll() -> void:
 	if economy == null:
 		return
-	if get_reroll_cost() > 0 and not economy.spend_spirit_stones(get_reroll_cost()):
+	if destiny != null and destiny.is_reroll_disabled():
+		shop_message.emit("此天命无法刷新商店")
+		return
+	var cost: int = get_reroll_cost()
+	if cost > 0 and not economy.spend_spirit_stones(cost):
 		shop_message.emit("灵石不足")
 		return
+	if destiny != null:
+		destiny.record_shop_spend(cost)
 	reroll_count += 1
 	generate_offers(false)
 
@@ -148,7 +183,7 @@ func get_reroll_cost() -> int:
 	var base_cost: int = REROLL_COST + reroll_count * REROLL_COST_GROWTH
 	if encounter != null and encounter.is_reroll_free():
 		return 0
-	var multiplier: float = destiny.get_reroll_cost_multiplier() if destiny != null else 1.0
+	var multiplier: float = destiny.get_reroll_cost_multiplier(reroll_count) if destiny != null else 1.0
 	return maxi(0, int(ceil(float(base_cost) * multiplier)))
 
 func get_offer_count() -> int:
@@ -158,7 +193,7 @@ func get_offer_count() -> int:
 func get_offer_cost(data: ArtifactData) -> int:
 	if data == null:
 		return 0
-	var multiplier: float = destiny.get_shop_price_multiplier(current_cleared_wave) if destiny != null else 1.0
+	var multiplier: float = destiny.get_shop_price_multiplier(current_cleared_wave, data) if destiny != null else 1.0
 	if encounter != null:
 		multiplier *= encounter.get_shop_price_multiplier()
 	return maxi(1, int(ceil(float(data.get_shop_cost()) * multiplier)))
