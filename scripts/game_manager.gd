@@ -82,6 +82,10 @@ func _process(delta: float) -> void:
 		wave_elapsed_time += delta
 	if boss_overtime_burning and not in_shop and not run_ended:
 		_apply_boss_overtime_burn(delta)
+	if encounter_manager != null and not in_shop and not run_ended and player.hp > 0:
+		if encounter_manager.try_consume_low_hp_rescue(wave_manager.wave_number, player.get_hp_ratio()):
+			player.grant_invincible(2.0)
+			player.heal(float(player.max_hp) * 0.1)
 	game_ui.set_wave_info(maxi(1, wave_manager.wave_number), _current_room_time_left(), wave_manager.alive_enemies)
 	artifact_hud_refresh_remaining -= delta
 	if artifact_hud_refresh_remaining <= 0.0:
@@ -127,6 +131,7 @@ func _initialize() -> void:
 	player.artifact_manager.configure(player, attack_container)
 	player.artifact_manager.set_synergy_manager(synergy_manager)
 	player.artifact_manager.set_destiny_manager(destiny_manager)
+	player.artifact_manager.set_encounter_manager(encounter_manager)
 	wave_manager.configure(player)
 	shop_manager.configure(economy_manager, inventory, cultivation_manager, destiny_manager, encounter_manager)
 
@@ -282,13 +287,6 @@ func _show_encounter_selection(cleared_wave: int) -> void:
 			if wave_manager != null and wave_manager.is_boss_wave(cleared_wave):
 				choice_count += destiny_manager.get_boss_extra_encounter_options()
 		var choices: Array[Dictionary] = encounter_manager.get_choices(choice_count)
-		if destiny_manager != null and destiny_manager.supports_all_in_extra_encounter() and economy_manager.spirit_stones > 0:
-			choices.append({
-				"id": "__all_in_extra_encounter",
-				"name": "梭哈梭哈",
-				"category": "天命",
-				"description": "花费当前所有灵石，额外选择1个奇遇。",
-			})
 		encounter_panel.open_choices(choices)
 	else:
 		_enter_shop(cleared_wave)
@@ -296,30 +294,29 @@ func _show_encounter_selection(cleared_wave: int) -> void:
 func _on_encounter_selected(encounter_id: String) -> void:
 	if encounter_manager == null:
 		return
-	if encounter_id == "__all_in_extra_encounter":
-		_on_all_in_extra_encounter_selected()
-		return
 	var encounter: Dictionary = encounter_manager.select_encounter(encounter_id)
 	if encounter.is_empty():
 		return
 	if encounter_panel != null:
 		encounter_panel.close_panel()
+	if bool(encounter.get("all_in_all_encounters", false)):
+		_spend_all_for_all_in_encounter()
+		for extra_encounter in encounter_manager.get_all_other_encounters(str(encounter.get("id", ""))):
+			encounter_manager.apply_encounter_effects(extra_encounter)
+			_apply_encounter_immediate_effects(extra_encounter)
 	_apply_encounter_immediate_effects(encounter)
 	var cleared_wave: int = pending_encounter_wave
 	pending_encounter_wave = -1
 	_enter_shop(cleared_wave)
 	_show_shop_message("已选择奇遇：%s" % str(encounter.get("name", "奇遇")))
 
-func _on_all_in_extra_encounter_selected() -> void:
-	if destiny_manager == null or encounter_panel == null or encounter_manager == null:
-		return
-	if not destiny_manager.consume_all_in_extra_encounter_available():
-		return
-	var spent: int = economy_manager.spirit_stones
-	if spent <= 0:
-		return
-	economy_manager.spend_spirit_stones(spent)
-	encounter_panel.open_choices(encounter_manager.get_choices(1))
+
+func _spend_all_for_all_in_encounter() -> void:
+	if economy_manager != null and economy_manager.spirit_stones > 0:
+		economy_manager.spend_spirit_stones(economy_manager.spirit_stones)
+	spirit_gathering_layers = 0
+	pending_spirit_gathering_return = 0
+	_update_shop_spirit_gathering()
 
 func _apply_encounter_immediate_effects(encounter: Dictionary) -> void:
 	var synergy_tag: String = str(encounter.get("synergy_tag", ""))
@@ -342,8 +339,10 @@ func _apply_destiny_runtime_modifiers() -> void:
 	var hp_ratio: float = player.get_hp_ratio()
 	var multiplier: float = destiny_manager.get_damage_multiplier(cleared_waves, active_synergy_count, hp_ratio) if destiny_manager != null else 1.0
 	if encounter_manager != null:
-		multiplier *= encounter_manager.get_damage_multiplier(active_synergy_count)
+		multiplier *= encounter_manager.get_damage_multiplier(active_synergy_count, hp_ratio)
 	player.set_run_damage_multiplier(multiplier)
+	player.set_run_max_hp_multiplier(encounter_manager.get_max_hp_multiplier() if encounter_manager != null else 1.0)
+	player.set_run_move_speed_multiplier(encounter_manager.get_move_speed_multiplier() if encounter_manager != null else 1.0)
 
 func _apply_destiny_slot_modifier() -> void:
 	if inventory == null or cultivation_manager == null:
@@ -358,15 +357,19 @@ func _apply_destiny_enemy_modifier() -> void:
 	wave_manager.set_destiny_enemy_stat_multiplier(multiplier)
 
 func _update_destiny_star3_hp_penalty() -> void:
-	if destiny_manager == null or inventory == null or player == null:
+	if inventory == null or player == null:
 		return
 	var star3_count: int = 0
 	for raw_stack in inventory.battle_slots:
 		var stack: ArtifactStack = raw_stack as ArtifactStack
 		if stack != null and stack.star_level >= 3:
 			star3_count += 1
-	destiny_manager.set_star3_battle_count(star3_count)
-	player.set_destiny_max_hp_flat_penalty(destiny_manager.get_star3_max_hp_penalty())
+	if destiny_manager != null:
+		destiny_manager.set_star3_battle_count(star3_count)
+	var penalty: int = destiny_manager.get_star3_max_hp_penalty() if destiny_manager != null else 0
+	if encounter_manager != null:
+		penalty += encounter_manager.get_star3_max_hp_penalty(star3_count)
+	player.set_destiny_max_hp_flat_penalty(penalty)
 
 func _apply_player_current_hp_loss(ratio: float) -> void:
 	if player == null or ratio <= 0.0:
@@ -475,6 +478,9 @@ func _on_breakthrough_requested() -> void:
 func _on_spirit_gathering_requested() -> void:
 	if economy_manager == null:
 		return
+	if encounter_manager != null and encounter_manager.is_spirit_gathering_disabled():
+		_show_shop_message("当前奇遇效果：无法聚灵")
+		return
 	if spirit_gathering_layers >= SPIRIT_GATHERING_MAX_LAYERS:
 		_show_shop_message("聚灵已达上限")
 		return
@@ -505,7 +511,8 @@ func _return_spirit_gathering() -> void:
 func _update_shop_spirit_gathering() -> void:
 	if shop_panel == null:
 		return
-	shop_panel.set_spirit_gathering(SPIRIT_GATHERING_COST, spirit_gathering_layers, SPIRIT_GATHERING_MAX_LAYERS)
+	var disabled: bool = encounter_manager != null and encounter_manager.is_spirit_gathering_disabled()
+	shop_panel.set_spirit_gathering(SPIRIT_GATHERING_COST, spirit_gathering_layers, SPIRIT_GATHERING_MAX_LAYERS, disabled)
 
 func _on_cultivation_changed(_realm: String, _realm_index: int) -> void:
 	_apply_destiny_slot_modifier()
@@ -554,6 +561,8 @@ func _scaled_enemy_spirit_stones(base_reward: int) -> int:
 
 func _award_room_clear_economy(wave_number: int) -> void:
 	var base_reward: int = _room_clear_spirit_stones_for_wave(wave_number)
+	if encounter_manager != null:
+		base_reward += encounter_manager.get_extra_room_clear_stones()
 	var reward_multiplier: float = destiny_manager.get_spirit_stone_reward_multiplier() if destiny_manager != null else 1.0
 	var reward: int = maxi(0, int(round(float(base_reward) * reward_multiplier)))
 	if reward > 0:
@@ -648,8 +657,10 @@ func _on_player_died() -> void:
 	if run_ended:
 		return
 	if encounter_manager != null:
-		var revive_ratio: float = encounter_manager.consume_revive_ratio()
+		var revive: Dictionary = encounter_manager.consume_revive()
+		var revive_ratio: float = float(revive.get("revive_ratio", 0.0))
 		if revive_ratio > 0.0:
+			_apply_destiny_runtime_modifiers()
 			player.revive_with_hp_ratio(revive_ratio)
 			game_ui.set_wave_status(wave_manager.wave_number, "复活")
 			return

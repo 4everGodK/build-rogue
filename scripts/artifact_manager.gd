@@ -7,6 +7,7 @@ var owner_player: Node2D
 var attack_container: Node
 var synergy_manager: SynergyManager
 var destiny_manager = null
+var encounter_manager = null
 var artifacts: Array[ArtifactInstance] = []
 var battle_paused: bool = true
 
@@ -21,6 +22,9 @@ func set_synergy_manager(manager: SynergyManager) -> void:
 
 func set_destiny_manager(manager) -> void:
 	destiny_manager = manager
+
+func set_encounter_manager(manager) -> void:
+	encounter_manager = manager
 
 func notify_artifact_damage(data: ArtifactData) -> void:
 	if synergy_manager != null:
@@ -61,7 +65,8 @@ func sync_from_battle_slots(battle_slots: Array) -> void:
 		first_system_seen[stack.artifact_data.system_tag] = true
 		var same_name_count: int = int(same_name_counts.get(stack.artifact_data.id, 1))
 		var destiny_damage_multiplier: float = destiny_manager.get_artifact_damage_multiplier(stack.artifact_data, stack.star_level, is_first_system_artifact, same_name_count) if destiny_manager != null else 1.0
-		var instance: ArtifactInstance = ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager, destiny_damage_multiplier)
+		var encounter_damage_multiplier: float = encounter_manager.get_artifact_damage_multiplier(stack.artifact_data, stack.star_level, same_name_count) if encounter_manager != null else 1.0
+		var instance: ArtifactInstance = ArtifactInstance.new(stack.artifact_data, stack.star_level, synergy_manager, destiny_damage_multiplier * encounter_damage_multiplier)
 		artifacts.append(instance)
 		if is_instance_valid(owner_player) and is_instance_valid(attack_container):
 			instance.start(owner_player, attack_container)

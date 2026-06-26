@@ -89,6 +89,7 @@ var current_reroll_cost: int = ShopManager.REROLL_COST
 var current_spirit_gathering_cost: int = 100
 var current_spirit_gathering_layers: int = 0
 var current_spirit_gathering_max_layers: int = 3
+var current_spirit_gathering_disabled: bool = false
 var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
@@ -172,10 +173,11 @@ func set_cultivation(
 	current_is_cultivation_full = is_cultivation_full
 	_update_cultivation_display()
 
-func set_spirit_gathering(cost: int, layers: int, max_layers: int) -> void:
+func set_spirit_gathering(cost: int, layers: int, max_layers: int, disabled: bool = false) -> void:
 	current_spirit_gathering_cost = maxi(0, cost)
 	current_spirit_gathering_layers = maxi(0, layers)
 	current_spirit_gathering_max_layers = maxi(1, max_layers)
+	current_spirit_gathering_disabled = disabled
 	_update_spirit_gathering_display()
 
 func _update_cultivation_display() -> void:
@@ -203,11 +205,11 @@ func _update_cultivation_display() -> void:
 func _update_spirit_gathering_display() -> void:
 	if not is_node_ready():
 		return
-	spirit_gathering_button.text = "聚灵 %d" % current_spirit_gathering_cost
+	spirit_gathering_button.text = "聚灵禁用" if current_spirit_gathering_disabled else "聚灵 %d" % current_spirit_gathering_cost
 	spirit_gathering_label.text = "%d/%d" % [current_spirit_gathering_layers, current_spirit_gathering_max_layers]
-	spirit_gathering_button.tooltip_text = "花费%d灵石聚灵1层。\n下回合返还110灵石。\n最多%d层。" % [current_spirit_gathering_cost, current_spirit_gathering_max_layers]
+	spirit_gathering_button.tooltip_text = "当前奇遇效果使聚灵不可用。" if current_spirit_gathering_disabled else "花费%d灵石聚灵1层。\n下回合返还110灵石。\n最多%d层。" % [current_spirit_gathering_cost, current_spirit_gathering_max_layers]
 	spirit_gathering_label.tooltip_text = spirit_gathering_button.tooltip_text
-	spirit_gathering_button.disabled = debug_catalog_mode or current_spirit_gathering_layers >= current_spirit_gathering_max_layers or current_stones < current_spirit_gathering_cost
+	spirit_gathering_button.disabled = debug_catalog_mode or current_spirit_gathering_disabled or current_spirit_gathering_layers >= current_spirit_gathering_max_layers or current_stones < current_spirit_gathering_cost
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)

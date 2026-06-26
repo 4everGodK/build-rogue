@@ -23,6 +23,8 @@ var artifact_move_speed_multiplier: float = 1.0
 var run_damage_multiplier: float = 1.0
 var destiny_max_hp_multiplier: float = 1.0
 var destiny_max_hp_flat_penalty: int = 0
+var run_max_hp_multiplier: float = 1.0
+var run_move_speed_multiplier: float = 1.0
 var body_max_hp_multiplier: float = 1.0
 var body_size_multiplier: float = 1.0
 var base_visual_scale: Vector2 = Vector2.ONE
@@ -42,7 +44,7 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
-	velocity = _read_move_input() * move_speed * artifact_move_speed_multiplier
+	velocity = _read_move_input() * move_speed * artifact_move_speed_multiplier * run_move_speed_multiplier
 	_update_facing_from_velocity()
 	move_and_slide()
 	global_position = global_position.clamp(-arena_half_size, arena_half_size)
@@ -106,6 +108,9 @@ func revive_with_hp_ratio(ratio: float) -> void:
 	invincible_time = invincible_duration
 	hp_changed.emit(hp, max_hp)
 
+func grant_invincible(duration: float) -> void:
+	invincible_time = maxf(invincible_time, maxf(0.0, duration))
+
 func add_shield(amount: float, maximum: float = 0.0) -> void:
 	if maximum > 0.0:
 		shield_limit = maxf(shield_limit, maximum)
@@ -134,6 +139,13 @@ func set_artifact_move_speed_multiplier(multiplier: float) -> void:
 
 func set_run_damage_multiplier(multiplier: float) -> void:
 	run_damage_multiplier = maxf(0.0, multiplier)
+
+func set_run_max_hp_multiplier(multiplier: float) -> void:
+	run_max_hp_multiplier = maxf(0.1, multiplier)
+	_recalculate_max_hp(false)
+
+func set_run_move_speed_multiplier(multiplier: float) -> void:
+	run_move_speed_multiplier = maxf(0.1, multiplier)
 
 func set_destiny_max_hp_multiplier(multiplier: float) -> void:
 	destiny_max_hp_multiplier = maxf(0.1, multiplier)
@@ -203,7 +215,7 @@ func _update_facing_from_velocity() -> void:
 
 func _recalculate_max_hp(fill_increase: bool = true) -> void:
 	var old_max_hp := max_hp
-	max_hp = maxi(1, int(round(float(base_max_hp) * destiny_max_hp_multiplier * body_max_hp_multiplier)) - destiny_max_hp_flat_penalty)
+	max_hp = maxi(1, int(round(float(base_max_hp) * destiny_max_hp_multiplier * run_max_hp_multiplier * body_max_hp_multiplier)) - destiny_max_hp_flat_penalty)
 	if fill_increase:
 		hp = mini(max_hp, hp + max(0, max_hp - old_max_hp))
 	else:
