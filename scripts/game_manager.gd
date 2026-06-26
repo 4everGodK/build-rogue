@@ -28,14 +28,18 @@ const WAVE_1_ROOM_DURATION: float = 30.0
 const WAVE_2_ROOM_DURATION: float = 40.0
 const WAVE_3_ROOM_DURATION: float = 50.0
 const LATE_ROOM_DURATION: float = 60.0
-const ENEMY_SPIRIT_STONE_DROP_MULTIPLIER: float = 0.5
-const ROOM_CLEAR_SPIRIT_STONES: int = 20
-const BOSS_MATERIAL_BY_WAVE: Dictionary = {
-	5: 0,
-	9: 1,
-	13: 2,
-	17: 3,
-}
+const ENEMY_SPIRIT_STONE_DROP_MULTIPLIER: float = 0.0
+const SPIRIT_GATHERING_COST: int = 100
+const SPIRIT_GATHERING_RETURN: int = 110
+const SPIRIT_GATHERING_MAX_LAYERS: int = 3
+const ROOM_CLEAR_CULTIVATION: int = 20
+const ROOM_CLEAR_SPIRIT_STONES_BY_RANGE: Array[Dictionary] = [
+	{"min": 1, "max": 4, "reward": 60},
+	{"min": 5, "max": 8, "reward": 70},
+	{"min": 9, "max": 12, "reward": 80},
+	{"min": 13, "max": 16, "reward": 90},
+	{"min": 17, "max": 20, "reward": 100},
+]
 const BOSS_OVERTIME_BURN_MAX_HP_PER_SECOND: float = 0.05
 
 var player: Player
@@ -65,6 +69,8 @@ var pending_encounter_wave: int = -1
 var boss_overtime_burning: bool = false
 var boss_overtime_burn_accumulator: float = 0.0
 var enemy_spirit_stone_drop_accumulator: float = 0.0
+var spirit_gathering_layers: int = 0
+var pending_spirit_gathering_return: int = 0
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -139,6 +145,7 @@ func _initialize() -> void:
 	shop_panel.lock_requested.connect(shop_manager.toggle_offer_lock)
 	shop_panel.reroll_requested.connect(shop_manager.reroll)
 	shop_panel.breakthrough_requested.connect(_on_breakthrough_requested)
+	shop_panel.spirit_gathering_requested.connect(_on_spirit_gathering_requested)
 	shop_panel.continue_requested.connect(_on_shop_continue_requested)
 	shop_panel.inventory_move_requested.connect(inventory.move_stack)
 	shop_panel.sell_requested.connect(_on_sell_requested)
@@ -178,6 +185,7 @@ func _start_battle() -> void:
 	in_shop = false
 	shop_panel.close_shop()
 	synergy_manager.reset_battle_effects()
+	_prepare_spirit_gathering_return()
 	if destiny_manager != null:
 		destiny_manager.begin_battle(economy_manager.spirit_stones)
 	player.set_battle_paused(false)
@@ -215,6 +223,7 @@ func _enter_shop(cleared_wave: int) -> void:
 	wave_manager.pause_wave(true)
 	combat_room_timer.stop_room()
 	_clear_attack_nodes()
+	_return_spirit_gathering()
 	_apply_destiny_runtime_modifiers()
 	shop_manager.set_shop_wave(cleared_wave)
 	if destiny_manager != null:
@@ -228,6 +237,7 @@ func _enter_shop(cleared_wave: int) -> void:
 	_update_shop_cultivation()
 	shop_panel.set_debug_catalog_mode(debug_test_room)
 	shop_panel.set_reroll_cost(shop_manager.get_reroll_cost())
+	_update_shop_spirit_gathering()
 	shop_panel.open_shop(
 		cleared_wave,
 		shop_manager.get_offer_dictionaries(),
@@ -394,7 +404,7 @@ func _on_wave_cleared(wave_number: int) -> void:
 		_apply_player_current_hp_loss(destiny_manager.get_post_wave_current_hp_loss_ratio())
 		if run_ended:
 			return
-	_award_room_clear_spirit_stones()
+	_award_room_clear_economy(wave_number)
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_update_battle_ui(true)
 	if pending_encounter_wave == wave_number and encounter_manager != null and encounter_panel != null:
@@ -441,6 +451,7 @@ func _on_spirit_stones_changed(amount: int) -> void:
 	game_ui.set_spirit_stones(amount)
 	if in_shop:
 		shop_panel.set_economy(amount)
+		_update_shop_spirit_gathering()
 
 func _show_shop_message(message: String) -> void:
 	if in_shop:
@@ -450,11 +461,7 @@ func _shop_status_text() -> String:
 	var prefix: String = ""
 	if wave_manager != null and wave_manager.wave_number > 0 and not debug_test_room:
 		prefix = "本房间击杀 %d，获得灵石 %d。 " % [room_kill_count, room_spirit_stones]
-	var material_text: String = ""
-	if cultivation_manager != null and not cultivation_manager.is_max_realm():
-		var material_state: String = "已获得" if cultivation_manager.has_required_material() else "未获得%s" % cultivation_manager.get_required_material_name()
-		material_text = "突破材料：%s。 " % material_state
-	return prefix + material_text + _synergy_effect_text()
+	return prefix + _synergy_effect_text()
 
 func _on_breakthrough_requested() -> void:
 	var gain_multiplier: float = destiny_manager.get_cultivation_gain_multiplier() if destiny_manager != null else 1.0
@@ -464,6 +471,41 @@ func _on_breakthrough_requested() -> void:
 	if destiny_manager != null:
 		destiny_manager.record_shop_spend(maxi(0, stones_before - economy_manager.spirit_stones))
 	_update_shop_cultivation()
+
+func _on_spirit_gathering_requested() -> void:
+	if economy_manager == null:
+		return
+	if spirit_gathering_layers >= SPIRIT_GATHERING_MAX_LAYERS:
+		_show_shop_message("聚灵已达上限")
+		return
+	if not economy_manager.spend_spirit_stones(SPIRIT_GATHERING_COST):
+		_show_shop_message("灵石不足")
+		return
+	spirit_gathering_layers += 1
+	if destiny_manager != null:
+		destiny_manager.record_shop_spend(SPIRIT_GATHERING_COST)
+	_update_shop_spirit_gathering()
+	_show_shop_message("聚灵成功：下回合返还%d灵石" % SPIRIT_GATHERING_RETURN)
+
+func _prepare_spirit_gathering_return() -> void:
+	if spirit_gathering_layers <= 0:
+		return
+	pending_spirit_gathering_return += spirit_gathering_layers * SPIRIT_GATHERING_RETURN
+	spirit_gathering_layers = 0
+
+func _return_spirit_gathering() -> void:
+	if pending_spirit_gathering_return <= 0 or economy_manager == null:
+		return
+	var returned: int = pending_spirit_gathering_return
+	pending_spirit_gathering_return = 0
+	economy_manager.add_spirit_stones(returned)
+	run_summary.record_spirit_stones(returned)
+	room_spirit_stones += returned
+
+func _update_shop_spirit_gathering() -> void:
+	if shop_panel == null:
+		return
+	shop_panel.set_spirit_gathering(SPIRIT_GATHERING_COST, spirit_gathering_layers, SPIRIT_GATHERING_MAX_LAYERS)
 
 func _on_cultivation_changed(_realm: String, _realm_index: int) -> void:
 	_apply_destiny_slot_modifier()
@@ -510,19 +552,25 @@ func _scaled_enemy_spirit_stones(base_reward: int) -> int:
 	enemy_spirit_stone_drop_accumulator -= float(awarded_stones)
 	return awarded_stones
 
-func _award_room_clear_spirit_stones() -> void:
-	if ROOM_CLEAR_SPIRIT_STONES <= 0:
-		return
+func _award_room_clear_economy(wave_number: int) -> void:
+	var base_reward: int = _room_clear_spirit_stones_for_wave(wave_number)
 	var reward_multiplier: float = destiny_manager.get_spirit_stone_reward_multiplier() if destiny_manager != null else 1.0
-	var reward: int = maxi(0, int(round(float(ROOM_CLEAR_SPIRIT_STONES) * reward_multiplier)))
-	room_spirit_stones += reward
-	economy_manager.add_spirit_stones(reward)
-	run_summary.record_spirit_stones(reward)
+	var reward: int = maxi(0, int(round(float(base_reward) * reward_multiplier)))
+	if reward > 0:
+		room_spirit_stones += reward
+		economy_manager.add_spirit_stones(reward)
+		run_summary.record_spirit_stones(reward)
+	if cultivation_manager != null:
+		cultivation_manager.add_cultivation(ROOM_CLEAR_CULTIVATION)
+		_update_shop_cultivation()
+
+func _room_clear_spirit_stones_for_wave(wave_number: int) -> int:
+	for config in ROOM_CLEAR_SPIRIT_STONES_BY_RANGE:
+		if wave_number >= int(config["min"]) and wave_number <= int(config["max"]):
+			return int(config["reward"])
+	return 100
 
 func _on_boss_defeated(defeated_wave_number: int) -> void:
-	if BOSS_MATERIAL_BY_WAVE.has(defeated_wave_number):
-		cultivation_manager.add_breakthrough_material(int(BOSS_MATERIAL_BY_WAVE[defeated_wave_number]))
-		_update_shop_cultivation()
 	if defeated_wave_number == wave_manager.wave_number and not in_shop and not run_ended:
 		if wave_manager.is_boss_wave(defeated_wave_number):
 			pending_encounter_wave = defeated_wave_number
@@ -619,7 +667,7 @@ func _on_demo_completed() -> void:
 		return
 	run_ended = true
 	in_shop = false
-	_award_room_clear_spirit_stones()
+	_award_room_clear_economy(wave_manager.wave_number)
 	_stop_boss_overtime_burn()
 	if combat_room_timer != null:
 		combat_room_timer.stop_room()

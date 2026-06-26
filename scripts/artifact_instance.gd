@@ -29,7 +29,7 @@ func start(player: Node2D, attack_container: Node) -> void:
 		"summon":
 			persistent_node = SummonAttackTemplate.create(player, attack_container, data)
 
-func update(delta: float, player: Node2D, attack_container: Node, target_reservations: Dictionary = {}) -> void:
+func update(delta: float, player: Node2D, attack_container: Node, target_reservations: Dictionary = {}, same_artifact_attack_delays: Dictionary = {}) -> void:
 	if data == null:
 		return
 	if data.attack_template in ["orbit", "formation", "summon"]:
@@ -38,6 +38,11 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 
 	cooldown_remaining -= delta
 	if cooldown_remaining > 0.0:
+		return
+	var artifact_id: String = source_data.id if source_data != null else data.id
+	var same_artifact_delay: float = float(same_artifact_attack_delays.get(artifact_id, 0.0))
+	if same_artifact_delay > 0.0:
+		cooldown_remaining = maxf(cooldown_remaining, same_artifact_delay)
 		return
 
 	var estimated_damage: float = _estimate_attack_damage(player)
@@ -69,6 +74,7 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 			load("res://scripts/attacks/target_aoe_attack_template.gd").execute(player, attack_container, runtime_data, target)
 		"soul_banner":
 			load("res://scripts/attacks/soul_banner_attack_template.gd").execute(player, attack_container, runtime_data, target)
+	same_artifact_attack_delays[artifact_id] = 0.035
 	_reserve_target_damage(target, estimated_damage, target_reservations)
 	var cooldown_multiplier := 1.0
 	if player.has_method("get_artifact_cooldown_multiplier"):

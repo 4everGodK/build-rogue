@@ -100,7 +100,7 @@ func get_attribute_tag() -> String:
 	return normalized if normalized in ACTIVE_ATTRIBUTE_TAGS else "金"
 
 func get_shop_cost() -> int:
-	return cost if cost > 0 else CultivationManager.cost_for_tier(tier)
+	return CultivationManager.cost_for_tier(tier)
 
 func to_offer() -> Dictionary:
 	var normalized_attribute: String = get_attribute_tag()

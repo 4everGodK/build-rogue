@@ -5,6 +5,7 @@ signal buy_requested(offer_index: int)
 signal lock_requested(offer_index: int)
 signal reroll_requested
 signal breakthrough_requested
+signal spirit_gathering_requested
 signal continue_requested
 signal inventory_move_requested(from_area: String, from_index: int, to_area: String, to_index: int)
 signal sell_requested(from_area: String, from_index: int)
@@ -29,6 +30,8 @@ signal sell_requested(from_area: String, from_index: int)
 @onready var synergy_label: RichTextLabel = $Panel/MarginContainer/Root/MainRow/SynergyFrame/SynergyLabel
 @onready var reroll_button: Button = $Panel/MarginContainer/Root/TopActionRow/RerollButton
 @onready var breakthrough_button: Button = $Panel/MarginContainer/Root/TopActionRow/BreakthroughButton
+@onready var spirit_gathering_button: Button = $Panel/MarginContainer/Root/TopActionRow/SpiritGatheringButton
+@onready var spirit_gathering_label: Label = $Panel/MarginContainer/Root/TopActionRow/SpiritGatheringLabel
 @onready var continue_button: Button = $Panel/MarginContainer/Root/TopActionRow/ContinueButton
 
 const SYSTEM_TAGS: Array[String] = ["剑修", "法修", "体修", "召唤", "魔修"]
@@ -83,6 +86,9 @@ var current_has_material: bool = false
 var current_is_cultivation_full: bool = false
 var current_is_max_realm: bool = false
 var current_reroll_cost: int = ShopManager.REROLL_COST
+var current_spirit_gathering_cost: int = 100
+var current_spirit_gathering_layers: int = 0
+var current_spirit_gathering_max_layers: int = 3
 var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
@@ -94,6 +100,7 @@ func _ready() -> void:
 	_apply_responsive_layout()
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
 	breakthrough_button.pressed.connect(_on_breakthrough_button_pressed)
+	spirit_gathering_button.pressed.connect(_on_spirit_gathering_button_pressed)
 	continue_button.pressed.connect(_on_continue_button_pressed)
 	sell_zone.sell_drop_requested.connect(_on_sell_drop_requested)
 
@@ -121,9 +128,12 @@ func set_debug_catalog_mode(enabled: bool) -> void:
 	if not is_node_ready():
 		return
 	reroll_button.visible = not enabled
+	spirit_gathering_button.visible = not enabled
+	spirit_gathering_label.visible = not enabled
 	breakthrough_button.visible = true
 	continue_button.text = "关闭商店" if enabled else "继续战斗"
 	_update_cultivation_display()
+	_update_spirit_gathering_display()
 	_apply_responsive_layout()
 
 func set_economy(stones: int) -> void:
@@ -131,6 +141,7 @@ func set_economy(stones: int) -> void:
 	stone_label.text = "灵石：%d" % current_stones
 	reroll_button.text = "刷新：%d" % current_reroll_cost
 	reroll_button.disabled = debug_catalog_mode
+	_update_spirit_gathering_display()
 	_update_cultivation_display()
 	_render_offers()
 
@@ -161,6 +172,12 @@ func set_cultivation(
 	current_is_cultivation_full = is_cultivation_full
 	_update_cultivation_display()
 
+func set_spirit_gathering(cost: int, layers: int, max_layers: int) -> void:
+	current_spirit_gathering_cost = maxi(0, cost)
+	current_spirit_gathering_layers = maxi(0, layers)
+	current_spirit_gathering_max_layers = maxi(1, max_layers)
+	_update_spirit_gathering_display()
+
 func _update_cultivation_display() -> void:
 	if not is_node_ready():
 		return
@@ -182,6 +199,15 @@ func _update_cultivation_display() -> void:
 		return
 	breakthrough_button.text = "加修为：%d（+%d）" % [current_breakthrough_cost, current_cultivation_gain]
 	breakthrough_button.disabled = current_stones < current_breakthrough_cost
+
+func _update_spirit_gathering_display() -> void:
+	if not is_node_ready():
+		return
+	spirit_gathering_button.text = "聚灵 %d" % current_spirit_gathering_cost
+	spirit_gathering_label.text = "%d/%d" % [current_spirit_gathering_layers, current_spirit_gathering_max_layers]
+	spirit_gathering_button.tooltip_text = "花费%d灵石聚灵1层。\n下回合返还110灵石。\n最多%d层。" % [current_spirit_gathering_cost, current_spirit_gathering_max_layers]
+	spirit_gathering_label.tooltip_text = spirit_gathering_button.tooltip_text
+	spirit_gathering_button.disabled = debug_catalog_mode or current_spirit_gathering_layers >= current_spirit_gathering_max_layers or current_stones < current_spirit_gathering_cost
 
 func set_offers(offers: Array) -> void:
 	current_offers = offers.duplicate(true)
@@ -286,6 +312,9 @@ func _on_reroll_button_pressed() -> void:
 
 func _on_breakthrough_button_pressed() -> void:
 	breakthrough_requested.emit()
+
+func _on_spirit_gathering_button_pressed() -> void:
+	spirit_gathering_requested.emit()
 
 func _on_continue_button_pressed() -> void:
 	continue_requested.emit()
@@ -553,10 +582,17 @@ func _apply_panel_styles() -> void:
 	cultivation_label.add_theme_color_override("font_color", Color(0.58, 0.86, 1.0))
 	reroll_button.custom_minimum_size = Vector2(118, 38)
 	breakthrough_button.custom_minimum_size = Vector2(130, 38)
+	spirit_gathering_button.custom_minimum_size = Vector2(118, 38)
+	spirit_gathering_label.custom_minimum_size = Vector2(44, 38)
 	reroll_button.focus_mode = Control.FOCUS_NONE
 	breakthrough_button.focus_mode = Control.FOCUS_NONE
+	spirit_gathering_button.focus_mode = Control.FOCUS_NONE
 	reroll_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	breakthrough_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	spirit_gathering_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	spirit_gathering_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	spirit_gathering_label.add_theme_font_size_override("font_size", 16)
+	spirit_gathering_label.add_theme_color_override("font_color", Color(0.7, 0.92, 1.0))
 	battle_label.add_theme_font_size_override("font_size", 18)
 	battle_label.add_theme_color_override("font_color", Color(0.48, 0.84, 1.0))
 	bag_label.add_theme_color_override("font_color", Color(0.72, 0.69, 0.58))

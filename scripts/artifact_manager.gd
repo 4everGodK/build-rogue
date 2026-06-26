@@ -95,5 +95,6 @@ func _process(delta: float) -> void:
 	if battle_paused:
 		return
 	var target_reservations: Dictionary = {}
+	var same_artifact_attack_delays: Dictionary = {}
 	for instance in artifacts:
-		instance.update(delta, owner_player, attack_container, target_reservations)
+		instance.update(delta, owner_player, attack_container, target_reservations, same_artifact_attack_delays)
