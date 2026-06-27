@@ -20,14 +20,26 @@ var visual_node: Node2D
 var trail_node: Line2D
 var spin_speed: float = 0.0
 var return_remaining: int = 0
+var returning_to_source: bool = false
+var return_hit_enemies: Dictionary = {}
+var launch_position: Vector2
+var charge_remaining: float = 0.0
+var charge_total: float = 0.0
 
 func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) -> void:
 	self.data = data
 	global_position = owner_player.global_position
+	launch_position = owner_player.global_position
 	direction = attack_direction.normalized()
 	if data.id == "giant_sword_art":
 		global_position -= direction * maxf(40.0, data.length * 0.45)
 	speed = data.projectile_speed
+	if data.id == "flying_sword":
+		global_position += Vector2(0.0, -18.0).rotated(direction.angle()) + direction.orthogonal() * float(data.get_meta("flying_sword_side_index", 0)) * 12.0
+		charge_remaining = maxf(0.0, data.windup_time)
+	if data.id == "giant_sword_art":
+		charge_remaining = maxf(0.0, data.reveal_time + data.pause_time)
+	charge_total = charge_remaining
 	damage = data.damage
 	max_distance = data.range
 	pierce_remaining = data.projectile_pierce
@@ -41,7 +53,7 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	source = owner_player
 	collision_layer = 0
 	collision_mask = 2
-	monitoring = true
+	monitoring = charge_remaining <= 0.0
 	rotation = direction.angle()
 
 	var collision: CollisionShape2D = CollisionShape2D.new()
@@ -60,22 +72,44 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	add_child(trail_node)
 	visual_node = ArtifactVisuals.make_projectile_visual(data)
 	add_child(visual_node)
+	_prepare_charge_visual()
 	spin_speed = ArtifactVisuals.projectile_spin_speed(data)
 	body_entered.connect(_on_body_entered)
 
 func _physics_process(delta: float) -> void:
+	if charge_remaining > 0.0:
+		charge_remaining -= delta
+		if is_instance_valid(visual_node):
+			_update_charge_visual()
+		if charge_remaining <= 0.0:
+			_activate_monitoring()
+		return
+	if data.id == "flying_sword" and returning_to_source and is_instance_valid(source) and source is Node2D:
+		direction = global_position.direction_to((source as Node2D).global_position)
+		if direction == Vector2.ZERO:
+			direction = -global_transform.x
+		speed = data.return_speed if data.return_speed > 0.0 else data.projectile_speed
+	rotation = direction.angle()
 	var movement: Vector2 = direction * speed * delta
 	global_position += movement
 	traveled_distance += movement.length()
 	if is_instance_valid(visual_node) and spin_speed > 0.0:
 		visual_node.rotation += spin_speed * delta
+	if data.id == "flying_sword" and returning_to_source and is_instance_valid(source) and source is Node2D:
+		if global_position.distance_to((source as Node2D).global_position) <= 18.0:
+			queue_free()
+			return
 	if traveled_distance >= max_distance:
+		if data.id == "flying_sword" and not returning_to_source:
+			_begin_flying_sword_return()
+			return
 		queue_free()
 
 func _on_body_entered(body: Node) -> void:
-	if hit_enemies.has(body) or not body.has_method("take_damage"):
+	var phase_hits: Dictionary = return_hit_enemies if returning_to_source else hit_enemies
+	if phase_hits.has(body) or not body.has_method("take_damage"):
 		return
-	hit_enemies[body] = true
+	phase_hits[body] = true
 	var hit_damage: float = _get_damage(damage)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 	var killed: bool = bool(body.call("take_damage", hit_damage, source))
@@ -98,6 +132,8 @@ func _on_body_entered(body: Node) -> void:
 	if bounce_remaining > 0 and _bounce_to_next_enemy():
 		bounce_remaining -= 1
 		return
+	if data.id == "flying_sword":
+		return
 	if return_remaining > 0:
 		return_remaining -= 1
 		direction = -direction
@@ -108,6 +144,37 @@ func _on_body_entered(body: Node) -> void:
 		queue_free()
 	else:
 		pierce_remaining -= 1
+
+func _begin_flying_sword_return() -> void:
+	returning_to_source = true
+	traveled_distance = 0.0
+	if is_instance_valid(source) and source is Node2D:
+		direction = global_position.direction_to((source as Node2D).global_position)
+	rotation = direction.angle()
+
+func _activate_monitoring() -> void:
+	monitoring = true
+	for body in get_overlapping_bodies():
+		_on_body_entered(body)
+
+func _prepare_charge_visual() -> void:
+	if not is_instance_valid(visual_node):
+		return
+	if data.id == "giant_sword_art":
+		visual_node.scale = Vector2(0.08, 1.0)
+		visual_node.modulate.a = 0.72
+	elif data.id == "flying_sword":
+		visual_node.scale = Vector2(0.86, 0.86)
+
+func _update_charge_visual() -> void:
+	if data.id == "giant_sword_art":
+		var reveal_time: float = maxf(0.01, data.reveal_time)
+		var elapsed: float = maxf(0.0, charge_total - charge_remaining)
+		var reveal_t: float = clampf(elapsed / reveal_time, 0.0, 1.0)
+		visual_node.scale = Vector2(lerpf(0.08, 1.0, reveal_t), 1.0)
+		visual_node.modulate.a = lerpf(0.52, 1.0, reveal_t)
+	elif data.id == "flying_sword":
+		visual_node.scale = Vector2.ONE * (0.92 + 0.08 * sin(Time.get_ticks_msec() * 0.035))
 
 func _explode(direct_target: Node) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):

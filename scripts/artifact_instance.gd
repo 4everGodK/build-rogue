@@ -8,6 +8,7 @@ var synergy_manager: SynergyManager
 var cooldown_remaining: float = 0.0
 var persistent_node: Node
 var destiny_damage_multiplier: float = 1.0
+var attack_count: int = 0
 
 func _init(artifact_data: ArtifactData = null, star: int = 1, manager: SynergyManager = null, artifact_destiny_damage_multiplier: float = 1.0) -> void:
 	source_data = artifact_data
@@ -53,14 +54,32 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 	var direction: Vector2 = player.global_position.direction_to(target.global_position)
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
+	if data.id == "giant_sword_art":
+		direction = _dense_enemy_direction(player, direction)
 	var spends_life_during_attack: bool = data.attack_template == "beam"
 	if not spends_life_during_attack and data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
 		player.call("spend_life_percent", data.life_cost_percent)
 	if not spends_life_during_attack and data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
 		player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
 	var runtime_data := _make_runtime_data(player)
+	attack_count += 1
+	runtime_data.set_meta("attack_count", attack_count)
 	var projectile_extra_count: int = _projectile_extra_count()
 	var projectile_extra_directions: Array[Vector2] = _get_projectile_extra_directions(player, target, projectile_extra_count)
+	if data.id == "giant_sword_art" and star_level >= 3:
+		var sweep_data: ArtifactData = runtime_data.duplicate(true) as ArtifactData
+		sweep_data.attack_template = "melee"
+		sweep_data.attack_shape = "circle"
+		sweep_data.reveal_time = maxf(0.1, data.reveal_time * 0.65)
+		sweep_data.pause_time = maxf(0.08, data.pause_time)
+		sweep_data.windup_time = sweep_data.reveal_time + sweep_data.pause_time
+		if sweep_data.sweep_rotation_speed > 0.0:
+			sweep_data.duration = maxf(sweep_data.duration, TAU / sweep_data.sweep_rotation_speed)
+		MeleeAttackTemplate.execute(player, attack_container, sweep_data, direction)
+		same_artifact_attack_delays[artifact_id] = 0.035
+		_reserve_target_damage(target, estimated_damage, target_reservations)
+		cooldown_remaining = _next_cooldown(player)
+		return
 	match data.attack_template:
 		"melee":
 			MeleeAttackTemplate.execute(player, attack_container, runtime_data, direction)
@@ -185,6 +204,7 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 		return null
 	var effective: ArtifactData = artifact_data.duplicate(true) as ArtifactData
 	effective.set_meta("destiny_damage_multiplier", destiny_damage_multiplier)
+	effective.set_meta("star_level", star)
 	ArtifactStarConfig.apply_numeric_growth(effective, artifact_data, star)
 	if star >= 3:
 		ArtifactStarConfig.apply_star3_bonus(effective)
@@ -199,6 +219,7 @@ func _make_effective_data(artifact_data: ArtifactData, star: int) -> ArtifactDat
 func _make_runtime_data(player: Node2D) -> ArtifactData:
 	var runtime: ArtifactData = data.duplicate(true) as ArtifactData
 	runtime.set_meta("destiny_damage_multiplier", destiny_damage_multiplier)
+	runtime.set_meta("star_level", star_level)
 	if synergy_manager != null:
 		var low_hp: bool = player.has_method("get_hp_ratio") and float(player.call("get_hp_ratio")) < 0.5
 		if low_hp:
@@ -217,6 +238,35 @@ func _projectile_extra_damage_multiplier() -> float:
 		return 0.0
 	return float(synergy_manager.get_effect_value("projectile_extra_damage_multiplier", 0.0))
 
+func _dense_enemy_direction(player: Node2D, fallback: Vector2) -> Vector2:
+	var best_direction: Vector2 = fallback.normalized()
+	var best_score: float = -INF
+	var candidates: Array[Vector2] = []
+	for candidate in player.get_tree().get_nodes_in_group("enemies"):
+		if candidate is Node2D and candidate.has_method("take_damage"):
+			var to_enemy: Vector2 = player.global_position.direction_to((candidate as Node2D).global_position)
+			if to_enemy != Vector2.ZERO:
+				candidates.append(to_enemy)
+	if candidates.is_empty():
+		return best_direction
+	for candidate_direction in candidates:
+		var score: float = 0.0
+		for raw_enemy in player.get_tree().get_nodes_in_group("enemies"):
+			if not raw_enemy is Node2D or not raw_enemy.has_method("take_damage"):
+				continue
+			var enemy := raw_enemy as Node2D
+			var offset: Vector2 = enemy.global_position - player.global_position
+			var projection: float = offset.dot(candidate_direction)
+			if projection < 0.0 or projection > data.range:
+				continue
+			var lateral: float = abs(offset.cross(candidate_direction))
+			if lateral <= maxf(48.0, data.width * 1.15):
+				score += 1.0 + (1.0 - projection / maxf(1.0, data.range)) * 0.35
+		if score > best_score:
+			best_score = score
+			best_direction = candidate_direction
+	return best_direction
+
 func _apply_body_range_multiplier(effective: ArtifactData, multiplier: float) -> void:
 	if multiplier <= 1.0:
 		return
@@ -228,3 +278,11 @@ func _apply_body_range_multiplier(effective: ArtifactData, multiplier: float) ->
 	effective.explosion_radius *= multiplier
 	effective.extra_melee_wave_range *= multiplier
 	effective.extra_melee_wave_width *= multiplier
+
+func _next_cooldown(player: Node2D) -> float:
+	var cooldown_multiplier := 1.0
+	if player.has_method("get_artifact_cooldown_multiplier"):
+		cooldown_multiplier = float(player.call("get_artifact_cooldown_multiplier"))
+	if synergy_manager != null and source_data != null and source_data.system_tag == "鍓戜慨":
+		cooldown_multiplier *= synergy_manager.get_sword_cooldown_multiplier()
+	return maxf(0.05, data.cooldown * cooldown_multiplier)

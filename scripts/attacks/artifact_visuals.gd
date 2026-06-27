@@ -45,6 +45,8 @@ static func make_projectile_trail(data: ArtifactData) -> Line2D:
 			length = 46.0
 		"poison_needle":
 			length = 34.0
+	if data.trail_length > 0.0:
+		length = data.trail_length
 	trail.points = PackedVector2Array([Vector2(-length, 0), Vector2.ZERO])
 	return trail
 
@@ -83,15 +85,33 @@ static func make_melee_visual(data: ArtifactData) -> Node2D:
 			root.add_child(_fan_visual(Color(1.0, 0.26, 0.03, 0.5), maxf(120.0, data.length), deg_to_rad(68.0)))
 			root.add_child(_fan_visual(Color(1.0, 0.72, 0.12, 0.32), maxf(90.0, data.length * 0.72), deg_to_rad(46.0)))
 		"two_handed_sword":
-			root.add_child(_fan_visual(Color(0.86, 0.68, 0.34, 0.58), maxf(130.0, data.length), deg_to_rad(72.0)))
+			var blade := _sword_polygon(Color(0.86, 0.68, 0.34, 0.46), Color(1.0, 0.86, 0.48, 0.62), maxf(130.0, data.length), maxf(13.0, data.width * 0.18))
+			blade.position = Vector2(data.length * 0.42, -18.0)
+			blade.rotation = deg_to_rad(8.0)
+			root.add_child(blade)
 			root.add_child(_slash_line(Color(1.0, 0.86, 0.48, 0.5), data.length * 0.92, maxf(7.0, data.width * 0.16)))
 		"long_spear":
-			root.add_child(_thrust_line(Color(0.72, 1.0, 0.86, 0.72), data.length, maxf(4.0, data.width * 0.35)))
-			root.add_child(_afterimage_line(Color(0.72, 1.0, 0.86, 0.28), data.length * 0.78, maxf(2.0, data.width * 0.2), Vector2(-18, 0)))
+			var point := _filled_circle(maxf(3.0, data.width * 0.18), Color(1.0, 0.92, 0.62, 0.9))
+			point.position.x = maxf(24.0, data.width * 1.2)
+			root.add_child(point)
+			root.add_child(_thrust_line(Color(1.0, 0.48, 0.18, 0.65), data.length * 0.72, maxf(5.0, data.width * 0.42)))
+			root.add_child(_afterimage_line(Color(1.0, 0.82, 0.38, 0.72), data.length, maxf(2.0, data.width * 0.16), Vector2(data.length * 0.18, 0)))
 		"dagger":
-			root.add_child(_thrust_line(Color(0.42, 1.0, 0.35, 0.75), data.length, maxf(3.0, data.width * 0.5)))
-			root.add_child(_afterimage_line(Color(0.42, 1.0, 0.35, 0.28), data.length * 0.65, 2.0, Vector2(-10, -5)))
-			root.add_child(_afterimage_line(Color(0.42, 1.0, 0.35, 0.18), data.length * 0.5, 2.0, Vector2(-18, 5)))
+			root.add_child(_thrust_line(Color(0.42, 1.0, 0.35, 0.34), data.length, 1.5))
+			root.add_child(_needle_visual(Color(0.42, 1.0, 0.35, 0.72), maxf(28.0, data.length * 0.34)))
+			root.add_child(_afterimage_line(Color(0.42, 1.0, 0.35, 0.22), data.length * 0.45, 2.0, Vector2(-8, 0)))
+		"one_handed_sword":
+			var alt: bool = int(data.get_meta("attack_count", 1)) % 2 == 0
+			if int(data.get_meta("star_level", 1)) >= 3 and int(data.get_meta("attack_count", 0)) % 3 == 0:
+				var a := _slash_line(Color(0.78, 0.94, 1.0, 0.74), data.length, maxf(5.0, data.width * 0.14))
+				var b := _slash_line(Color(0.78, 0.94, 1.0, 0.62), data.length, maxf(4.0, data.width * 0.12))
+				b.scale.y = -1.0
+				root.add_child(a)
+				root.add_child(b)
+			else:
+				var slash := _slash_line(Color(0.78, 0.94, 1.0, 0.74), data.length, maxf(5.0, data.width * 0.14))
+				slash.scale.y = -1.0 if alt else 1.0
+				root.add_child(slash)
 		"fist":
 			root.add_child(_impact_wave(Color(1.0, 0.48, 0.14, 0.55), data.length * 0.55))
 		"palm":
@@ -131,7 +151,13 @@ static func melee_hit_kind(data: ArtifactData) -> String:
 
 static func make_orbiter_visual(data: ArtifactData) -> Node2D:
 	var root := Node2D.new()
-	root.add_child(_sword_polygon(Color(0.96, 0.92, 0.72, 1.0), Color(0.82, 0.72, 0.36, 1.0), 28.0, 5.0))
+	var blade_count: int = 6 if data.id == "guardian_flying_sword" else 1
+	for index in blade_count:
+		var sword := _sword_polygon(Color(0.96, 0.92, 0.72, 0.9), Color(0.82, 0.72, 0.36, 0.9), 22.0, 4.0)
+		var angle: float = TAU * float(index) / float(blade_count)
+		sword.position = Vector2(cos(angle), sin(angle)) * 9.0
+		sword.rotation = angle
+		root.add_child(sword)
 	var glow := _ring_visual(Color(0.95, 0.82, 0.38, 0.25), 12.0)
 	glow.scale = Vector2(0.65, 0.65)
 	root.add_child(glow)
@@ -299,7 +325,7 @@ static func _spiral_visual(color: Color, radius: float) -> Line2D:
 
 static func _giant_sword_sweep_visual(data: ArtifactData) -> Node2D:
 	var root := Node2D.new()
-	var sweep_radius: float = maxf(260.0, data.radius * 0.62)
+	var sweep_radius: float = maxf(260.0, data.radius)
 	root.add_child(_ring_visual(Color(1.0, 0.78, 0.18, 0.34), sweep_radius))
 	root.add_child(_ring_visual(Color(1.0, 0.95, 0.55, 0.18), maxf(80.0, sweep_radius * 0.72)))
 	var sword := _sword_polygon(Color(1.0, 0.82, 0.24, 0.78), Color(1.0, 0.96, 0.62, 0.92), maxf(160.0, data.length), maxf(20.0, data.width * 0.24))

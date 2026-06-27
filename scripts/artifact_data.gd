@@ -95,6 +95,23 @@ const LEGACY_ATTRIBUTE_FALLBACKS: Dictionary = {
 @export var movement_speed_bonus: float = 0.0
 @export var melee_arc_multiplier: float = 1.0
 
+@export_group("Sword Artifact Tuning")
+@export var windup_time: float = 0.0
+@export var trail_length: float = 0.0
+@export var hit_flash_duration: float = 0.12
+@export var secondary_damage_mult: float = 0.0
+@export var secondary_radius: float = 0.0
+@export var secondary_delay: float = 0.0
+@export var side_projectile_damage_mult: float = 0.5
+@export var return_speed: float = 0.0
+@export var fan_angle: float = 0.0
+@export var converge_speed: float = 0.0
+@export var self_rotation_speed: float = 0.0
+@export var reveal_time: float = 0.0
+@export var pause_time: float = 0.0
+@export var sweep_rotation_speed: float = 0.0
+@export var screen_shake_strength: float = 0.0
+
 func get_attribute_tag() -> String:
 	var normalized: String = str(LEGACY_ATTRIBUTE_FALLBACKS.get(attribute_tag, attribute_tag))
 	return normalized if normalized in ACTIVE_ATTRIBUTE_TAGS else "金"
@@ -160,4 +177,19 @@ func to_offer() -> Dictionary:
 		"summon_respawn_time": summon_respawn_time,
 		"summon_behavior_type": summon_behavior_type,
 		"summon_special_effect": summon_special_effect,
+		"windup_time": windup_time,
+		"trail_length": trail_length,
+		"hit_flash_duration": hit_flash_duration,
+		"secondary_damage_mult": secondary_damage_mult,
+		"secondary_radius": secondary_radius,
+		"secondary_delay": secondary_delay,
+		"side_projectile_damage_mult": side_projectile_damage_mult,
+		"return_speed": return_speed,
+		"fan_angle": fan_angle,
+		"converge_speed": converge_speed,
+		"self_rotation_speed": self_rotation_speed,
+		"reveal_time": reveal_time,
+		"pause_time": pause_time,
+		"sweep_rotation_speed": sweep_rotation_speed,
+		"screen_shake_strength": screen_shake_strength,
 	}

@@ -13,7 +13,10 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	data = artifact_data
 	global_position = player.global_position
 	z_index = 1
-	for index in maxi(1, data.count):
+	var orbiter_count: int = maxi(1, data.count)
+	if data.id == "guardian_flying_sword" and int(data.get_meta("star_level", 1)) >= 3:
+		orbiter_count = maxi(orbiter_count, 4)
+	for index in orbiter_count:
 		var orbiter: Area2D = Area2D.new()
 		orbiter.collision_layer = 0
 		orbiter.collision_mask = 2
@@ -34,7 +37,8 @@ func _physics_process(delta: float) -> void:
 		return
 	global_position = player.global_position
 	counter_cooldown_remaining -= delta
-	angle += data.rotation_speed * delta
+	var speed_multiplier: float = _attack_speed_multiplier()
+	angle += data.rotation_speed * speed_multiplier * delta
 	for index in orbiters.size():
 		var orbiter: Area2D = orbiters[index]
 		if _is_countering(orbiter):
@@ -42,6 +46,8 @@ func _physics_process(delta: float) -> void:
 		var orbit_angle: float = angle + TAU * float(index) / float(orbiters.size())
 		orbiter.position = Vector2(cos(orbit_angle), sin(orbit_angle)) * data.radius
 		orbiter.rotation = orbit_angle + PI * 0.5
+		if data.self_rotation_speed > 0.0 and orbiter.get_child_count() > 1:
+			(orbiter.get_child(1) as Node2D).rotation += data.self_rotation_speed * speed_multiplier * delta
 		for body in orbiter.get_overlapping_bodies():
 			_try_hit(body, orbiter)
 	if data.counter_range > 0.0 and counter_cooldown_remaining <= 0.0:
@@ -52,10 +58,11 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 		return
 	var key: String = "%s:%s" % [orbiter.get_instance_id(), body.get_instance_id()]
 	var now: float = Time.get_ticks_msec() * 0.001
-	if now - float(last_hits.get(key, -INF)) < data.hit_interval:
+	if now - float(last_hits.get(key, -INF)) < _effective_hit_interval():
 		return
 	last_hits[key] = now
-	var hit_damage: float = _get_damage(data.damage * 0.25)
+	var damage_ratio: float = data.secondary_damage_mult if data.secondary_damage_mult > 0.0 else 0.25
+	var hit_damage: float = _get_damage(data.damage * damage_ratio)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
 	body.call("take_damage", hit_damage, player)
 	_notify_artifact_damage()
@@ -150,3 +157,14 @@ func _get_damage(base_damage: float) -> float:
 	if player != null and player.has_method("get_artifact_damage"):
 		return float(player.call("get_artifact_damage", data, base_damage))
 	return base_damage
+
+func _attack_speed_multiplier() -> float:
+	var cooldown_multiplier: float = 1.0
+	if player != null and player.has_method("get_artifact_cooldown_multiplier"):
+		cooldown_multiplier *= float(player.call("get_artifact_cooldown_multiplier"))
+	if player != null and player.has_method("get_sword_artifact_cooldown_multiplier"):
+		cooldown_multiplier *= float(player.call("get_sword_artifact_cooldown_multiplier", data))
+	return 1.0 / maxf(0.1, cooldown_multiplier)
+
+func _effective_hit_interval() -> float:
+	return maxf(0.05, data.hit_interval / _attack_speed_multiplier())
