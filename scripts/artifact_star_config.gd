@@ -103,6 +103,8 @@ static func _apply_summon_growth(data: ArtifactData, star_level: int) -> void:
 			data.summon_attack *= 2.0
 		"crossbow_puppet", "poison_bug":
 			data.summon_attack *= 1.55
+			if data.id == "poison_bug":
+				data.summon_base_count += 2
 
 static func _describe_summon_star_effect(data: ArtifactData, star_level: int) -> String:
 	var preview: ArtifactData = data.duplicate(true) as ArtifactData

@@ -42,6 +42,7 @@ func try_spawn_extra_unit() -> void:
 	if units.size() < _max_count():
 		var unit := _make_unit(units.size())
 		unit.global_position = _safe_spawn_position(unit.slot_index)
+		unit.call("_play_spawn_effect")
 
 func on_unit_died(unit: SummonUnit) -> void:
 	if data != null and data.summon_death_burst:
@@ -66,6 +67,7 @@ func _spawn_missing_units() -> void:
 	while units.size() < _max_count():
 		var unit := _make_unit(units.size())
 		unit.global_position = _safe_spawn_position(unit.slot_index)
+		unit.call("_play_spawn_effect")
 
 func _make_unit(index: int) -> SummonUnit:
 	var unit := SummonUnit.new()

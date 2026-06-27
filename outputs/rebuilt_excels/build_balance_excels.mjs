@@ -221,6 +221,7 @@ function summonPreview(a, star) {
   if (star < 3) return p;
   if (["sword_puppet", "iron_guard_puppet", "turret", "ghost"].includes(a.id)) p.attack *= 2.0;
   if (["crossbow_puppet", "poison_bug"].includes(a.id)) p.attack *= 1.55;
+  if (a.id === "poison_bug") p.count += 2;
   return p;
 }
 
@@ -502,6 +503,66 @@ function swordDesignNote(a, kind) {
       role: "5费多目标持续压制和拘魂清场，幽魂数量、寿命和搜索范围均有限制。",
       fields: "max_targets, count, summon_base_count, summon_respawn_time, summon_combat_radius, secondary_damage_mult, secondary_radius, delayed_strike_count, poison_explosion_damage_mult",
     },
+    sword_puppet: {
+      performance: "玩家身旁召唤阵显形，木质几何人形落地后追击近敌，近战挥砍产生短刀光和命中闪光。",
+      star3: "普通挥砍后按secondary_delay独立冷却触发短距离跃斩，落点按explosion_radius造成范围伤害。",
+      role: "1费基础前排近战输出，可被攻击，死亡后按summon_respawn_time重生。",
+      fields: "summon_base_count, summon_hp, summon_attack, summon_attack_speed, summon_return_radius, secondary_damage_mult, secondary_radius, secondary_delay, explosion_radius",
+      ai: "主动追击近敌；超过summon_return_radius优先返回玩家附近；轻量软分离。",
+      aggro: "有仇恨，可被敌人主动选择。",
+      vulnerable: "可受伤。",
+      death: "死亡隐藏并禁用碰撞，显示重生印记，summon_respawn_time后在玩家附近满状态重生。",
+    },
+    crossbow_puppet: {
+      performance: "侧后方召唤阵显形，保持secondary_radius理想距离，蓄能后发射带拖尾灵能箭；多单位有短蓄能窗口形成齐射感。",
+      star3: "每delayed_strike_count次攻击蓄力齐射三支扇形箭，侧箭按side_projectile_damage_mult造成伤害。",
+      role: "1费基础后排持续输出，可被攻击，死亡后重生。",
+      fields: "summon_attack_speed, projectile_speed, secondary_radius, delayed_strike_delay, delayed_strike_count, fan_angle, side_projectile_damage_mult",
+      ai: "保持secondary_radius理想距离；过近后退，过远靠近；超过活动范围返回。",
+      aggro: "有仇恨，可被敌人主动选择。",
+      vulnerable: "可受伤。",
+      death: "死亡后按summon_respawn_time在玩家附近重生，清理旧目标和状态。",
+    },
+    iron_guard_puppet: {
+      performance: "厚重召唤阵落地，移动到玩家与目标之间，慢速重击并周期性释放嘲讽波纹和敌人标记。",
+      star3: "嘲讽时展开短时护盾领域，自身按secondary_damage_mult获得减伤，持续duration。",
+      role: "2费核心坦克，可被攻击，高生命，死亡后重生。",
+      fields: "summon_hp, radius, summon_return_radius, duration, secondary_damage_mult, secondary_delay, secondary_radius",
+      ai: "优先站在玩家与目标之间；周期嘲讽radius内敌人；过远返回。",
+      aggro: "有仇恨，且嘲讽期间强制附近敌人攻击它。",
+      vulnerable: "可受伤，三星嘲讽期间自身减伤。",
+      death: "死亡碎裂并显示重生印记，summon_respawn_time后重新部署到玩家附近。",
+    },
+    turret: {
+      performance: "地面部署阵后固定升起，炮管锁敌蓄能发射爆炸炮弹；离玩家超过summon_return_radius后按secondary_delay重新部署。",
+      star3: "增加副炮口，每次攻击极短间隔追加第二枚炮弹，副炮按secondary_damage_mult造成伤害并优先不同目标。",
+      role: "3费固定远程范围火力，默认可受伤，重新部署期间不攻击。",
+      fields: "summon_return_radius, secondary_delay, explosion_radius, delayed_strike_interval, secondary_damage_mult",
+      ai: "固定不移动；自动索敌；玩家离开过远后收起并延迟重新部署。",
+      aggro: "有仇恨，保持当前项目默认可被敌人选择。",
+      vulnerable: "可受伤。",
+      death: "沿用召唤物死亡/重生；另有过远重新部署逻辑。",
+    },
+    ghost: {
+      performance: "水波召唤印记中浮现，无实体阻挡、无仇恨、普通伤害无效；锁敌后拉长并穿过目标，留下半透明拖尾。",
+      star3: "第一次穿过后在secondary_radius内寻找第二目标，立即二段转向冲刺，伤害按secondary_damage_mult。",
+      role: "4费无敌无仇恨高速穿透输出，不承担坦克职责，无死亡重生。",
+      fields: "summon_base_count, summon_move_speed, length, width, secondary_damage_mult, secondary_radius, secondary_delay",
+      ai: "玩家附近漂浮；锁敌后直线冲刺穿过并在目标后方停顿；过远返回。",
+      aggro: "无仇恨，敌人不会主动锁定。",
+      vulnerable: "普通伤害无效。",
+      death: "无死亡和重生。",
+    },
+    poison_bug: {
+      performance: "毒色召唤纹路中爬出虫群，低频批量索敌并按槽位分配目标，软分离围攻撕咬并附加不无限叠加中毒。",
+      star3: "数量额外增加；中毒敌人死亡触发小型毒爆，范围=poison_explosion_radius，伤害=poison_explosion_damage_mult，并受delayed_strike_count连锁上限约束。",
+      role: "5费虫潮数量压制，无仇恨但可被范围伤害波及，沿用现有补充规则。",
+      fields: "summon_base_count, summon_combat_radius, poison_can_stack, poison_explosion_radius, poison_explosion_damage_mult, delayed_strike_count",
+      ai: "低频分批索敌；按槽位分配最近目标；软分离围攻，避免全员完全重叠。",
+      aggro: "无仇恨，敌人不会主动锁定。",
+      vulnerable: "可被范围伤害或非锁定伤害波及。",
+      death: "沿用现有毒虫补充逻辑；不为每只虫单独无限重生。",
+    },
   };
   return notes[a.id]?.[kind] ?? "";
 }
@@ -515,6 +576,10 @@ function buildConfigWorkbook(data) {
     名称: a.display_name,
     描述: a.description,
     攻击表现: swordDesignNote(a, "performance"),
+    AI行为: swordDesignNote(a, "ai"),
+    是否有仇恨值: swordDesignNote(a, "aggro"),
+    是否可受伤: swordDesignNote(a, "vulnerable"),
+    死亡与重生规则: swordDesignNote(a, "death"),
     三星机制: swordDesignNote(a, "star3"),
     战斗定位: swordDesignNote(a, "role"),
     新增关键字段: swordDesignNote(a, "fields"),

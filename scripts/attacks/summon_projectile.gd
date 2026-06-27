@@ -11,14 +11,18 @@ var traveled: float = 0.0
 var explosive: bool = false
 var bounce_remaining: int = 0
 var hit_enemies: Dictionary = {}
+var damage_multiplier: float = 1.0
 
-func setup(unit: SummonUnit, owner_player: Node2D, artifact_data: ArtifactData, target: Node2D, use_explosion: bool) -> void:
+func setup(unit: SummonUnit, owner_player: Node2D, artifact_data: ArtifactData, target: Node2D, use_explosion: bool, projectile_damage_multiplier: float = 1.0, direction_override: Vector2 = Vector2.ZERO) -> void:
 	source_unit = unit
 	player = owner_player
 	data = artifact_data
 	explosive = use_explosion
+	damage_multiplier = maxf(0.0, projectile_damage_multiplier)
 	global_position = unit.global_position
-	if target != null:
+	if direction_override.length_squared() > 0.001:
+		direction = direction_override.normalized()
+	elif target != null:
 		direction = global_position.direction_to(target.global_position)
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
@@ -44,7 +48,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	hit_enemies[body] = true
 	if source_unit != null:
-		source_unit.damage_enemy(body as Node2D, data.summon_attack)
+		source_unit.damage_enemy(body as Node2D, data.summon_attack * damage_multiplier)
 	if explosive:
 		_explode()
 		queue_free()
@@ -77,7 +81,7 @@ func _explode() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				if source_unit != null:
-					source_unit.damage_enemy(candidate as Node2D, data.summon_attack)
+					source_unit.damage_enemy(candidate as Node2D, data.summon_attack * damage_multiplier)
 	HitEffectManager.spawn_hit(get_tree(), global_position, "fire", Vector2.UP, radius)
 
 func _build_shape() -> void:
@@ -87,6 +91,22 @@ func _build_shape() -> void:
 	projectile_collision.shape = shape
 	add_child(projectile_collision)
 	var visual_poly := Polygon2D.new()
-	visual_poly.polygon = PackedVector2Array([Vector2(10, 0), Vector2(-6, -4), Vector2(-3, 0), Vector2(-6, 4)])
-	visual_poly.color = data.visual_color
+	if explosive:
+		visual_poly.polygon = _circle_points(7.0, 14)
+		visual_poly.color = Color(1.0, 0.34, 0.08, 0.9)
+	else:
+		visual_poly.polygon = PackedVector2Array([Vector2(12, 0), Vector2(-8, -3), Vector2(-4, 0), Vector2(-8, 3)])
+		visual_poly.color = data.visual_color
 	add_child(visual_poly)
+	var trail := Line2D.new()
+	trail.width = 2.5
+	trail.default_color = Color(data.visual_color.r, data.visual_color.g, data.visual_color.b, 0.42)
+	trail.points = PackedVector2Array([Vector2(-22, 0), Vector2.ZERO])
+	add_child(trail)
+
+func _circle_points(radius: float, segments: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for index in segments:
+		var angle := TAU * float(index) / float(segments)
+		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
