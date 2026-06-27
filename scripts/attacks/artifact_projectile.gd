@@ -37,6 +37,12 @@ func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) 
 	if data.id == "flying_sword":
 		global_position += Vector2(0.0, -18.0).rotated(direction.angle()) + direction.orthogonal() * float(data.get_meta("flying_sword_side_index", 0)) * 12.0
 		charge_remaining = maxf(0.0, data.windup_time)
+	if data.id == "fire_orb":
+		global_position += direction.orthogonal() * 18.0
+		charge_remaining = maxf(0.0, data.windup_time)
+	if data.id == "copper_coin":
+		global_position += direction * 18.0
+		charge_remaining = maxf(0.0, data.windup_time)
 	if data.id == "giant_sword_art":
 		charge_remaining = maxf(0.0, data.reveal_time + data.pause_time)
 	charge_total = charge_remaining
@@ -132,6 +138,12 @@ func _on_body_entered(body: Node) -> void:
 	if bounce_remaining > 0 and _bounce_to_next_enemy():
 		bounce_remaining -= 1
 		return
+	if data.id == "copper_coin":
+		if int(data.get_meta("star_level", 1)) >= 3 and not bool(data.get_meta("split_coin", false)):
+			_split_copper_coin()
+		_shatter_coin()
+		queue_free()
+		return
 	if data.id == "flying_sword":
 		return
 	if return_remaining > 0:
@@ -163,6 +175,8 @@ func _prepare_charge_visual() -> void:
 	if data.id == "giant_sword_art":
 		visual_node.scale = Vector2(0.08, 1.0)
 		visual_node.modulate.a = 0.72
+	elif data.id == "fire_orb":
+		visual_node.scale = Vector2(0.2, 0.2)
 	elif data.id == "flying_sword":
 		visual_node.scale = Vector2(0.86, 0.86)
 
@@ -175,8 +189,16 @@ func _update_charge_visual() -> void:
 		visual_node.modulate.a = lerpf(0.52, 1.0, reveal_t)
 	elif data.id == "flying_sword":
 		visual_node.scale = Vector2.ONE * (0.92 + 0.08 * sin(Time.get_ticks_msec() * 0.035))
+	elif data.id == "fire_orb":
+		var t: float = clampf((charge_total - charge_remaining) / maxf(0.01, charge_total), 0.0, 1.0)
+		visual_node.scale = Vector2.ONE * lerpf(0.2, 1.0, t)
+	elif data.id == "copper_coin":
+		visual_node.rotation += 0.45
 
 func _explode(direct_target: Node) -> void:
+	if data.id == "fire_orb":
+		_explode_fire_orb(direct_target)
+		return
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate == direct_target:
 			continue
@@ -192,6 +214,43 @@ func _explode(direct_target: Node) -> void:
 	get_tree().current_scene.add_child(blast)
 	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(blast, "modulate:a", 0.0, 0.18)
+	tween.tween_callback(blast.queue_free)
+
+func _explode_fire_orb(direct_target: Node) -> void:
+	if is_instance_valid(visual_node):
+		var shrink := get_tree().create_tween()
+		shrink.tween_property(visual_node, "scale", Vector2(0.35, 0.35), 0.045)
+		await shrink.finished
+	var radius: float = maxf(8.0, explosion_radius)
+	_damage_explosion(radius, damage, direct_target)
+	_spawn_orb_blast(radius, Color(1.0, 0.32, 0.06, 0.36))
+	if int(data.get_meta("star_level", 1)) >= 3 and data.secondary_damage_mult > 0.0:
+		await get_tree().create_timer(maxf(0.04, data.secondary_delay)).timeout
+		var radius2: float = radius * maxf(1.0, data.secondary_radius)
+		_damage_explosion(radius2, damage * data.secondary_damage_mult, null)
+		_spawn_orb_blast(radius2, Color(1.0, 0.58, 0.16, 0.2))
+
+func _damage_explosion(radius: float, base_damage: float, direct_target: Node) -> void:
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate == direct_target:
+			continue
+		if candidate is Node2D and candidate.has_method("take_damage"):
+			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
+				var killed: bool = bool(candidate.call("take_damage", _get_damage(base_damage), source))
+				_notify_artifact_damage()
+				_apply_kill_heal(killed)
+
+func _spawn_orb_blast(radius: float, color: Color) -> void:
+	var blast := Line2D.new()
+	blast.width = maxf(4.0, radius * 0.08)
+	blast.default_color = color
+	blast.closed = true
+	blast.points = _circle_points(maxf(4.0, radius * 0.25))
+	blast.global_position = global_position
+	get_tree().current_scene.add_child(blast)
+	var tween := get_tree().create_tween()
+	tween.tween_property(blast, "scale", Vector2.ONE * 4.0, 0.18)
+	tween.parallel().tween_property(blast, "modulate:a", 0.0, 0.18)
 	tween.tween_callback(blast.queue_free)
 
 func _poison_explode() -> void:
@@ -232,19 +291,55 @@ func _get_damage(base_damage: float) -> float:
 func _bounce_to_next_enemy() -> bool:
 	var next_enemy: Node2D
 	var nearest_distance: float = INF
+	var fallback_enemy: Node2D
+	var fallback_distance: float = INF
 	for candidate in get_tree().get_nodes_in_group("enemies"):
-		if not candidate is Node2D or hit_enemies.has(candidate):
+		if not candidate is Node2D:
 			continue
 		var distance: float = global_position.distance_to((candidate as Node2D).global_position)
-		if distance <= bounce_range and distance < nearest_distance:
+		if distance > bounce_range:
+			continue
+		if not hit_enemies.has(candidate) and distance < nearest_distance:
 			next_enemy = candidate as Node2D
 			nearest_distance = distance
+		elif distance < fallback_distance:
+			fallback_enemy = candidate as Node2D
+			fallback_distance = distance
+	if next_enemy == null:
+		next_enemy = fallback_enemy
 	if next_enemy == null:
 		return false
 	HitEffectManager.spawn_coin_path(get_tree(), global_position, next_enemy.global_position)
 	direction = global_position.direction_to(next_enemy.global_position)
 	rotation = direction.angle()
 	return true
+
+func _split_copper_coin() -> void:
+	var targets: Array[Node2D] = []
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate is Node2D and candidate.has_method("take_damage") and global_position.distance_to((candidate as Node2D).global_position) <= maxf(bounce_range, data.secondary_radius):
+			targets.append(candidate as Node2D)
+	targets.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b.global_position)
+	)
+	var split_count: int = maxi(1, data.count)
+	for index in split_count:
+		if targets.is_empty():
+			break
+		var target: Node2D = targets[index % targets.size()]
+		var split_data: ArtifactData = data.duplicate(true) as ArtifactData
+		split_data.damage *= maxf(0.0, data.secondary_damage_mult)
+		split_data.projectile_bounce = 0
+		split_data.bounce_count = 0
+		split_data.range = global_position.distance_to(target.global_position) + 16.0
+		split_data.set_meta("split_coin", true)
+		var coin := ArtifactProjectile.new()
+		get_parent().add_child(coin)
+		coin.setup(source as Node2D, global_position.direction_to(target.global_position), split_data)
+		coin.global_position = global_position
+
+func _shatter_coin() -> void:
+	HitEffectManager.spawn_hit(get_tree(), global_position, "coin", direction, 14.0)
 
 func _circle_points(radius: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()

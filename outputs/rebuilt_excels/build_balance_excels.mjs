@@ -424,6 +424,48 @@ function swordDesignNote(a, kind) {
       role: "5费超大范围视觉高潮和清场输出。",
       fields: "reveal_time, pause_time, sweep_rotation_speed, trail_length",
     },
+    fire_orb: {
+      performance: "光点凝聚成法球，短暂停顿后飞行，命中后收缩并爆炸为圆形冲击波。",
+      star3: "第一次爆炸后延迟触发更大、更淡、低伤的第二次爆炸。",
+      role: "1费标准法修发射物，中速基础AOE。",
+      fields: "windup_time, explosion_radius, secondary_delay, secondary_radius, secondary_damage_mult",
+    },
+    copper_coin: {
+      performance: "铜钱旋转发射，命中后按目标搜索范围折线弹射并留下短暂金色轨迹。",
+      star3: "最后一次弹射后分裂为多枚小铜钱，优先攻击不同目标。",
+      role: "1费高频弹射，连续打击多个目标。",
+      fields: "bounce_count, bounce_range, projectile_speed, count, secondary_damage_mult, secondary_radius",
+    },
+    magic_ring: {
+      performance: "法环展开并蓄力，随后轰出短持续超长直线光束。",
+      star3: "主光束路径留下光痕，延迟后整条路径二次爆发。",
+      role: "2费短前摇、高爆发、贯穿光束。",
+      fields: "windup_time, range, width, secondary_delay, secondary_radius, secondary_damage_mult",
+    },
+    brush: {
+      performance: "毛笔飞向目标区域，三笔写出抽象符印，完整形成后统一爆发。",
+      star3: "爆发后残留墨阵，按固定脉冲造成低伤并减速。",
+      role: "3费延迟AOE、区域布置和控场。",
+      fields: "radius, delayed_strike_interval, tick_interval, duration, secondary_damage_mult, slow_percent",
+    },
+    guqin: {
+      performance: "古琴虚影拨弦，按顺序释放三层弧形音波并施加伤害降低。",
+      star3: "第三层音波改为以角色为中心的环形音波。",
+      role: "3费大范围多段音波辅助，偏生存和削弱。",
+      fields: "range, fan_angle, delayed_strike_interval, damage_reduction_percent, debuff_duration",
+    },
+    fire_gourd: {
+      performance: "火葫芦锁定密集方向，短前摇后按固定脉冲喷出多层锥形火浪。",
+      star3: "喷火结束后吐出火种，爆炸并留下固定脉冲燃烧区域。",
+      role: "4费中近距离持续锥形清群，多段伤害和灼烧。",
+      fields: "windup_time, duration, tick_interval, fan_angle, poison_dps, explosion_radius, delayed_strike_interval",
+    },
+    divine_thunder: {
+      performance: "稳定选择敌人密集区域，预警圈后主雷落下，并连锁附近目标。",
+      star3: "主雷后生成雷劫区域，按间隔落下多道副雷。",
+      role: "5费远程天降爆发，大范围高伤和连锁清场。",
+      fields: "windup_time, radius, count, bounce_range, delayed_strike_count, delayed_strike_interval, secondary_radius",
+    },
   };
   return notes[a.id]?.[kind] ?? "";
 }

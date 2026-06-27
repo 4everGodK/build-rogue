@@ -2,6 +2,16 @@ extends RefCounted
 class_name ProjectileAttackTemplate
 
 static func execute(player: Node2D, container: Node, data: ArtifactData, direction: Vector2, extra_count: int = 0, extra_damage_multiplier: float = 0.0, extra_directions: Array[Vector2] = []) -> void:
+	if data.id == "magic_ring":
+		var ring_attack: Node = load("res://scripts/attacks/magic_ring_attack_node.gd").new()
+		container.add_child(ring_attack)
+		ring_attack.setup(player, data, direction)
+		return
+	if data.id == "guqin":
+		var guqin_attack: Node = load("res://scripts/attacks/guqin_attack_node.gd").new()
+		container.add_child(guqin_attack)
+		guqin_attack.setup(player, data, direction)
+		return
 	if data.id == "flying_sword" and int(data.get_meta("star_level", 1)) >= 3:
 		_execute_triple_flying_sword(player, container, data, direction)
 		return
