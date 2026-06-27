@@ -58,7 +58,7 @@ func update(delta: float, player: Node2D, attack_container: Node, target_reserva
 		direction = _dense_enemy_direction(player, direction)
 	var spends_life_during_attack: bool = data.attack_template == "beam"
 	if not spends_life_during_attack and data.life_cost_percent > 0.0 and player.has_method("spend_life_percent"):
-		player.call("spend_life_percent", data.life_cost_percent)
+		player.call("spend_life_percent", data.life_cost_percent, data.life_cost_min_hp_ratio)
 	if not spends_life_during_attack and data.life_cost_flat > 0.0 and player.has_method("spend_life_flat"):
 		player.call("spend_life_flat", data.life_cost_flat, data.life_cost_min_hp_ratio)
 	var runtime_data := _make_runtime_data(player)

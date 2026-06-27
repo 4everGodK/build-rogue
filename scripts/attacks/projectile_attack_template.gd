@@ -12,6 +12,16 @@ static func execute(player: Node2D, container: Node, data: ArtifactData, directi
 		container.add_child(guqin_attack)
 		guqin_attack.setup(player, data, direction)
 		return
+	if data.id == "blood_slash":
+		var blood_slash: Node = load("res://scripts/attacks/blood_slash_attack_node.gd").new()
+		container.add_child(blood_slash)
+		blood_slash.setup(player, data, direction)
+		return
+	if data.id == "poison_needle":
+		var poison_needle: Node = load("res://scripts/attacks/poison_needle_attack_node.gd").new()
+		container.add_child(poison_needle)
+		poison_needle.setup(player, data, direction)
+		return
 	if data.id == "flying_sword" and int(data.get_meta("star_level", 1)) >= 3:
 		_execute_triple_flying_sword(player, container, data, direction)
 		return

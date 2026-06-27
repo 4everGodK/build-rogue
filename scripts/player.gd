@@ -118,17 +118,21 @@ func add_shield(amount: float, maximum: float = 0.0) -> void:
 	shield = minf(cap, shield + maxf(0.0, amount))
 	shield_changed.emit(shield, cap)
 
-func spend_life_percent(percent: float) -> void:
+func spend_life_percent(percent: float, min_hp_ratio: float = 0.0) -> void:
 	var cost: int = maxi(1, int(ceil(float(max_hp) * maxf(0.0, percent) * 0.01)))
-	hp = maxi(1, hp - cost)
+	var floor_hp: int = maxi(1, int(ceil(float(max_hp) * maxf(0.0, min_hp_ratio))))
+	if min_hp_ratio > 0.0 and hp <= floor_hp:
+		return
+	hp = maxi(floor_hp if min_hp_ratio > 0.0 else 1, hp - cost)
 	hp_changed.emit(hp, max_hp)
 
 func spend_life_flat(amount: float, min_hp_ratio: float = 0.0) -> void:
 	if amount <= 0.0:
 		return
-	if min_hp_ratio > 0.0 and get_hp_ratio() < min_hp_ratio:
+	var floor_hp: int = maxi(1, int(ceil(float(max_hp) * maxf(0.0, min_hp_ratio))))
+	if min_hp_ratio > 0.0 and hp <= floor_hp:
 		return
-	hp = maxi(1, hp - int(ceil(amount)))
+	hp = maxi(floor_hp if min_hp_ratio > 0.0 else 1, hp - int(ceil(amount)))
 	hp_changed.emit(hp, max_hp)
 
 func set_artifact_cooldown_multiplier(multiplier: float) -> void:

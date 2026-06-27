@@ -466,6 +466,42 @@ function swordDesignNote(a, kind) {
       role: "5费远程天降爆发，大范围高伤和连锁清场。",
       fields: "windup_time, radius, count, bounce_range, delayed_strike_count, delayed_strike_interval, secondary_radius",
     },
+    blood_sword: {
+      performance: "抽出血色流光凝成短血剑，近距离厚重血色剑光挥砍，命中留下短血痕，结束后崩成血雾。",
+      star3: "命中的敌人留下血痕，按secondary_delay延迟爆裂，按secondary_damage_mult造成小范围低伤。",
+      role: "1费近战高伤害，消耗生命换输出，击杀按kill_heal_amount回血。",
+      fields: "life_cost_flat, life_cost_min_hp_ratio, kill_heal_amount, windup_time, secondary_damage_mult, secondary_radius, secondary_delay",
+    },
+    blood_slash: {
+      performance: "血流压缩成宽大弯月血刃，蓄力后直线飞出，沿途穿透并留下残月血色轨迹。",
+      star3: "到达最大距离后按pause_time停顿，再以return_speed返回；去程和回程分别维护命中记录。",
+      role: "2费宽直线清线，消耗生命，击杀回血。",
+      fields: "life_cost_flat, life_cost_min_hp_ratio, kill_heal_amount, windup_time, return_speed, pause_time, secondary_damage_mult",
+    },
+    poison_needle: {
+      performance: "身侧浮现数根细毒针，短暂停顿后以极短间隔连续射出，命中附加非无限叠加中毒标记。",
+      star3: "每delayed_strike_count次普通攻击追加一轮扇形针雨，数量=bounce_count，伤害按secondary_damage_mult。",
+      role: "2费高频低直伤，主要依靠中毒持续输出，不消耗生命。",
+      fields: "count, delayed_strike_count, delayed_strike_interval, bounce_count, fan_angle, secondary_damage_mult, poison_can_stack",
+    },
+    heaven_eye: {
+      performance: "天眼睁开并锁定目标，光束按tick_interval固定脉冲造成持续伤害，击杀后自动转火。",
+      star3: "主光束外额外分出两条副光束，副光束优先锁定不同目标并按side_projectile_damage_mult造成伤害。",
+      role: "3费持续单体压制，对精英和Boss稳定，持续耗血并击杀回血。",
+      fields: "duration, tick_interval, range, life_cost_flat, life_cost_min_hp_ratio, kill_heal_amount, side_projectile_damage_mult",
+    },
+    scythe: {
+      performance: "长柄镰刀后拉后大弧挥砍，仅外圈镰刃环带造成伤害，命中抽出生命丝线回血。",
+      star3: "第一轮结束后按secondary_delay反向再挥一轮，第二轮伤害按secondary_damage_mult。",
+      role: "4费中近距离外圈收割和续航，回血按实际伤害比例并受shield_max单轮上限限制。",
+      fields: "fan_angle, length, width, heal_amount, shield_max, secondary_damage_mult, secondary_delay",
+    },
+    soul_banner: {
+      performance: "招魂幡连接多名敌人，魂线按tick_interval固定脉冲压制和伤害；被本轮连接/伤害过的敌人死亡生成幽魂冲击。",
+      star3: "连接数提升到count，幽魂体积和爆炸范围按secondary_radius放大；累计delayed_strike_count只幽魂释放魂波。",
+      role: "5费多目标持续压制和拘魂清场，幽魂数量、寿命和搜索范围均有限制。",
+      fields: "max_targets, count, summon_base_count, summon_respawn_time, summon_combat_radius, secondary_damage_mult, secondary_radius, delayed_strike_count, poison_explosion_damage_mult",
+    },
   };
   return notes[a.id]?.[kind] ?? "";
 }
