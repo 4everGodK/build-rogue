@@ -95,7 +95,9 @@ func add_cultivation(amount: int) -> bool:
 	cultivation_message.emit("修为 +%d（%d/%d）" % [amount, cultivation_progress, requirement])
 	return false
 
-func roll_shop_tier() -> String:
+func roll_shop_tier(force_lowest_tier: bool = false) -> String:
+	if force_lowest_tier:
+		return TIER_NAMES[0]
 	var weights: Dictionary = SHOP_TIER_WEIGHTS.get(get_realm(), SHOP_TIER_WEIGHTS["炼气"])
 	var total: int = 0
 	for tier in TIER_NAMES:

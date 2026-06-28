@@ -25,7 +25,7 @@ static func execute(player: Node2D, container: Node, data: ArtifactData, directi
 	if data.id == "flying_sword" and int(data.get_meta("star_level", 1)) >= 3:
 		_execute_triple_flying_sword(player, container, data, direction)
 		return
-	var base_count: int = maxi(1, data.count)
+	var base_count: int = 1 if data.id == "copper_coin" else maxi(1, data.count)
 	var extra_to_fire: int = mini(maxi(0, extra_count), extra_directions.size())
 	var total_count: int = base_count + extra_to_fire
 	for index in range(total_count):

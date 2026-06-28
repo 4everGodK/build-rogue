@@ -17,6 +17,11 @@ static func execute(player: Node2D, container: Node, data: ArtifactData, directi
 		container.add_child(attack)
 		attack.setup(player, data, direction)
 		return
+	if data.id in ["fist", "palm", "kick", "roar"]:
+		var attack: Node = load("res://scripts/attacks/body_melee_attack_node.gd").new()
+		container.add_child(attack)
+		attack.setup(player, data, direction)
+		return
 	var attack := MeleeAttackNode.new()
 	container.add_child(attack)
 	attack.setup(player, data, direction)

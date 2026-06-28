@@ -11,7 +11,7 @@ signal died(gold_reward: int)
 @export var contact_damage_interval: float = 0.8
 @export var gold_reward: int = 1
 @export var death_animation_duration: float = 0.15
-@export var arena_half_size: Vector2 = Vector2(784.0, 464.0)
+@export var arena_half_size: Vector2 = Vector2(560.0, 336.0)
 
 var hp: float = max_hp
 var player: Player

@@ -383,6 +383,50 @@ function makeOverview(workbook, data, title, notes) {
 
 function swordDesignNote(a, kind) {
   const notes = {
+    fist: {
+      performance: "角色前方快速凝出左右交替拳影，短距离冲出命中最近敌人，命中有短促冲击闪光。",
+      star3: "每delayed_strike_count次攻击触发三连拳，第三拳更大并按secondary_radius产生小范围冲击波。",
+      role: "1费快速近身单体输出，高频稳定打最近目标。",
+      fields: "count, delayed_strike_count, delayed_strike_interval, secondary_damage_mult, secondary_radius, side_projectile_damage_mult",
+    },
+    palm: {
+      performance: "半透明大掌印短暂凝聚后向前推进，视觉扇形和伤害/击退判定保持一致。",
+      star3: "主掌后按secondary_delay追加较淡余劲掌风，按secondary_damage_mult造成低伤并轻击退。",
+      role: "1费前方扇形控场，伤害中等，主打击退正面敌群。",
+      fields: "windup_time, length, width, knockback_force, secondary_delay, secondary_damage_mult, side_projectile_damage_mult",
+    },
+    kick: {
+      performance: "角色周围生成旋转腿罡横扫一圈，环形半径随体修范围加成同步放大。",
+      star3: "第一圈后按secondary_delay反向再扫一圈，第二圈按secondary_damage_mult并用secondary_radius扩大范围。",
+      role: "2费贴身环形解围，高伤并轻微击退周围敌人。",
+      fields: "radius, knockback_force, secondary_damage_mult, secondary_radius, secondary_delay, sweep_rotation_speed",
+    },
+    roar: {
+      performance: "短蓄气后向目标方向释放多层锥形声浪，扫过敌人时造成伤害并刷新减速。",
+      star3: "主声浪后在角色周围追加环形余吼，范围=secondary_radius，伤害按secondary_damage_mult。",
+      role: "2费中距离锥形控制，偏减速和阻止敌群接近。",
+      fields: "windup_time, length, width, fan_angle, slow_percent, debuff_duration, secondary_radius, secondary_damage_mult",
+    },
+    body_barrier: {
+      oldName: "罩",
+      performance: "角色周围形成气血护罩，先收缩再爆发成厚重震荡波，命中敌人后气血流光回到角色。",
+      star3: "第一次爆发后保留余罩，按secondary_delay触发第二次较低伤震荡和较低上限回血。",
+      role: "3费周身周期爆发、近身防护与续航。",
+      fields: "radius, duration, windup_time, tick_interval, knockback_force, heal_amount, shield_max, shield_amount, secondary_damage_mult, secondary_radius, secondary_delay",
+    },
+    thorn_armor: {
+      oldName: "反甲",
+      performance: "主动凝出半透明巨手，锁定前方/附近密集区域，牵引普通敌人到中心后握紧砸击。",
+      star3: "第一只巨手后生成第二只手合击中心，按secondary_damage_mult和secondary_radius造成额外范围伤害。",
+      role: "4费中距离聚怪与高额控制伤害核心；旧受伤反击机制已取消。",
+      fields: "range, radius, max_targets, tick_interval, windup_time, knockback_force, secondary_damage_mult, secondary_radius, secondary_delay",
+    },
+    golden_body_avatar: {
+      performance: "角色背后常驻低透明法相，攻击时增亮抬手，砸向敌人密集区域并生成冲击波和地裂。",
+      star3: "法相变大，第一次砸地后按secondary_delay偏移位置进行第二次低伤大范围砸地。",
+      role: "5费体修最终大范围高伤、高击退、低频视觉高潮。",
+      fields: "range, radius, windup_time, tick_interval, knockback_force, secondary_damage_mult, secondary_radius, secondary_delay, screen_shake_strength",
+    },
     one_handed_sword: {
       performance: "左右交替短剑光，命中生成短促十字闪光。",
       star3: "每第三击变为X形双斩，额外剑光按secondary_damage_mult造成伤害。",
@@ -573,6 +617,7 @@ function buildConfigWorkbook(data) {
 
   const artifactRows = data.artifacts.map((a) => ({
     id: a.id,
+    原名称: swordDesignNote(a, "oldName"),
     名称: a.display_name,
     描述: a.description,
     攻击表现: swordDesignNote(a, "performance"),
@@ -802,7 +847,7 @@ function buildSystemWorkbook(data) {
     ["attribute_tag", "法宝", "属性羁绊：金、木、水、火、土、雷、毒。"],
     ["tier", "法宝", "品阶，同时决定基础价格。"],
     ["attack_template", "法宝", "攻击模板：melee/projectile/orbit/beam/formation/line_delayed/summon/target_aoe/soul_banner。"],
-    ["effect_type", "法宝", "特殊效果类型：damage/slow/attack_speed/heal/shield/damage_reduction/counter_damage/avatar_slam。"],
+    ["effect_type", "法宝", "特殊效果类型：damage/slow/attack_speed/heal/shield/damage_reduction/avatar_slam。"],
     ["damage/cooldown", "法宝", "基础伤害和基础冷却，星级与羁绊可修改。"],
     ["shop_weight", "法宝", "同品阶内抽取权重。"],
     ["damage_multiplier", "天命/奇遇", "整局或条件性伤害倍率。"],

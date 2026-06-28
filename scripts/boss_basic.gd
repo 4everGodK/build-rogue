@@ -14,6 +14,18 @@ var bullet_timer: float = 3.0
 var charging: bool = false
 var charge_time_left: float = 0.0
 var charge_direction: Vector2 = Vector2.RIGHT
+var health_fill: Polygon2D
+
+func _ready() -> void:
+	super._ready()
+	add_to_group("bosses")
+	_create_health_bar()
+	_update_health_bar()
+
+func take_damage(amount: float, source = null) -> bool:
+	var killed: bool = super.take_damage(amount, source)
+	_update_health_bar()
+	return killed
 
 func _physics_process(delta: float) -> void:
 	if dying:
@@ -72,3 +84,42 @@ func _fire_ring() -> void:
 		var bullet := BossBullet.new()
 		get_tree().current_scene.add_child(bullet)
 		bullet.setup(global_position, Vector2(cos(angle), sin(angle)), bullet_damage)
+
+func _create_health_bar() -> void:
+	var root := Node2D.new()
+	root.name = "BossHealthBar"
+	root.position = Vector2(0.0, -58.0)
+	root.z_index = 20
+	add_child(root)
+
+	var back := Polygon2D.new()
+	back.color = Color(0.08, 0.04, 0.06, 0.82)
+	back.polygon = PackedVector2Array([
+		Vector2(-42.0, -5.0),
+		Vector2(42.0, -5.0),
+		Vector2(42.0, 5.0),
+		Vector2(-42.0, 5.0),
+	])
+	root.add_child(back)
+
+	health_fill = Polygon2D.new()
+	health_fill.color = Color(0.9, 0.08, 0.16, 0.94)
+	health_fill.polygon = PackedVector2Array([
+		Vector2(0.0, -3.5),
+		Vector2(80.0, -3.5),
+		Vector2(80.0, 3.5),
+		Vector2(0.0, 3.5),
+	])
+	health_fill.position = Vector2(-40.0, 0.0)
+	root.add_child(health_fill)
+
+	var shine := Line2D.new()
+	shine.width = 1.0
+	shine.default_color = Color(1.0, 0.74, 0.78, 0.42)
+	shine.points = PackedVector2Array([Vector2(-39.0, -2.0), Vector2(39.0, -2.0)])
+	root.add_child(shine)
+
+func _update_health_bar() -> void:
+	if health_fill == null:
+		return
+	health_fill.scale.x = clampf(hp / maxf(1.0, max_hp), 0.0, 1.0)

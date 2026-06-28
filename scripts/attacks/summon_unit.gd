@@ -7,7 +7,7 @@ const STATE_RETURN := "Return"
 const STATE_RESPAWN := "Respawn"
 const SUMMON_COLLISION_LAYER: int = 8
 const WALL_COLLISION_LAYER: int = 4
-const DEFAULT_ARENA_SIZE: Vector2 = Vector2(1600.0, 960.0)
+const DEFAULT_ARENA_SIZE: Vector2 = Vector2(1120.0, 672.0)
 const SUMMON_ARENA_INSET: float = 42.0
 
 var player: Node2D

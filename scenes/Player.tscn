@@ -26,4 +26,4 @@ script = ExtResource("2_manager")
 enabled = true
 position_smoothing_enabled = true
 position_smoothing_speed = 7.0
-zoom = Vector2(1.05, 1.05)
+zoom = Vector2(1.2, 1.2)

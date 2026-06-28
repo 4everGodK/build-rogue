@@ -12,11 +12,17 @@ func setup(owner_player: Node2D, artifact_data: ArtifactData, fallback_direction
 	global_position = player.global_position
 	_run()
 
+func _process(_delta: float) -> void:
+	if is_instance_valid(player):
+		global_position = player.global_position
+
 func _run() -> void:
 	_spawn_gourd()
 	await get_tree().create_timer(maxf(0.04, data.windup_time)).timeout
 	var elapsed := 0.0
 	while elapsed < data.duration:
+		if is_instance_valid(player):
+			global_position = player.global_position
 		_pulse_flame()
 		await get_tree().create_timer(maxf(0.05, data.tick_interval)).timeout
 		elapsed += maxf(0.05, data.tick_interval)

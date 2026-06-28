@@ -70,7 +70,7 @@ func generate_all_offers() -> void:
 	offers_changed.emit(get_offer_dictionaries())
 
 func _roll_offer() -> ArtifactData:
-	var tier: String = cultivation.roll_shop_tier() if cultivation != null else "凡器"
+	var tier: String = cultivation.roll_shop_tier(_is_initial_shop()) if cultivation != null else "凡器"
 	var ids: Array[String] = _ids_for_tier(tier)
 	if ids.is_empty():
 		ids = _ids_for_any_available_tier()
@@ -95,10 +95,11 @@ func _roll_offer() -> ArtifactData:
 	return ArtifactCatalog.get_data(ids.back())
 
 func _roll_offer_excluding_systems(used_systems: Dictionary) -> ArtifactData:
+	var tier: String = cultivation.roll_shop_tier(_is_initial_shop()) if cultivation != null else "凡器"
 	var candidates: Array[ArtifactData] = []
 	for raw_id in ArtifactCatalog.all_ids():
 		var data := ArtifactCatalog.get_data(str(raw_id))
-		if data != null and not used_systems.has(data.system_tag) and _meets_cultivation_requirement(data):
+		if data != null and data.tier == tier and not used_systems.has(data.system_tag) and _meets_cultivation_requirement(data):
 			candidates.append(data)
 	if candidates.is_empty():
 		return _roll_offer()
@@ -138,6 +139,9 @@ func _meets_cultivation_requirement(data: ArtifactData) -> bool:
 		return true
 	var required_index: int = CultivationManager.REALMS.find(data.cultivation_requirement)
 	return required_index < 0 or cultivation.realm_index >= required_index
+
+func _is_initial_shop() -> bool:
+	return cultivation != null and cultivation.realm_index == 0 and current_cleared_wave == 0
 
 func buy_offer(index: int) -> void:
 	if index < 0 or index >= current_offers.size():

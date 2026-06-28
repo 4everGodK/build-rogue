@@ -4,10 +4,10 @@
 [ext_resource type="Texture2D" path="res://art/characters/enemies/wolf_demon.png" id="2_wolf_demon"]
 
 [sub_resource type="CircleShape2D" id="Body"]
-radius = 10.0
+radius = 9.0
 
 [sub_resource type="CircleShape2D" id="Contact"]
-radius = 16.0
+radius = 13.5
 
 [node name="EnemyFast" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
@@ -16,10 +16,12 @@ script = ExtResource("1_enemy")
 max_hp = 18.0
 move_speed = 130.0
 contact_damage = 4
+contact_radius = 17.0
+separation_radius = 26.0
 gold_reward = 1
 
 [node name="Visual" type="Sprite2D" parent="."]
-scale = Vector2(0.13, 0.13)
+scale = Vector2(0.09, 0.09)
 texture = ExtResource("2_wolf_demon")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

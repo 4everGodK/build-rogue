@@ -9,7 +9,7 @@ class_name ArtifactData
 @export_enum("金", "木", "水", "火", "土", "雷", "毒") var attribute_tag: String = "金"
 @export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon", "target_aoe", "soul_banner") var attack_template: String = "projectile"
 @export_enum("slash", "stab", "circle", "line", "cone", "head_slash", "projectile", "beam", "aura") var attack_shape: String = "projectile"
-@export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction", "counter_damage", "avatar_slam") var effect_type: String = "damage"
+@export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction", "avatar_slam") var effect_type: String = "damage"
 
 @export var damage: float = 10.0
 @export var max_hp_damage_coefficient: float = 0.0

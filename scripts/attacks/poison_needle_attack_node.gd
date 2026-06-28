@@ -20,7 +20,8 @@ func _run() -> void:
 	if _should_fire_rain():
 		await get_tree().create_timer(maxf(0.04, data.secondary_delay)).timeout
 		_fire_needle_rain()
-	await get_tree().create_timer(maxf(0.2, data.duration)).timeout
+	var needle_lifetime: float = data.range / maxf(1.0, data.projectile_speed)
+	await get_tree().create_timer(maxf(maxf(0.2, data.duration), needle_lifetime + 0.08)).timeout
 	queue_free()
 
 func _should_fire_rain() -> bool:

@@ -14,6 +14,7 @@ const HP_POWER_GROWTH_PER_WAVE: float = 0.015
 const HP_POWER_GROWTH_EXPONENT: float = 2.0
 const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.35
 const BOSS_WAVES: Array[int] = [5, 9, 13, 17, 20]
+const FIRST_BOSS_HP_MULTIPLIER: float = 0.8
 const EARLY_NORMAL_HP_MULTIPLIERS: Dictionary = {
 	1: 1.0,
 	2: 1.0,
@@ -69,7 +70,7 @@ const SURVIVAL_PACK_SIZES: Dictionary = {
 @export var tank_enemy_scene: PackedScene
 @export var boss_scene: PackedScene
 @export var spawn_margin: float = 60.0
-@export var arena_size: Vector2 = Vector2(1600.0, 960.0)
+@export var arena_size: Vector2 = Vector2(1120.0, 672.0)
 @export var survival_mode: bool = true
 
 var player: Player
@@ -177,6 +178,8 @@ func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
 		if enemy == null:
 			continue
 		enemy.max_hp *= hp_multiplier * destiny_enemy_stat_multiplier
+		if enemy is BossBasic and wave_number == 5:
+			enemy.max_hp *= FIRST_BOSS_HP_MULTIPLIER
 		enemy.contact_damage = int(ceil(float(enemy.contact_damage) * destiny_enemy_stat_multiplier))
 		if enemy is BossBasic:
 			(enemy as BossBasic).bullet_damage = int(ceil(float((enemy as BossBasic).bullet_damage) * destiny_enemy_stat_multiplier))

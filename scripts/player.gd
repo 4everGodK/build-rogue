@@ -10,7 +10,7 @@ signal died
 @export var max_hp: int = 100
 @export var invincible_duration: float = 0.5
 @export var counter_radius: float = 92.0
-@export var arena_half_size: Vector2 = Vector2(784.0, 464.0)
+@export var arena_half_size: Vector2 = Vector2(560.0, 336.0)
 
 var hp: int = max_hp
 var base_max_hp: int = 100

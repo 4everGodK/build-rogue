@@ -3,10 +3,10 @@
 [ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
 
 [sub_resource type="CircleShape2D" id="Body"]
-radius = 16.0
+radius = 13.0
 
 [sub_resource type="CircleShape2D" id="Contact"]
-radius = 22.0
+radius = 18.0
 
 [node name="EnemyTank" type="CharacterBody2D" groups=["enemies"]]
 collision_layer = 2
@@ -16,12 +16,12 @@ max_hp = 72.0
 move_speed = 55.0
 contact_damage = 8
 gold_reward = 3
-contact_radius = 28.0
-separation_radius = 42.0
+contact_radius = 22.0
+separation_radius = 32.0
 
 [node name="Visual" type="Polygon2D" parent="."]
 color = Color(0.55, 0.25, 0.95, 1)
-polygon = PackedVector2Array(-17, -17, 17, -17, 17, 17, -17, 17)
+polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("Body")
