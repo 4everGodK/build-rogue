@@ -81,8 +81,11 @@ func _explode() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				if source_unit != null:
-					source_unit.damage_enemy(candidate as Node2D, data.summon_attack * damage_multiplier)
-	HitEffectManager.spawn_hit(get_tree(), global_position, "fire", Vector2.UP, radius)
+					source_unit.damage_enemy(candidate as Node2D, data.summon_attack * damage_multiplier, {
+						"profile": "explosion",
+						"hit_origin": global_position,
+						"effect_origin": global_position,
+					})
 
 func _build_shape() -> void:
 	var shape := CircleShape2D.new()

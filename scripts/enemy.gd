@@ -29,9 +29,9 @@ var contact_damage_cooldown: float = 0.0
 var taunt_target: Node2D
 var taunt_time: float = 0.0
 var base_visual_scale: Vector2 = Vector2.ONE
-var hit_flash_serial: int = 0
 var hit_squash_tween: Tween
 var hit_flash_material: ShaderMaterial
+var hit_flash_timer: Timer
 
 @onready var visual: CanvasItem = $Visual
 @onready var contact_area: Area2D = $ContactArea
@@ -40,6 +40,7 @@ func _ready() -> void:
 	hp = max_hp
 	base_visual_scale = visual.scale
 	_prepare_hit_flash_material()
+	_prepare_hit_flash_timer()
 
 func _physics_process(delta: float) -> void:
 	if dying:
@@ -125,15 +126,10 @@ func apply_knockback(direction: Vector2, force: float) -> void:
 	knockback_velocity += normalized * force
 
 func play_hit_flash(duration: float) -> void:
-	if duration <= 0.0 or hit_flash_material == null:
+	if duration <= 0.0 or hit_flash_material == null or hit_flash_timer == null:
 		return
-	hit_flash_serial += 1
-	var serial := hit_flash_serial
 	hit_flash_material.set_shader_parameter("flash_amount", 1.0)
-	get_tree().create_timer(duration, true, false, true).timeout.connect(func() -> void:
-		if is_instance_valid(self) and serial == hit_flash_serial and hit_flash_material != null:
-			hit_flash_material.set_shader_parameter("flash_amount", 0.0)
-	)
+	hit_flash_timer.start(duration)
 
 func play_hit_squash(target_scale: Vector2, duration: float) -> void:
 	if duration <= 0.0 or visual == null:
@@ -150,6 +146,18 @@ func _prepare_hit_flash_material() -> void:
 	hit_flash_material = ShaderMaterial.new()
 	hit_flash_material.shader = shader
 	visual.material = hit_flash_material
+
+func _prepare_hit_flash_timer() -> void:
+	hit_flash_timer = Timer.new()
+	hit_flash_timer.name = "HitFlashTimer"
+	hit_flash_timer.one_shot = true
+	hit_flash_timer.process_callback = Timer.TIMER_PROCESS_IDLE
+	hit_flash_timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	hit_flash_timer.timeout.connect(func() -> void:
+		if hit_flash_material != null:
+			hit_flash_material.set_shader_parameter("flash_amount", 0.0)
+	)
+	add_child(hit_flash_timer)
 
 func apply_slow(percent: float, duration: float, source = null) -> void:
 	slow_effects[str(source)] = {"value": clampf(percent, 0.0, 0.9), "time_left": duration}
@@ -349,7 +357,7 @@ func _try_poison_death_burst() -> void:
 					"is_continuous": true,
 					"hit_origin": global_position,
 				})
-	HitEffectManager.spawn_hit(get_tree(), global_position, "poison", Vector2.UP, best_radius)
+	HitEffectPool.show_cosmetic(global_position, "continuous", maxf(1.0, best_radius / 14.0), Vector2.UP)
 
 func _record_stat_damage(source, stat_source, amount: float) -> void:
 	if amount <= 0.0 or source == null:

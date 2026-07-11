@@ -32,6 +32,15 @@ func show_hit(hit_data: Dictionary, profile: Dictionary, spawn_main_effect: bool
 func show_death(hit_data: Dictionary) -> void:
 	_show(hit_data.get("hit_position", Vector2.ZERO), "heavy", 26.0, Vector2.UP, Color(1.0, 0.92, 0.58, 0.9))
 
+func show_cosmetic(position: Vector2, profile_name: String = "light", effect_scale: float = 1.0, direction: Vector2 = Vector2.RIGHT) -> void:
+	var radius := 10.0
+	match profile_name:
+		"medium": radius = 20.0
+		"heavy", "explosion": radius = 34.0
+		"continuous": radius = 7.0
+		"summon": radius = 14.0
+	_show(position, profile_name, radius * maxf(0.1, effect_scale), direction, _color_for(profile_name))
+
 func _show(position: Vector2, kind: String, radius: float, direction: Vector2, color: Color) -> void:
 	var effect := _acquire()
 	effect.call("play", position, kind, radius, direction, color)

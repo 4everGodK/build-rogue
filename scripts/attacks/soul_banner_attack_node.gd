@@ -96,7 +96,6 @@ func _tick_damage() -> void:
 		})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
-		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", global_position.direction_to(enemy.global_position), 12.0)
 		if killed:
 			var origin: Vector2 = enemy.global_position
 			targets.remove_at(index)
@@ -163,7 +162,7 @@ func _spawn_soul(origin: Vector2) -> void:
 			if target != null:
 				_explode_soul(soul.global_position)
 			else:
-				HitEffectManager.spawn_hit(get_tree(), soul.global_position, "poison", Vector2.UP, radius)
+				HitEffectPool.show_cosmetic(soul.global_position, "continuous", 1.0, Vector2.UP)
 			soul.queue_free()
 	)
 	get_tree().create_timer(maxf(0.2, data.summon_respawn_time)).timeout.connect(func() -> void:

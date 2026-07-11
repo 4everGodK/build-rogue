@@ -58,7 +58,6 @@ func _damage_sweep(base_direction: Vector2, base_damage: float) -> void:
 		_heal_from_damage(hit_damage, enemy.global_position)
 		if killed and data.kill_heal_amount > 0.0 and player.has_method("heal"):
 			player.call("heal", data.kill_heal_amount, data)
-		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", base_direction, 16.0)
 
 func _heal_from_damage(dealt_damage: float, from_position: Vector2) -> void:
 	if data.heal_amount <= 0.0 or player == null or not player.has_method("heal"):

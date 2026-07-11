@@ -155,7 +155,6 @@ func _spawn_visual(radius: float) -> void:
 		Vector2(0.0, 0.0),
 	])
 	add_child(bolt)
-	HitEffectManager.spawn_hit(get_tree(), target_position, "lightning", Vector2.DOWN, radius)
 	var ring := Line2D.new()
 	ring.width = maxf(3.0, radius * 0.025)
 	ring.default_color = Color(0.45, 0.84, 1.0, 0.42)

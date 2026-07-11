@@ -51,7 +51,6 @@ func _pulse_flame() -> void:
 			_apply_attr(body, hit_damage, body.global_position, pre)
 			if data.poison_dps > 0.0 and body.has_method("apply_poison"):
 				body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), false, player, 0.0, 0.0, data)
-			HitEffectManager.spawn_hit(get_tree(), body.global_position, "fire", direction, 12.0)
 	_spawn_flame_visual()
 
 func _spawn_fire_seed() -> void:

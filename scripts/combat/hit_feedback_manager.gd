@@ -50,6 +50,7 @@ var _explosion_sound_attack_ids: Dictionary = {}
 var _continuous_visual_last_msec: Dictionary = {}
 var _audio_players: Array[AudioStreamPlayer] = []
 var _audio_index: int = 0
+var _placeholder_streams: Dictionary = {}
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -220,15 +221,53 @@ func _play_hit_sound(hit_data: Dictionary, profile: Dictionary) -> void:
 		return
 	_sound_last_played_msec[sound_id] = now
 	var path := str(SOUND_PATHS.get(sound_id, sound_id))
-	if not ResourceLoader.exists(path):
-		return
-	var stream := load(path) as AudioStream
+	var stream: AudioStream
+	if ResourceLoader.exists(path):
+		stream = load(path) as AudioStream
+	else:
+		stream = _placeholder_stream(sound_id)
 	if stream == null or _audio_players.is_empty():
 		return
 	var player := _audio_players[_audio_index % _audio_players.size()]
 	_audio_index += 1
 	player.stream = stream
 	player.play()
+
+func _placeholder_stream(sound_id: String) -> AudioStreamWAV:
+	if _placeholder_streams.has(sound_id):
+		return _placeholder_streams[sound_id] as AudioStreamWAV
+	var frequency := 760.0
+	var duration_seconds := 0.045
+	match sound_id:
+		"hit_light": frequency = 1250.0
+		"hit_medium": frequency = 840.0
+		"hit_heavy":
+			frequency = 430.0
+			duration_seconds = 0.06
+		"hit_explosion":
+			frequency = 240.0
+			duration_seconds = 0.085
+		"hit_continuous":
+			frequency = 1050.0
+			duration_seconds = 0.025
+		"hit_summon": frequency = 650.0
+	var mix_rate := 22050
+	var sample_count := int(duration_seconds * mix_rate)
+	var bytes := PackedByteArray()
+	bytes.resize(sample_count * 2)
+	for index in sample_count:
+		var progress := float(index) / float(maxi(1, sample_count - 1))
+		var envelope := (1.0 - progress) * (1.0 - progress)
+		var tone := sin(TAU * frequency * float(index) / float(mix_rate))
+		var sample := int(clampf(tone * envelope * 0.28, -1.0, 1.0) * 32767.0)
+		bytes.encode_s16(index * 2, sample)
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = mix_rate
+	stream.stereo = false
+	stream.data = bytes
+	_placeholder_streams[sound_id] = stream
+	return stream
 
 func _claim_once(registry: Dictionary, attack_id: Variant) -> bool:
 	var key := str(attack_id)

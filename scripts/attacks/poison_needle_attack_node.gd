@@ -76,7 +76,6 @@ func _damage_needle(needle: Node2D, needle_direction: Vector2, base_damage: floa
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
 		if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
 			enemy.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack, player, 0.0, 0.0, data)
-		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "poison", needle_direction, 8.0)
 		_spawn_poison_mark(enemy.global_position)
 		needle.queue_free()
 		return

@@ -14,6 +14,7 @@ func _ready() -> void:
 func request_hit_stop(attack_instance_id: Variant, duration: float) -> void:
 	if duration <= 0.0:
 		return
+	duration = minf(duration, 0.05)
 	var key := str(attack_instance_id)
 	var now := Time.get_ticks_msec()
 	if seen_attack_ids.has(key):

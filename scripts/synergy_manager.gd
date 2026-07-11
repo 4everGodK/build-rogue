@@ -278,7 +278,7 @@ func _apply_metal_on_hit(target: Node, base_damage: float, source: Node, pre_hit
 	if hp_ratio >= 0.0 and hp_ratio < hp_ratio_limit:
 		var extra_damage: float = base_damage * multiplier
 		_record_synergy_damage("金：斩杀增伤", extra_damage)
-		_damage_enemy(target, extra_damage, source)
+		_damage_enemy(target, extra_damage, source, "medium", _hit_origin(target))
 
 func _apply_wood_on_hit(target: Node) -> void:
 	var duration: float = float(effects.get("wood_root_duration", 0.0))
@@ -314,8 +314,7 @@ func _apply_fire_on_hit(target: Node, base_damage: float, source: Node, hit_posi
 	if radius <= 0.0 or multiplier <= 0.0 or base_damage <= 0.0:
 		return
 	var origin: Vector2 = _hit_origin(target, hit_position)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "火：爆炸")
-	HitEffectManager.spawn_hit(get_tree(), origin, "fire", Vector2.UP, radius)
+	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "火：爆炸", "explosion")
 
 func _apply_earth_on_hit(target: Node, base_damage: float, source: Node) -> void:
 	var radius: float = float(effects.get("earth_shockwave_radius", 0.0))
@@ -328,8 +327,7 @@ func _apply_earth_on_hit(target: Node, base_damage: float, source: Node) -> void
 			if bool(target.call("apply_stun", stun_duration, "attribute_earth", float(effects.get("earth_stun_internal_cooldown", 0.0)))) and combat_stats != null:
 				combat_stats.record_synergy_effect("土：眩晕", 1)
 	var origin: Vector2 = _hit_origin(target)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "土：震荡")
-	HitEffectManager.spawn_hit(get_tree(), origin, "earth", Vector2.UP, radius)
+	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "土：震荡", "explosion")
 
 func _apply_lightning_on_hit(target: Node, base_damage: float, source: Node) -> void:
 	var remaining: int = int(effects.get("lightning_chain_targets", 0))
@@ -350,7 +348,7 @@ func _apply_lightning_on_hit(target: Node, base_damage: float, source: Node) -> 
 		hit[next_target.get_instance_id()] = true
 		HitEffectManager.spawn_coin_path(get_tree(), (current as Node2D).global_position, next_target.global_position)
 		_record_synergy_damage("雷：连锁", chain_damage)
-		_damage_enemy(next_target, chain_damage, source)
+		_damage_enemy(next_target, chain_damage, source, "medium", (current as Node2D).global_position)
 		chain_damage *= falloff
 		current = next_target
 		remaining -= 1
@@ -366,19 +364,23 @@ func _apply_poison_on_hit(target: Node, base_damage: float, source: Node) -> voi
 	if combat_stats != null:
 		combat_stats.record_synergy_effect("毒：中毒附加", 1)
 
-func _damage_enemies_in_radius(origin: Vector2, radius: float, damage: float, source: Node, excluded: Node = null, stat_label: String = "") -> void:
+func _damage_enemies_in_radius(origin: Vector2, radius: float, damage: float, source: Node, excluded: Node = null, stat_label: String = "", profile_name: String = "medium") -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate == excluded:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if origin.distance_to((candidate as Node2D).global_position) <= radius:
 				_record_synergy_damage(stat_label, damage)
-				_damage_enemy(candidate, damage, source)
+				_damage_enemy(candidate, damage, source, profile_name, origin)
 
-func _damage_enemy(target: Node, damage: float, source: Node) -> void:
+func _damage_enemy(target: Node, damage: float, source: Node, profile_name: String = "medium", hit_origin: Vector2 = Vector2.ZERO) -> void:
 	if damage <= 0.0 or target == null or not target.has_method("take_damage"):
 		return
-	target.call("take_damage", damage, source)
+	HitFeedbackManager.deal_damage(target, damage, source, null, self, {
+		"profile": profile_name,
+		"hit_origin": hit_origin,
+		"effect_origin": hit_origin,
+	})
 
 func _record_synergy_damage(label: String, amount: float) -> void:
 	if combat_stats != null and not label.is_empty():

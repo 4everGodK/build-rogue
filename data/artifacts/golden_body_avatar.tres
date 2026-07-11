@@ -6,6 +6,7 @@
 script = ExtResource("1")
 id = "golden_body_avatar"
 hit_feedback_profile = "explosion"
+hit_stop_seconds = 0.04
 display_name = "法相金身"
 description = "角色背后常驻半透明巨大法相，周期抬手砸向敌人密集区域，造成大范围伤害和击退。"
 icon = ExtResource("2")

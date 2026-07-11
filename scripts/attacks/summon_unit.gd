@@ -453,7 +453,6 @@ func _swing(origin: Vector2, damage: float, attack_range: float) -> void:
 			var to_enemy := global_position.direction_to(enemy.global_position)
 			if global_position.distance_to(enemy.global_position) <= attack_range and direction.dot(to_enemy) >= 0.35:
 				damage_enemy(enemy, damage)
-	HitEffectManager.spawn_hit(get_tree(), global_position + direction * attack_range * 0.55, "poison" if data.id == "poison_bug" else "sword", direction, attack_range)
 	_spawn_swing_arc(direction, attack_range)
 
 func _leap_slash(enemy: Node2D) -> void:
@@ -470,8 +469,11 @@ func _leap_slash(enemy: Node2D) -> void:
 	var radius: float = maxf(18.0, data.explosion_radius)
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage") and global_position.distance_to((candidate as Node2D).global_position) <= radius:
-			damage_enemy(candidate as Node2D, data.summon_attack * maxf(0.0, data.secondary_damage_mult))
-	HitEffectManager.spawn_hit(get_tree(), global_position, "sword", Vector2.UP, radius)
+			damage_enemy(candidate as Node2D, data.summon_attack * maxf(0.0, data.secondary_damage_mult), {
+				"profile": "explosion",
+				"hit_origin": global_position,
+				"effect_origin": global_position,
+			})
 
 func _fire_projectile(enemy: Node2D, explosive: bool, damage_mult: float = 1.0, direction_override: Vector2 = Vector2.ZERO) -> void:
 	var projectile := SummonProjectile.new()
@@ -503,14 +505,16 @@ func _damage_dash_contacts() -> void:
 			damage_enemy(enemy, data.summon_attack * float(get_meta("ghost_dash_damage_mult", 1.0)))
 			if player.has_method("heal"):
 				player.call("heal", maxf(1.0, data.heal_amount), data)
-			HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "sound", dash_direction, 42.0)
 
-func damage_enemy(enemy: Node2D, damage: float) -> void:
+func damage_enemy(enemy: Node2D, damage: float, feedback_options: Dictionary = {}) -> void:
 	if enemy == null or not enemy.has_method("take_damage"):
 		return
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
 	var final_damage: float = _get_damage(damage)
-	var killed: bool = HitFeedbackManager.deal_damage(enemy, final_damage, player, data, self, {"hit_origin": global_position})
+	var options := feedback_options.duplicate(true)
+	if not options.has("hit_origin"):
+		options["hit_origin"] = global_position
+	var killed: bool = HitFeedbackManager.deal_damage(enemy, final_damage, player, data, self, options)
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(enemy, final_damage, enemy.global_position, pre_hit_hp_ratio)
 	if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
@@ -528,7 +532,7 @@ func _taunt() -> void:
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				candidate.call("apply_taunt", self, 2.0)
 				_spawn_taunt_mark((candidate as Node2D).global_position)
-	HitEffectManager.spawn_hit(get_tree(), global_position, "flash", Vector2.UP, radius)
+	HitEffectPool.show_cosmetic(global_position, "summon", maxf(1.0, radius / 28.0), Vector2.UP)
 	if data.id == "iron_guard_puppet" and int(data.get_meta("star_level", 1)) >= 3:
 		shield_remaining = maxf(0.1, data.duration)
 		damage_reduction = clampf(data.secondary_damage_mult, 0.0, 0.9)
@@ -632,10 +636,13 @@ func _try_poison_bug_burst(dead_enemy: Node2D) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage") and origin.distance_to((candidate as Node2D).global_position) <= radius:
 			var enemy := candidate as Node2D
-			damage_enemy(enemy, burst_damage)
+			damage_enemy(enemy, burst_damage, {
+				"profile": "explosion",
+				"hit_origin": origin,
+				"effect_origin": origin,
+			})
 			if enemy.has_method("apply_poison"):
 				enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), false, player, 0.0, 0.0, data)
-	HitEffectManager.spawn_hit(get_tree(), origin, "poison", Vector2.UP, radius)
 
 func _play_spawn_effect() -> void:
 	if get_tree() == null or get_tree().current_scene == null:
@@ -688,7 +695,7 @@ func _spawn_damage_flash() -> void:
 	tween.tween_property(visual, "modulate", Color.WHITE, 0.08)
 
 func _spawn_muzzle_flash() -> void:
-	HitEffectManager.spawn_hit(get_tree(), global_position, "lightning" if data.id == "crossbow_puppet" else "fire", Vector2.RIGHT, 12.0)
+	HitEffectPool.show_cosmetic(global_position, "summon", 0.65, Vector2.RIGHT)
 
 func _spawn_swing_arc(direction: Vector2, attack_range: float) -> void:
 	var arc := Line2D.new()
@@ -703,7 +710,7 @@ func _spawn_swing_arc(direction: Vector2, attack_range: float) -> void:
 	tween.tween_callback(arc.queue_free)
 
 func _spawn_heavy_swing(origin: Vector2) -> void:
-	HitEffectManager.spawn_hit(get_tree(), origin, "earth", global_position.direction_to(origin), 24.0)
+	HitEffectPool.show_cosmetic(origin, "heavy", 0.7, global_position.direction_to(origin))
 
 func _spawn_taunt_mark(pos: Vector2) -> void:
 	var mark := Line2D.new()
@@ -731,7 +738,7 @@ func _spawn_guard_shield(radius: float) -> void:
 	tween.tween_callback(shield.queue_free)
 
 func _spawn_redeploy_effect() -> void:
-	HitEffectManager.spawn_hit(get_tree(), global_position, "fire", Vector2.UP, 24.0)
+	HitEffectPool.show_cosmetic(global_position, "summon", 1.1, Vector2.UP)
 
 func _spawn_ghost_trail() -> void:
 	if int(Time.get_ticks_msec() / 40) % 2 != 0:

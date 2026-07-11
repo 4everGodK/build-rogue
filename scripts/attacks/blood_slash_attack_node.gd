@@ -137,7 +137,7 @@ func _apply_kill_heal(killed: bool, from_position: Vector2) -> void:
 	tween.tween_callback(line.queue_free)
 
 func _shatter() -> void:
-	HitEffectManager.spawn_hit(get_tree(), global_position, "blood", direction, maxf(16.0, data.width))
+	HitEffectPool.show_cosmetic(global_position, "explosion", maxf(0.5, data.width / 34.0), direction)
 
 func _get_damage(base_damage: float) -> float:
 	return float(player.call("get_artifact_damage", data, base_damage)) if player != null and player.has_method("get_artifact_damage") else base_damage

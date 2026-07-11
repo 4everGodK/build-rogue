@@ -67,9 +67,7 @@ func _strike(center: Vector2) -> void:
 				HitFeedbackManager.deal_damage(candidate, hit_damage, player, data, self, {"hit_origin": global_position})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, hit_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
-	if data.id == "brush":
-		HitEffectManager.spawn_hit(get_tree(), center, "ink", direction, data.radius)
-	else:
+	if data.id != "brush":
 		var visual: Polygon2D = Polygon2D.new()
 		visual.polygon = _circle_points(data.radius)
 		visual.color = data.visual_color
@@ -92,7 +90,6 @@ func _damage_brush_line() -> void:
 				HitFeedbackManager.deal_damage(candidate, hit_damage, player, data, self, {"hit_origin": global_position})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, hit_damage, enemy.global_position, pre_hit_hp_ratio)
-				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "ink", direction, maxf(10.0, hit_radius * 0.7))
 
 func _distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float:
 	var segment: Vector2 = end - start
@@ -105,12 +102,10 @@ func _distance_to_segment(point: Vector2, start: Vector2, end: Vector2) -> float
 func _burst_brush_ink() -> void:
 	var start: Vector2 = warning_line.points[0]
 	var end: Vector2 = warning_line.points[1]
-	var midpoint: Vector2 = start.lerp(end, 0.5)
-	HitEffectManager.spawn_hit(get_tree(), midpoint, "ink", direction, maxf(18.0, data.width))
 	for index in 5:
 		var t: float = (float(index) + 0.5) / 5.0
 		var offset: Vector2 = direction.orthogonal() * randf_range(-data.width * 0.35, data.width * 0.35)
-		HitEffectManager.spawn_hit(get_tree(), start.lerp(end, t) + offset, "ink", direction, maxf(8.0, data.width * 0.35))
+		HitEffectPool.show_cosmetic(start.lerp(end, t) + offset, "medium", 0.55, direction)
 
 func _circle_points(circle_radius: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()

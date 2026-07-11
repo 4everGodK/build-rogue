@@ -70,7 +70,6 @@ func _spawn_delayed_scar_burst(center: Vector2) -> void:
 				_notify()
 				_apply_attr(enemy, blast_damage, enemy.global_position, pre)
 				_apply_kill_heal(killed, enemy.global_position)
-		HitEffectManager.spawn_hit(get_tree(), center, "blood", direction, radius)
 	)
 
 func _make_blade() -> Node2D:

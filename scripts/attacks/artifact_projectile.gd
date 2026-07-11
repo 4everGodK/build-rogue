@@ -356,7 +356,7 @@ func _split_copper_coin() -> void:
 		coin.global_position = global_position
 
 func _shatter_coin() -> void:
-	HitEffectManager.spawn_hit(get_tree(), global_position, "coin", direction, 14.0)
+	HitEffectPool.show_cosmetic(global_position, "light", 1.0, direction)
 
 func _circle_points(radius: float) -> PackedVector2Array:
 	var points: PackedVector2Array = PackedVector2Array()

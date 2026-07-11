@@ -45,7 +45,6 @@ func _emit_wave(layer: int, is_ring: bool) -> void:
 			_apply_attr(body, hit_damage, body.global_position, pre)
 			if data.damage_reduction_percent > 0.0 and body.has_method("apply_damage_reduction"):
 				body.call("apply_damage_reduction", data.damage_reduction_percent, maxf(0.2, data.debuff_duration), self)
-			HitEffectManager.spawn_hit(get_tree(), body.global_position, "sound", direction, 12.0)
 	_spawn_wave_visual(wave_range, wave_width, layer, is_ring)
 
 func _spawn_guqin() -> void:

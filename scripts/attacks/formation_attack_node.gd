@@ -63,7 +63,7 @@ func _trigger_generic_formation() -> void:
 		player.call("add_shield", data.shield_amount, data.shield_max, data)
 		if data.shield_knockback_force > 0.0:
 			_knockback_nearby_enemies()
-		HitEffectManager.spawn_hit(get_tree(), player.global_position, "shield", Vector2.RIGHT, data.radius)
+		HitEffectPool.show_cosmetic(player.global_position, "summon", maxf(1.0, data.radius / 28.0), Vector2.RIGHT)
 	_damage_overlapping_bodies(data.damage, data.radius, data.knockback_force, _formation_hit_kind(), player.global_position)
 
 func _trigger_body_barrier() -> void:
@@ -153,6 +153,7 @@ func _damage_overlapping_bodies(raw_damage: float, radius: float, knockback: flo
 	_damage_overlapping_at(player.global_position, radius, raw_damage, knockback, hit_kind, knockback_origin)
 
 func _damage_overlapping_at(center: Vector2, radius: float, raw_damage: float, knockback: float, hit_kind: String, knockback_origin: Vector2 = Vector2(1000000000.0, 1000000000.0)) -> void:
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	var hits: Dictionary = {}
 	var final_origin: Vector2 = center if knockback_origin == Vector2(1000000000.0, 1000000000.0) else knockback_origin
 	for candidate in get_tree().get_nodes_in_group("enemies"):
@@ -162,9 +163,9 @@ func _damage_overlapping_at(center: Vector2, radius: float, raw_damage: float, k
 		if center.distance_to(enemy.global_position) <= radius:
 			hits[candidate] = true
 			_apply_hit(enemy, raw_damage, knockback, hit_kind, final_origin)
-	HitEffectManager.spawn_hit(get_tree(), center, hit_kind, Vector2.RIGHT, radius)
 
 func _damage_specific_or_radius(targets: Array, center: Vector2, radius: float, raw_damage: float, knockback: float, hit_kind: String) -> void:
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	var hit_set: Dictionary = {}
 	for enemy in targets:
 		if _is_valid_enemy(enemy):
@@ -178,9 +179,9 @@ func _damage_specific_or_radius(targets: Array, center: Vector2, radius: float, 
 		if center.distance_to(enemy.global_position) <= radius * 0.65:
 			hit_set[enemy] = true
 			_apply_hit(enemy, raw_damage, knockback, hit_kind, center)
-	HitEffectManager.spawn_hit(get_tree(), center, hit_kind, Vector2.RIGHT, radius)
 
 func _damage_barrier_pulse(raw_damage: float, radius: float, knockback: float, heal_per_hit: float, heal_cap: float, hit_kind: String) -> void:
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	var healed: float = 0.0
 	var hits: Dictionary = {}
 	for candidate in get_tree().get_nodes_in_group("enemies"):
@@ -195,7 +196,6 @@ func _damage_barrier_pulse(raw_damage: float, radius: float, knockback: float, h
 				healed += heal_value
 				player.call("heal", heal_value, data)
 				_spawn_heal_line(enemy.global_position, player.global_position)
-	HitEffectManager.spawn_hit(get_tree(), player.global_position, hit_kind, Vector2.RIGHT, radius)
 
 func _apply_hit(enemy: Node2D, raw_damage: float, knockback: float, hit_kind: String, knockback_origin: Vector2) -> void:
 	var hit_damage: float = _get_damage(raw_damage)

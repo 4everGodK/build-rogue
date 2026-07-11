@@ -54,7 +54,6 @@ func _damage_area(base_damage: float, radius: float, kind: String) -> void:
 			HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {"hit_origin": center, "effect_origin": center})
 			_notify()
 			_apply_attr(body, hit_damage, body.global_position, pre)
-	HitEffectManager.spawn_hit(get_tree(), center, kind, Vector2.RIGHT, radius)
 
 func _best_center() -> Vector2:
 	var select_range := _select_range()

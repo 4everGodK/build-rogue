@@ -67,7 +67,6 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 	HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {"hit_origin": global_position})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(body, hit_damage, (body as Node2D).global_position if body is Node2D else orbiter.global_position, pre_hit_hp_ratio)
-	HitEffectManager.spawn_hit(get_tree(), orbiter.global_position, "sword", orbiter.global_transform.x, 14.0)
 	_flash_orbiter(orbiter)
 
 func _try_counter_attack() -> void:
@@ -132,7 +131,6 @@ func _counter_stab(orbiter: Area2D, target: Node2D) -> void:
 		HitFeedbackManager.deal_damage(target, final_damage, player, data, self, {"hit_origin": global_position})
 		_notify_artifact_damage()
 		_apply_attribute_on_hit(target, final_damage, target.global_position, pre_hit_hp_ratio)
-		HitEffectManager.spawn_hit(get_tree(), target.global_position, "sword", start_position.direction_to(target_position), 18.0)
 	_flash_orbiter(orbiter)
 	var return_time: float = clampf(target_position.distance_to(player.global_position) / maxf(1.0, data.counter_speed), 0.06, 0.18)
 	tween = get_tree().create_tween()

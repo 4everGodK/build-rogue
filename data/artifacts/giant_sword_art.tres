@@ -8,6 +8,7 @@
 script = ExtResource("1")
 id = "giant_sword_art"
 hit_feedback_profile = "explosion"
+hit_stop_seconds = 0.035
 screen_shake_strength = 6.0
 screen_shake_duration = 0.18
 display_name = "巨剑术"
