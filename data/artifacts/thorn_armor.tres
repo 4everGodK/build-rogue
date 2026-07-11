@@ -5,6 +5,9 @@
 [resource]
 script = ExtResource("1")
 id = "thorn_armor"
+hit_feedback_profile = "explosion"
+screen_shake_strength = 2.0
+screen_shake_duration = 0.08
 display_name = "擒龙手"
 description = "主动凝出巨手抓向敌群，将普通敌人牵引到中心后握紧砸击，造成高额范围伤害。"
 icon = ExtResource("2")

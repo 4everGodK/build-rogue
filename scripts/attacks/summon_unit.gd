@@ -329,11 +329,17 @@ func _start_ghost_dash(dash_target: Node2D, damage_mult: float) -> void:
 		visual.scale = Vector2(1.45, 0.65)
 
 func _find_target() -> Node2D:
+	var enemy_target := _find_target_with_plant_rule(false)
+	return enemy_target if enemy_target != null else _find_target_with_plant_rule(true)
+
+func _find_target_with_plant_rule(allow_plants: bool) -> Node2D:
 	var nearest: Node2D
 	var nearest_distance := INF
 	var radius_squared := data.summon_combat_radius * data.summon_combat_radius
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		if bool(candidate.get("dying")):
 			continue
@@ -345,11 +351,17 @@ func _find_target() -> Node2D:
 	return nearest
 
 func _find_alternate_target(primary_target: Node2D) -> Node2D:
+	var enemy_target := _find_alternate_target_with_plant_rule(primary_target, false)
+	return enemy_target if enemy_target != null else _find_alternate_target_with_plant_rule(primary_target, true)
+
+func _find_alternate_target_with_plant_rule(primary_target: Node2D, allow_plants: bool) -> Node2D:
 	var nearest: Node2D
 	var nearest_distance := INF
 	var radius_squared := data.summon_combat_radius * data.summon_combat_radius
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate == primary_target or not candidate is Node2D or not candidate.has_method("take_damage") or bool(candidate.get("dying")):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var enemy := candidate as Node2D
 		var distance_squared := global_position.distance_squared_to(enemy.global_position)
@@ -359,11 +371,17 @@ func _find_alternate_target(primary_target: Node2D) -> Node2D:
 	return nearest
 
 func _find_ghost_chain_target() -> Node2D:
+	var enemy_target := _find_ghost_chain_target_with_plant_rule(false)
+	return enemy_target if enemy_target != null else _find_ghost_chain_target_with_plant_rule(true)
+
+func _find_ghost_chain_target_with_plant_rule(allow_plants: bool) -> Node2D:
 	var nearest: Node2D
 	var nearest_distance := INF
 	var search_range: float = data.secondary_radius if data.secondary_radius > 0.0 else data.summon_combat_radius
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not _target_is_valid(candidate as Node2D) or ghost_chain_hits.has(candidate):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var distance := global_position.distance_to((candidate as Node2D).global_position)
 		if distance <= search_range and distance < nearest_distance:
@@ -372,10 +390,16 @@ func _find_ghost_chain_target() -> Node2D:
 	return nearest
 
 func _find_swarm_target() -> Node2D:
+	var enemy_target := _find_swarm_target_with_plant_rule(false)
+	return enemy_target if enemy_target != null else _find_swarm_target_with_plant_rule(true)
+
+func _find_swarm_target_with_plant_rule(allow_plants: bool) -> Node2D:
 	var candidates: Array[Node2D] = []
 	var radius_squared := data.summon_combat_radius * data.summon_combat_radius
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage") or bool(candidate.get("dying")):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var enemy := candidate as Node2D
 		if player.global_position.distance_squared_to(enemy.global_position) <= radius_squared:
@@ -388,8 +412,8 @@ func _find_swarm_target() -> Node2D:
 	var spread_index: int = slot_index % mini(candidates.size(), 4)
 	return candidates[spread_index]
 
-func _target_is_valid(enemy: Node2D) -> bool:
-	return is_instance_valid(enemy) and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
+func _target_is_valid(enemy: Variant) -> bool:
+	return is_instance_valid(enemy) and enemy is Node2D and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
 
 func _move_toward(destination: Vector2, delta: float, multiplier: float) -> void:
 	var speed := data.summon_move_speed * multiplier
@@ -478,7 +502,7 @@ func _damage_dash_contacts() -> void:
 			ghost_chain_hits[candidate] = true
 			damage_enemy(enemy, data.summon_attack * float(get_meta("ghost_dash_damage_mult", 1.0)))
 			if player.has_method("heal"):
-				player.call("heal", maxf(1.0, data.heal_amount))
+				player.call("heal", maxf(1.0, data.heal_amount), data)
 			HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "sound", dash_direction, 42.0)
 
 func damage_enemy(enemy: Node2D, damage: float) -> void:
@@ -486,11 +510,11 @@ func damage_enemy(enemy: Node2D, damage: float) -> void:
 		return
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
 	var final_damage: float = _get_damage(damage)
-	var killed: bool = bool(enemy.call("take_damage", final_damage, player))
+	var killed: bool = HitFeedbackManager.deal_damage(enemy, final_damage, player, data, self, {"hit_origin": global_position})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(enemy, final_damage, enemy.global_position, pre_hit_hp_ratio)
 	if data.poison_dps > 0.0 and enemy.has_method("apply_poison"):
-		enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), data.poison_can_stack)
+		enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), data.poison_can_stack, player, 0.0, 0.0, data)
 	if killed and data.id == "poison_bug":
 		if int(data.get_meta("star_level", 1)) >= 3:
 			_try_poison_bug_burst(enemy)
@@ -517,7 +541,11 @@ func _shockwave() -> void:
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
 				var shockwave_damage: float = _get_damage(data.summon_attack)
-				candidate.call("take_damage", shockwave_damage, player)
+				HitFeedbackManager.deal_damage(candidate, shockwave_damage, player, data, self, {
+					"profile": "heavy",
+					"hit_origin": global_position,
+					"effect_origin": global_position,
+				})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, shockwave_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 
@@ -606,7 +634,7 @@ func _try_poison_bug_burst(dead_enemy: Node2D) -> void:
 			var enemy := candidate as Node2D
 			damage_enemy(enemy, burst_damage)
 			if enemy.has_method("apply_poison"):
-				enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), false, player)
+				enemy.call("apply_poison", data.poison_dps * _damage_multiplier(), maxf(0.1, data.poison_duration), false, player, 0.0, 0.0, data)
 	HitEffectManager.spawn_hit(get_tree(), origin, "poison", Vector2.UP, radius)
 
 func _play_spawn_effect() -> void:

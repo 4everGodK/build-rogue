@@ -7,6 +7,9 @@
 [resource]
 script = ExtResource("1")
 id = "giant_sword_art"
+hit_feedback_profile = "explosion"
+screen_shake_strength = 6.0
+screen_shake_duration = 0.18
 display_name = "巨剑术"
 description = "在角色身后凝聚巨剑，朝敌人发射，在较宽的直线范围内造成伤害。三星时以角色为中心横扫一整圈。"
 icon = ExtResource("2")

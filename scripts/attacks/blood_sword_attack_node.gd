@@ -46,12 +46,10 @@ func _damage_swing() -> void:
 		hit_enemies[enemy] = true
 		var hit_damage: float = _get_damage(data.damage)
 		var pre: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {"hit_origin": player.global_position})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
 		_apply_kill_heal(killed, enemy.global_position)
-		if data.knockback_force > 0.0 and enemy.has_method("apply_knockback"):
-			enemy.call("apply_knockback", player.global_position, data.knockback_force)
 		_spawn_blood_scar(enemy.global_position, direction)
 		if int(data.get_meta("star_level", 1)) >= 3:
 			_spawn_delayed_scar_burst(enemy.global_position)
@@ -64,7 +62,11 @@ func _spawn_delayed_scar_burst(center: Vector2) -> void:
 			if candidate is Node2D and candidate.has_method("take_damage") and center.distance_to((candidate as Node2D).global_position) <= radius:
 				var enemy := candidate as Node2D
 				var pre: float = _pre_hit_hp_ratio(enemy)
-				var killed: bool = bool(enemy.call("take_damage", blast_damage, player))
+				var killed: bool = HitFeedbackManager.deal_damage(enemy, blast_damage, player, data, self, {
+					"profile": "explosion",
+					"hit_origin": center,
+					"effect_origin": center,
+				})
 				_notify()
 				_apply_attr(enemy, blast_damage, enemy.global_position, pre)
 				_apply_kill_heal(killed, enemy.global_position)
@@ -122,7 +124,7 @@ func _spawn_life_draw(from: Vector2, to: Vector2) -> void:
 func _apply_kill_heal(killed: bool, from_position: Vector2) -> void:
 	if not killed or data.kill_heal_amount <= 0.0 or player == null or not player.has_method("heal"):
 		return
-	player.call("heal", data.kill_heal_amount)
+	player.call("heal", data.kill_heal_amount, data)
 	_spawn_life_return(from_position)
 
 func _spawn_life_return(from_position: Vector2) -> void:

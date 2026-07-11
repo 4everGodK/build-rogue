@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "roar"
+hit_feedback_profile = "heavy"
 display_name = "吼"
 description = "向目标方向发出锥形声浪，造成伤害并减速敌人。"
 icon = ExtResource("2")

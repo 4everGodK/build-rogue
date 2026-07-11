@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "poison_needle"
+hit_feedback_profile = "light"
 display_name = "毒针"
 description = "高速发射毒针，直接伤害较低，但会让敌人持续中毒。"
 icon = ExtResource("2")

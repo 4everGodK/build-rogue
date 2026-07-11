@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "iron_guard_puppet"
+hit_feedback_profile = "heavy"
 display_name = "铁甲傀儡"
 description = "召唤高生命铁卫傀儡，尽量挡在玩家与怪群之间，并周期性嘲讽附近敌人。死亡后会重生。"
 system_tag = "召唤"

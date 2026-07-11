@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "golden_body_avatar"
+hit_feedback_profile = "explosion"
 display_name = "法相金身"
 description = "角色背后常驻半透明巨大法相，周期抬手砸向敌人密集区域，造成大范围伤害和击退。"
 icon = ExtResource("2")
@@ -23,7 +24,8 @@ knockback_force = 210.0
 secondary_damage_mult = 0.6
 secondary_radius = 1.18
 secondary_delay = 0.26
-screen_shake_strength = 8.0
+screen_shake_strength = 7.0
+screen_shake_duration = 0.2
 visual_color = Color(0.9, 0.72, 0.36, 0.18)
 price = 200
 tier = "仙宝"

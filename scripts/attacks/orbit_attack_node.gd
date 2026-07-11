@@ -64,7 +64,7 @@ func _try_hit(body: Node, orbiter: Area2D) -> void:
 	var damage_ratio: float = data.secondary_damage_mult if data.secondary_damage_mult > 0.0 else 0.25
 	var hit_damage: float = _get_damage(data.damage * damage_ratio)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
-	body.call("take_damage", hit_damage, player)
+	HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {"hit_origin": global_position})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(body, hit_damage, (body as Node2D).global_position if body is Node2D else orbiter.global_position, pre_hit_hp_ratio)
 	HitEffectManager.spawn_hit(get_tree(), orbiter.global_position, "sword", orbiter.global_transform.x, 14.0)
@@ -84,11 +84,17 @@ func _try_counter_attack() -> void:
 	_counter_stab(orbiter, target)
 
 func _find_nearest_counter_target() -> Node2D:
+	var enemy_target := _find_nearest_counter_target_with_plant_rule(false)
+	return enemy_target if enemy_target != null else _find_nearest_counter_target_with_plant_rule(true)
+
+func _find_nearest_counter_target_with_plant_rule(allow_plants: bool) -> Node2D:
 	var nearest: Node2D
 	var nearest_distance_squared: float = INF
 	var max_distance_squared: float = data.counter_range * data.counter_range
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var enemy: Node2D = candidate as Node2D
 		if enemy.is_queued_for_deletion() or bool(enemy.get("dying")):
@@ -123,7 +129,7 @@ func _counter_stab(orbiter: Area2D, target: Node2D) -> void:
 	if is_instance_valid(target) and target.has_method("take_damage"):
 		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(target)
 		var final_damage: float = _get_damage(data.damage)
-		target.call("take_damage", final_damage, player)
+		HitFeedbackManager.deal_damage(target, final_damage, player, data, self, {"hit_origin": global_position})
 		_notify_artifact_damage()
 		_apply_attribute_on_hit(target, final_damage, target.global_position, pre_hit_hp_ratio)
 		HitEffectManager.spawn_hit(get_tree(), target.global_position, "sword", start_position.direction_to(target_position), 18.0)

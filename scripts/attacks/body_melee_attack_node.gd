@@ -6,10 +6,12 @@ var data: ArtifactData
 var direction: Vector2 = Vector2.RIGHT
 var base_damage: float = 0.0
 var star_level: int = 1
+var attack_instance_id: String = ""
 
 func setup(owner_player: Node2D, artifact_data: ArtifactData, attack_direction: Vector2) -> void:
 	player = owner_player
 	data = artifact_data
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	direction = attack_direction.normalized()
 	if direction == Vector2.ZERO:
 		direction = Vector2.RIGHT
@@ -83,6 +85,7 @@ func _execute_pulse(kind: String, pulse_damage: float, primary: float, secondary
 	if not is_instance_valid(player):
 		return
 	global_position = player.global_position
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	rotation = direction.angle()
 	match kind:
 		"fist", "fist_big":
@@ -141,21 +144,21 @@ func _damage_radius(center: Vector2, radius: float, pulse_damage: float, knockba
 		if center.distance_to(enemy.global_position) <= radius:
 			hits[candidate] = true
 			_apply_hit(enemy, pulse_damage, knockback, hit_kind, center)
-	HitEffectManager.spawn_hit(get_tree(), center, hit_kind, direction, radius)
 
 func _apply_hit(enemy: Node2D, pulse_damage: float, knockback: float, hit_kind: String, knockback_origin: Vector2) -> void:
 	var hit_damage: float = _get_damage(pulse_damage)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
-	var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+	var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {
+		"attack_instance_id": attack_instance_id,
+		"hit_origin": knockback_origin,
+		"effect_origin": knockback_origin,
+	})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(enemy, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 	if killed and data.kill_heal_amount > 0.0 and player.has_method("heal"):
-		player.call("heal", data.kill_heal_amount)
-	if knockback > 0.0 and enemy.has_method("apply_knockback"):
-		enemy.call("apply_knockback", knockback_origin, knockback)
+		player.call("heal", data.kill_heal_amount, data)
 	if data.slow_percent > 0.0 and enemy.has_method("apply_slow"):
 		enemy.call("apply_slow", data.slow_percent, maxf(0.2, data.debuff_duration), self)
-	HitEffectManager.spawn_hit(get_tree(), enemy.global_position, hit_kind, direction, 16.0)
 
 func _spawn_fist_visual(big: bool, left: bool) -> void:
 	var root := _world_visual()
@@ -252,7 +255,7 @@ func _circle_points(radius: float, segments: int = 48) -> PackedVector2Array:
 	return points
 
 func _is_valid_enemy(candidate: Variant) -> bool:
-	return candidate is Node2D and is_instance_valid(candidate) and not candidate.is_queued_for_deletion() and candidate.has_method("take_damage") and not bool(candidate.get("dying"))
+	return is_instance_valid(candidate) and candidate is Node2D and not candidate.is_queued_for_deletion() and candidate.has_method("take_damage") and not bool(candidate.get("dying"))
 
 func _get_damage(raw_damage: float) -> float:
 	if player != null and player.has_method("get_artifact_damage"):

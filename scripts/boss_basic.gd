@@ -19,6 +19,7 @@ var health_fill: Polygon2D
 func _ready() -> void:
 	super._ready()
 	add_to_group("bosses")
+	knockback_resistance = minf(knockback_resistance, 0.25)
 	_create_health_bar()
 	_update_health_bar()
 

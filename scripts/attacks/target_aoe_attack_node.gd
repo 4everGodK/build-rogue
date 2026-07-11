@@ -41,7 +41,11 @@ func _strike_radius(radius: float, base_damage: float) -> void:
 			if enemy.global_position.distance_to(target_position) <= radius:
 				var hit_damage: float = _get_damage(base_damage)
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
-				candidate.call("take_damage", hit_damage, player)
+				HitFeedbackManager.deal_damage(candidate, hit_damage, player, data, self, {
+					"profile": "explosion",
+					"hit_origin": target_position,
+					"effect_origin": target_position,
+				})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 	_spawn_visual(radius)
@@ -61,7 +65,7 @@ func _chain_lightning(radius: float, chain_count_override: int = -1) -> void:
 		var enemy := candidates[i]
 		var hit_damage := _get_damage(data.damage * maxf(0.0, data.secondary_damage_mult))
 		var pre := _pre_hit_hp_ratio(enemy)
-		enemy.call("take_damage", hit_damage, player)
+		HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {"hit_origin": target_position})
 		_notify_artifact_damage()
 		_apply_attribute_on_hit(enemy, hit_damage, enemy.global_position, pre)
 		_spawn_chain_line(target_position, enemy.global_position)

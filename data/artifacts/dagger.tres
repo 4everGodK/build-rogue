@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "dagger"
+hit_feedback_profile = "light"
 display_name = "匕首"
 description = "高频短距离刺击，可命中少量近身敌人。"
 icon = ExtResource("2")

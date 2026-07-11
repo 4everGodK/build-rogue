@@ -52,14 +52,12 @@ func _damage_sweep(base_direction: Vector2, base_damage: float) -> void:
 		hits[enemy] = true
 		var hit_damage: float = _get_damage(base_damage)
 		var pre: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {"hit_origin": player.global_position})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
 		_heal_from_damage(hit_damage, enemy.global_position)
 		if killed and data.kill_heal_amount > 0.0 and player.has_method("heal"):
-			player.call("heal", data.kill_heal_amount)
-		if data.knockback_force > 0.0 and enemy.has_method("apply_knockback"):
-			enemy.call("apply_knockback", player.global_position, data.knockback_force)
+			player.call("heal", data.kill_heal_amount, data)
 		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", base_direction, 16.0)
 
 func _heal_from_damage(dealt_damage: float, from_position: Vector2) -> void:
@@ -70,7 +68,7 @@ func _heal_from_damage(dealt_damage: float, from_position: Vector2) -> void:
 	if heal_value <= 0.0:
 		return
 	heal_this_attack += heal_value
-	player.call("heal", heal_value)
+	player.call("heal", heal_value, data)
 	_spawn_life_thread(from_position)
 
 func _make_scythe_visual() -> Node2D:

@@ -108,6 +108,10 @@ func dispose() -> void:
 	persistent_node = null
 
 static func find_nearest_enemy(player: Node2D, max_range: float = INF, estimated_damage: float = 0.0, target_reservations: Dictionary = {}) -> Node2D:
+	var enemy_target := _find_nearest_target(player, max_range, estimated_damage, target_reservations, false)
+	return enemy_target if enemy_target != null else _find_nearest_target(player, max_range, estimated_damage, target_reservations, true)
+
+static func _find_nearest_target(player: Node2D, max_range: float, estimated_damage: float, target_reservations: Dictionary, allow_plants: bool) -> Node2D:
 	var nearest_viable: Node2D
 	var nearest_viable_distance_squared: float = INF
 	var nearest_any: Node2D
@@ -115,6 +119,8 @@ static func find_nearest_enemy(player: Node2D, max_range: float = INF, estimated
 	var max_distance_squared: float = max_range * max_range
 	for candidate in player.get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var enemy := candidate as Node2D
 		if enemy.is_queued_for_deletion() or bool(enemy.get("dying")):
@@ -173,10 +179,19 @@ func _get_projectile_extra_directions(player: Node2D, primary_target: Node2D, ex
 	var directions: Array[Vector2] = []
 	if extra_count <= 0 or data.attack_template != "projectile":
 		return directions
+	directions = _get_projectile_extra_directions_with_plant_rule(player, primary_target, extra_count, false)
+	if directions.is_empty():
+		directions = _get_projectile_extra_directions_with_plant_rule(player, primary_target, extra_count, true)
+	return directions
+
+func _get_projectile_extra_directions_with_plant_rule(player: Node2D, primary_target: Node2D, extra_count: int, allow_plants: bool) -> Array[Vector2]:
+	var directions: Array[Vector2] = []
 	var candidates: Array[Dictionary] = []
 	var max_distance_squared: float = _get_target_search_range() * _get_target_search_range()
 	for candidate in player.get_tree().get_nodes_in_group("enemies"):
 		if not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if bool((candidate as Node).is_in_group("healing_plants")) != allow_plants:
 			continue
 		var enemy := candidate as Node2D
 		if enemy == primary_target or enemy.is_queued_for_deletion() or bool(enemy.get("dying")):

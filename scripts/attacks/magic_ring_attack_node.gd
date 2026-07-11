@@ -48,7 +48,7 @@ func _fire_beam(base_damage: float, beam_width: float, color: Color) -> void:
 			hit_enemies[body] = true
 			var hit_damage := _get_damage(base_damage)
 			var pre := _pre_hit_hp_ratio(body)
-			body.call("take_damage", hit_damage, player)
+			HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {"hit_origin": player.global_position})
 			_notify()
 			_apply_attr(body, hit_damage, body.global_position, pre)
 	var outer := Line2D.new()

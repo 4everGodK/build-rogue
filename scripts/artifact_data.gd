@@ -41,7 +41,7 @@ class_name ArtifactData
 @export var poison_dps: float = 0.0
 @export var poison_duration: float = 0.0
 @export var poison_can_stack: bool = true
-@export var knockback_force: float = 0.0
+@export var knockback_force: float = -1.0
 @export var counter_range: float = 0.0
 @export var counter_speed: float = 620.0
 @export var heal_amount: float = 0.0
@@ -110,7 +110,14 @@ const LEGACY_ATTRIBUTE_FALLBACKS: Dictionary = {
 @export var reveal_time: float = 0.0
 @export var pause_time: float = 0.0
 @export var sweep_rotation_speed: float = 0.0
-@export var screen_shake_strength: float = 0.0
+@export_group("Hit Feedback")
+@export_enum("default", "light", "medium", "heavy", "explosion", "continuous", "summon") var hit_feedback_profile: String = "default"
+@export var hit_stop_seconds: float = -1.0
+@export var screen_shake_strength: float = -1.0
+@export var screen_shake_duration: float = -1.0
+@export var hit_effect_scale: float = -1.0
+@export var hit_sound_id: String = ""
+@export_enum("default", "normal", "critical", "continuous", "healing") var damage_number_style: String = "default"
 
 func get_attribute_tag() -> String:
 	var normalized: String = str(LEGACY_ATTRIBUTE_FALLBACKS.get(attribute_tag, attribute_tag))
@@ -159,6 +166,8 @@ func to_offer() -> Dictionary:
 		"poison_dps": poison_dps,
 		"poison_duration": poison_duration,
 		"knockback_force": knockback_force,
+		"hit_feedback_profile": hit_feedback_profile,
+		"hit_stop_seconds": hit_stop_seconds,
 		"counter_range": counter_range,
 		"heal_amount": heal_amount,
 		"shield_amount": shield_amount,
@@ -192,4 +201,8 @@ func to_offer() -> Dictionary:
 		"pause_time": pause_time,
 		"sweep_rotation_speed": sweep_rotation_speed,
 		"screen_shake_strength": screen_shake_strength,
+		"screen_shake_duration": screen_shake_duration,
+		"hit_effect_scale": hit_effect_scale,
+		"hit_sound_id": hit_sound_id,
+		"damage_number_style": damage_number_style,
 	}

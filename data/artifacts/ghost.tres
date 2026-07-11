@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "ghost"
+hit_feedback_profile = "medium"
 display_name = "幽魂"
 description = "召唤没有仇恨值的幽魂。幽魂锁定敌人后加速冲击，穿过敌人造成伤害，并在敌人身后短距离停下后重新锁定目标。幽魂不会受到伤害。"
 system_tag = "召唤"

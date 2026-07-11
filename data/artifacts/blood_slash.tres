@@ -5,6 +5,9 @@
 [resource]
 script = ExtResource("1")
 id = "blood_slash"
+hit_feedback_profile = "explosion"
+screen_shake_strength = 3.0
+screen_shake_duration = 0.1
 display_name = "血斩"
 description = "发射宽大的血色剑气。攻击消耗3点生命，生命低于30%时不消耗；击杀敌人回复1点生命。"
 icon = ExtResource("2")

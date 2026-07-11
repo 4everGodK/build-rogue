@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "palm"
+hit_feedback_profile = "medium"
 display_name = "掌"
 description = "挥出掌劲打击前方扇形敌人，并将敌人击退。"
 icon = ExtResource("2")

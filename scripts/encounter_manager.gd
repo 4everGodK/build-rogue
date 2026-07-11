@@ -38,6 +38,7 @@ const ENCOUNTERS: Array[Dictionary] = [
 ]
 
 var selected_encounter_ids: Array[String] = []
+var selected_encounters: Array[Dictionary] = []
 var pending_free_reroll_shops: int = 0
 var active_free_rerolls: bool = false
 var pending_half_price_shops: int = 0
@@ -63,6 +64,7 @@ var low_hp_rescue_used_waves: Dictionary = {}
 
 func reset() -> void:
 	selected_encounter_ids.clear()
+	selected_encounters.clear()
 	pending_free_reroll_shops = 0
 	active_free_rerolls = false
 	pending_half_price_shops = 0
@@ -96,10 +98,27 @@ func select_encounter(encounter_id: String) -> Dictionary:
 		if str(encounter.get("id", "")) == encounter_id:
 			var selected: Dictionary = encounter.duplicate(true)
 			selected_encounter_ids.append(encounter_id)
+			selected_encounters.append(selected.duplicate(true))
 			apply_encounter_effects(selected)
 			encounter_selected.emit(selected)
 			return selected
 	return {}
+
+func record_selected_encounter(encounter: Dictionary) -> void:
+	var encounter_id: String = str(encounter.get("id", ""))
+	if encounter_id.is_empty() or selected_encounter_ids.has(encounter_id):
+		return
+	selected_encounter_ids.append(encounter_id)
+	selected_encounters.append(encounter.duplicate(true))
+
+func get_selected_summaries() -> Array:
+	var result: Array = []
+	for encounter in selected_encounters:
+		result.append({
+			"title": str(encounter.get("name", "")),
+			"detail": str(encounter.get("description", "")),
+		})
+	return result
 
 func get_all_other_encounters(excluded_id: String) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []

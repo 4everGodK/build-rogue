@@ -129,6 +129,14 @@ func has_selected_destiny() -> bool:
 func get_destiny_name() -> String:
 	return str(selected_destiny.get("name", ""))
 
+func get_selected_summary() -> Dictionary:
+	if selected_destiny.is_empty():
+		return {}
+	return {
+		"title": str(selected_destiny.get("name", "")),
+		"detail": str(selected_destiny.get("description", "")),
+	}
+
 func get_starting_stones_bonus() -> int:
 	return int(selected_destiny.get("starting_stones", 0))
 

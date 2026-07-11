@@ -90,6 +90,10 @@ var current_spirit_gathering_cost: int = 100
 var current_spirit_gathering_layers: int = 0
 var current_spirit_gathering_max_layers: int = 3
 var current_spirit_gathering_disabled: bool = false
+var current_system_counts: Dictionary = {}
+var current_attribute_counts: Dictionary = {}
+var current_destiny_summary: Dictionary = {}
+var current_encounter_summaries: Array = []
 var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
@@ -222,6 +226,8 @@ func set_inventory(battle_slots: Array, bag_slots: Array) -> void:
 	_render_slots()
 
 func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
+	current_system_counts = system_counts.duplicate(true)
+	current_attribute_counts = attribute_counts.duplicate(true)
 	var lines: Array[String] = [
 		"[b][color=#f2d27b]体系[/color][/b]",
 	]
@@ -235,8 +241,36 @@ func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> v
 		lines.append(_format_synergy_line(attribute_tag, int(attribute_counts.get(attribute_tag, 0)), attribute_thresholds))
 	lines.append("")
 	lines.append("[color=#7ee36d]■ 已激活[/color]  [color=#7d838d]■ 未激活[/color]")
+	_append_run_modifier_lines(lines)
 	synergy_label.text = "\n".join(lines)
 	synergy_label.tooltip_text = ""
+
+func set_run_modifiers(destiny_summary: Dictionary, encounter_summaries: Array) -> void:
+	current_destiny_summary = destiny_summary.duplicate(true)
+	current_encounter_summaries = encounter_summaries.duplicate(true)
+	set_synergies(current_system_counts, current_attribute_counts)
+
+func _append_run_modifier_lines(lines: Array[String]) -> void:
+	if current_destiny_summary.is_empty() and current_encounter_summaries.is_empty():
+		return
+	lines.append("")
+	lines.append("[b][color=#f2d27b]天命/奇遇[/color][/b]")
+	if not current_destiny_summary.is_empty():
+		lines.append(_format_run_modifier_line("天命", current_destiny_summary))
+	for summary in current_encounter_summaries:
+		lines.append(_format_run_modifier_line("奇遇", summary))
+
+func _format_run_modifier_line(kind: String, summary: Dictionary) -> String:
+	var title: String = str(summary.get("title", ""))
+	var detail: String = str(summary.get("detail", ""))
+	if title.is_empty():
+		title = kind
+	if detail.is_empty():
+		detail = title
+	return "[color=#d7c39a][hint=%s]%s：%s[/hint][/color]" % [_bbcode_hint(detail), kind, _bbcode_hint(title)]
+
+func _bbcode_hint(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］").replace("\n", "；")
 
 func _refresh_layout_after_open() -> void:
 	_apply_responsive_layout()

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "turret"
+hit_feedback_profile = "summon"
 display_name = "炮台"
 description = "召唤固定炮台自动索敌并发射爆炸炮弹。玩家离开过远时，炮台会延迟重新部署到玩家附近。"
 system_tag = "召唤"

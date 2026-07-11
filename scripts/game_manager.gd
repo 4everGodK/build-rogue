@@ -22,6 +22,7 @@ class_name GameManager
 @export var room_duration: float = 30.0
 @export var debug_test_room: bool = false
 @export var debug_shop_toggle_key: int = KEY_B
+@export var show_combat_stats_panel: bool = true
 
 const MAIN_MENU_SCENE: String = "res://scenes/MainMenu.tscn"
 const WAVE_1_ROOM_DURATION: float = 30.0
@@ -41,6 +42,10 @@ const ROOM_CLEAR_SPIRIT_STONES_BY_RANGE: Array[Dictionary] = [
 	{"min": 17, "max": 20, "reward": 100},
 ]
 const BOSS_OVERTIME_BURN_MAX_HP_PER_SECOND: float = 0.05
+const CombatStatsScript := preload("res://scripts/combat_stats.gd")
+const BattleEnvironmentConfigScript := preload("res://data/battle_environment_config.gd")
+const BattleHealingTrackerScript := preload("res://scripts/battle_healing_tracker.gd")
+const BattleEnvironmentSpawnerScript := preload("res://scripts/battle_environment_spawner.gd")
 
 var player: Player
 var attack_container: Node2D
@@ -71,6 +76,10 @@ var boss_overtime_burn_accumulator: float = 0.0
 var enemy_spirit_stone_drop_accumulator: float = 0.0
 var spirit_gathering_layers: int = 0
 var pending_spirit_gathering_return: int = 0
+var combat_stats = null
+var combat_stats_overlay: CanvasLayer
+var battle_healing_tracker = null
+var battle_environment_spawner: Node
 
 func _ready() -> void:
 	call_deferred("_initialize")
@@ -128,6 +137,16 @@ func _initialize() -> void:
 	run_summary = get_node(run_summary_path)
 
 	run_summary.start_run()
+	combat_stats = CombatStatsScript.new()
+	combat_stats.enabled = show_combat_stats_panel
+	player.set_combat_stats(combat_stats)
+	synergy_manager.set_combat_stats(combat_stats)
+	var plant_config: Dictionary = BattleEnvironmentConfigScript.healing_plant()
+	battle_healing_tracker = BattleHealingTrackerScript.new()
+	battle_healing_tracker.configure(plant_config)
+	battle_environment_spawner = BattleEnvironmentSpawnerScript.new()
+	add_child(battle_environment_spawner)
+	battle_environment_spawner.configure(player, wave_manager.arena_size, plant_config, battle_healing_tracker)
 	player.artifact_manager.configure(player, attack_container)
 	player.artifact_manager.set_synergy_manager(synergy_manager)
 	player.artifact_manager.set_destiny_manager(destiny_manager)
@@ -177,6 +196,7 @@ func _initialize() -> void:
 		encounter_manager.reset()
 	cultivation_manager.reset()
 	_on_inventory_changed()
+	_refresh_run_modifier_display()
 	game_ui.set_wave_status(1, "准备阶段")
 	_update_battle_ui(true)
 	if debug_test_room:
@@ -223,6 +243,8 @@ func _current_room_time_left() -> float:
 func _enter_shop(cleared_wave: int) -> void:
 	in_shop = true
 	_stop_boss_overtime_burn()
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("end_wave"):
+		battle_environment_spawner.call("end_wave")
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
@@ -252,6 +274,7 @@ func _enter_shop(cleared_wave: int) -> void:
 		synergy_manager.system_counts,
 		synergy_manager.attribute_counts
 	)
+	_refresh_run_modifier_display()
 	shop_panel.set_message(_shop_status_text())
 
 func _show_destiny_selection() -> void:
@@ -271,6 +294,7 @@ func _on_destiny_selected(destiny_id: String) -> void:
 	_apply_destiny_enemy_modifier()
 	_update_destiny_star3_hp_penalty()
 	_apply_destiny_runtime_modifiers()
+	_refresh_run_modifier_display()
 	_enter_shop(0)
 	_show_shop_message("已选择天命：%s" % destiny_manager.get_destiny_name())
 
@@ -302,9 +326,11 @@ func _on_encounter_selected(encounter_id: String) -> void:
 	if bool(encounter.get("all_in_all_encounters", false)):
 		_spend_all_for_all_in_encounter()
 		for extra_encounter in encounter_manager.get_all_other_encounters(str(encounter.get("id", ""))):
+			encounter_manager.record_selected_encounter(extra_encounter)
 			encounter_manager.apply_encounter_effects(extra_encounter)
 			_apply_encounter_immediate_effects(extra_encounter)
 	_apply_encounter_immediate_effects(encounter)
+	_refresh_run_modifier_display()
 	var cleared_wave: int = pending_encounter_wave
 	pending_encounter_wave = -1
 	_enter_shop(cleared_wave)
@@ -383,6 +409,8 @@ func _close_debug_shop() -> void:
 	shop_panel.close_shop()
 	player.set_battle_paused(false)
 	wave_manager.pause_wave(false)
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("set_paused"):
+		battle_environment_spawner.call("set_paused", false)
 
 func _on_shop_continue_requested() -> void:
 	if run_ended:
@@ -395,6 +423,13 @@ func _on_shop_continue_requested() -> void:
 func _on_wave_started(wave_number: int) -> void:
 	wave_elapsed_time = 0.0
 	_stop_boss_overtime_burn()
+	if combat_stats != null:
+		combat_stats.enabled = show_combat_stats_panel
+		combat_stats.begin_wave(wave_number)
+	if battle_healing_tracker != null:
+		battle_healing_tracker.begin_wave()
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("begin_wave"):
+		battle_environment_spawner.call("begin_wave")
 	if destiny_manager != null and wave_manager.is_boss_wave(wave_number):
 		_apply_player_current_hp_loss(destiny_manager.get_boss_start_current_hp_loss_ratio())
 		if run_ended:
@@ -408,12 +443,142 @@ func _on_wave_cleared(wave_number: int) -> void:
 		if run_ended:
 			return
 	_award_room_clear_economy(wave_number)
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("end_wave"):
+		battle_environment_spawner.call("end_wave")
 	game_ui.set_wave_status(wave_number, "商店阶段")
 	_update_battle_ui(true)
+	if _should_show_combat_stats():
+		_show_combat_stats_panel(wave_number)
+		return
+	_continue_after_combat_stats(wave_number)
+
+func _continue_after_combat_stats(wave_number: int) -> void:
 	if pending_encounter_wave == wave_number and encounter_manager != null and encounter_panel != null:
 		_show_encounter_selection(wave_number)
 		return
 	_enter_shop(wave_number)
+
+func _should_show_combat_stats() -> bool:
+	return show_combat_stats_panel and combat_stats != null and combat_stats.enabled and not run_ended
+
+func _show_combat_stats_panel(cleared_wave: int) -> void:
+	_close_combat_stats_panel()
+	player.set_battle_paused(true)
+	wave_manager.pause_wave(true)
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("set_paused"):
+		battle_environment_spawner.call("set_paused", true)
+	combat_room_timer.stop_room()
+	game_ui.set_wave_status(cleared_wave, "战斗统计")
+
+	combat_stats_overlay = CanvasLayer.new()
+	combat_stats_overlay.name = "CombatStatsOverlay"
+	combat_stats_overlay.layer = 80
+	add_child(combat_stats_overlay)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.58)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	combat_stats_overlay.add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -360.0
+	panel.offset_top = -250.0
+	panel.offset_right = 360.0
+	panel.offset_bottom = 250.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.07, 0.06, 0.96)
+	panel_style.border_color = Color(0.95, 0.72, 0.32, 0.9)
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(8)
+	panel.add_theme_stylebox_override("panel", panel_style)
+	combat_stats_overlay.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(margin)
+
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 12)
+	margin.add_child(root)
+
+	var title := Label.new()
+	title.text = "第%d关战斗统计" % cleared_wave
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	root.add_child(title)
+
+	var report := RichTextLabel.new()
+	report.bbcode_enabled = true
+	report.fit_content = false
+	report.scroll_active = true
+	report.custom_minimum_size = Vector2(0.0, 350.0)
+	report.text = _build_combat_stats_text()
+	root.add_child(report)
+
+	var button_row := HBoxContainer.new()
+	button_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	root.add_child(button_row)
+
+	var continue_button := Button.new()
+	continue_button.text = "继续"
+	continue_button.custom_minimum_size = Vector2(150.0, 42.0)
+	continue_button.pressed.connect(func() -> void:
+		_close_combat_stats_panel()
+		_continue_after_combat_stats(cleared_wave)
+	)
+	button_row.add_child(continue_button)
+
+func _close_combat_stats_panel() -> void:
+	if is_instance_valid(combat_stats_overlay):
+		combat_stats_overlay.queue_free()
+	combat_stats_overlay = null
+
+func _build_combat_stats_text() -> String:
+	if combat_stats == null:
+		return "暂无统计。"
+	var lines: Array[String] = []
+	lines.append("[b]法宝[/b]")
+	var artifact_rows: Array = combat_stats.artifact_summary()
+	if artifact_rows.is_empty():
+		lines.append("  暂无法宝伤害或回复记录。")
+	else:
+		for row in artifact_rows:
+			lines.append("  %s    伤害：%s    回复/护盾：%s" % [
+				str(row.get("name", "未知法宝")),
+				_format_stat_number(float(row.get("damage", 0.0))),
+				_format_stat_number(float(row.get("healing", 0.0))),
+			])
+	lines.append("")
+	lines.append("[b]羁绊[/b]")
+	var synergy_rows: Array = combat_stats.synergy_summary()
+	if synergy_rows.is_empty():
+		lines.append("  本关暂无可统计的羁绊额外效果。")
+	else:
+		for row in synergy_rows:
+			var parts: Array[String] = [str(row.get("name", "未知羁绊"))]
+			var damage: float = float(row.get("damage", 0.0))
+			var healing: float = float(row.get("healing", 0.0))
+			var count: int = int(row.get("count", 0))
+			if damage > 0.0:
+				parts.append("额外伤害：%s" % _format_stat_number(damage))
+			if healing > 0.0:
+				parts.append("回复/护盾：%s" % _format_stat_number(healing))
+			if count > 0:
+				parts.append("触发：%d次" % count)
+			lines.append("  " + "    ".join(parts))
+	return "\n".join(lines)
+
+func _format_stat_number(value: float) -> String:
+	if absf(value - round(value)) < 0.05:
+		return str(int(round(value)))
+	return "%.1f" % value
 
 func _on_room_timer_finished() -> void:
 	if run_ended or in_shop:
@@ -435,6 +600,7 @@ func _on_inventory_changed() -> void:
 
 func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
 	game_ui.set_synergies(system_counts, attribute_counts)
+	_refresh_run_modifier_display()
 	_apply_destiny_runtime_modifiers()
 	player.set_body_synergy(
 		float(synergy_manager.get_effect_value("body_max_hp_multiplier", 1.0)),
@@ -442,7 +608,16 @@ func _on_synergies_changed(system_counts: Dictionary, attribute_counts: Dictiona
 	)
 	if in_shop:
 		shop_panel.set_synergies(system_counts, attribute_counts)
+		_refresh_run_modifier_display()
 		shop_panel.set_message(_shop_status_text())
+
+func _refresh_run_modifier_display() -> void:
+	var destiny_summary: Dictionary = destiny_manager.get_selected_summary() if destiny_manager != null and destiny_manager.has_method("get_selected_summary") else {}
+	var encounter_summaries: Array = encounter_manager.get_selected_summaries() if encounter_manager != null and encounter_manager.has_method("get_selected_summaries") else []
+	if game_ui != null and game_ui.has_method("set_run_modifiers"):
+		game_ui.set_run_modifiers(destiny_summary, encounter_summaries)
+	if shop_panel != null and shop_panel.has_method("set_run_modifiers"):
+		shop_panel.set_run_modifiers(destiny_summary, encounter_summaries)
 
 func _on_shop_offers_changed(offers: Array) -> void:
 	if in_shop and shop_panel.visible:
@@ -666,6 +841,8 @@ func _on_player_died() -> void:
 			return
 	run_ended = true
 	_stop_boss_overtime_burn()
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("end_wave"):
+		battle_environment_spawner.call("end_wave")
 	synergy_manager.reset_battle_effects()
 	player.set_battle_paused(true)
 	wave_manager.pause_wave(true)
@@ -680,6 +857,8 @@ func _on_demo_completed() -> void:
 	in_shop = false
 	_award_room_clear_economy(wave_manager.wave_number)
 	_stop_boss_overtime_burn()
+	if battle_environment_spawner != null and battle_environment_spawner.has_method("end_wave"):
+		battle_environment_spawner.call("end_wave")
 	if combat_room_timer != null:
 		combat_room_timer.stop_room()
 	synergy_manager.reset_battle_effects()

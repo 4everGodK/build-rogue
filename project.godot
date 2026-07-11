@@ -15,6 +15,14 @@ run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+HitStopManager="*res://scripts/combat/hit_stop_manager.gd"
+ScreenShakeManager="*res://scripts/combat/screen_shake_manager.gd"
+DamageNumberPool="*res://scripts/combat/damage_number_pool.gd"
+HitEffectPool="*res://scripts/combat/hit_effect_pool.gd"
+HitFeedbackManager="*res://scripts/combat/hit_feedback_manager.gd"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

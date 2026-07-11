@@ -43,11 +43,14 @@ func _pulse_flame() -> void:
 			hits[body] = true
 			var hit_damage: float = _get_damage(data.damage * maxf(0.1, data.secondary_damage_mult))
 			var pre: float = _pre_hit_hp_ratio(body)
-			body.call("take_damage", hit_damage, player)
+			HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {
+				"is_continuous": true,
+				"hit_origin": player.global_position,
+			})
 			_notify()
 			_apply_attr(body, hit_damage, body.global_position, pre)
 			if data.poison_dps > 0.0 and body.has_method("apply_poison"):
-				body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), false, self)
+				body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), false, player, 0.0, 0.0, data)
 			HitEffectManager.spawn_hit(get_tree(), body.global_position, "fire", direction, 12.0)
 	_spawn_flame_visual()
 
@@ -68,7 +71,11 @@ func _spawn_burning_area(pos: Vector2, radius: float, damage_mult: float) -> voi
 				var body := enemy as Node2D
 				var hit_damage := _get_damage(data.damage * damage_mult)
 				var pre := _pre_hit_hp_ratio(body)
-				body.call("take_damage", hit_damage, player)
+				HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {
+					"is_continuous": true,
+					"hit_origin": pos,
+					"effect_origin": pos,
+				})
 				_notify()
 				_apply_attr(body, hit_damage, body.global_position, pre)
 		await get_tree().create_timer(maxf(0.08, data.delayed_strike_interval)).timeout

@@ -63,8 +63,9 @@ func _build_beams(initial_target: Node2D) -> void:
 func _update_beams(eye_position: Vector2) -> void:
 	var reserved: Array[Node2D] = []
 	for beam in beams:
-		var current := beam.get("target") as Node2D
-		if not _target_valid(current):
+		var stored_target: Variant = beam.get("target")
+		var current: Node2D = stored_target as Node2D if _target_valid(stored_target) else null
+		if current == null:
 			current = _find_target(reserved)
 			beam["target"] = current
 		if _target_valid(current):
@@ -78,15 +79,19 @@ func _update_beams(eye_position: Vector2) -> void:
 
 func _damage_tick(eye_position: Vector2) -> void:
 	for beam in beams:
-		var enemy := beam.get("target") as Node2D
-		if not _target_valid(enemy):
+		var stored_target: Variant = beam.get("target")
+		if not _target_valid(stored_target):
+			beam["target"] = null
 			continue
+		var enemy := stored_target as Node2D
 		var hit_damage: float = _get_damage(data.damage * float(beam.get("damage_mult", 1.0)))
 		var pre: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {
+			"is_continuous": true,
+			"hit_origin": eye_position,
+		})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
-		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", eye_position.direction_to(enemy.global_position), 12.0)
 		if killed:
 			_apply_kill_heal(enemy.global_position)
 			beam["target"] = null
@@ -161,7 +166,7 @@ func _spawn_life_to_eye() -> void:
 func _apply_kill_heal(from_position: Vector2) -> void:
 	if data.kill_heal_amount <= 0.0 or player == null or not player.has_method("heal"):
 		return
-	player.call("heal", data.kill_heal_amount)
+	player.call("heal", data.kill_heal_amount, data)
 	var line := Line2D.new()
 	line.width = 2.5
 	line.default_color = Color(1.0, 0.08, 0.12, 0.72)
@@ -183,7 +188,7 @@ func _close_and_free() -> void:
 	tween.tween_callback(queue_free)
 
 func _target_valid(enemy: Variant) -> bool:
-	return enemy is Node2D and is_instance_valid(enemy) and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
+	return is_instance_valid(enemy) and enemy is Node2D and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
 
 func _notify() -> void:
 	if player != null and player.has_method("notify_artifact_damage"):

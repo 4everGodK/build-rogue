@@ -40,7 +40,7 @@ func _emit_wave(layer: int, is_ring: bool) -> void:
 			hits[body] = true
 			var hit_damage: float = _get_damage(data.damage * (0.55 if layer > 0 else 0.75))
 			var pre: float = _pre_hit_hp_ratio(body)
-			body.call("take_damage", hit_damage, player)
+			HitFeedbackManager.deal_damage(body, hit_damage, player, data, self, {"hit_origin": player.global_position})
 			_notify()
 			_apply_attr(body, hit_damage, body.global_position, pre)
 			if data.damage_reduction_percent > 0.0 and body.has_method("apply_damage_reduction"):

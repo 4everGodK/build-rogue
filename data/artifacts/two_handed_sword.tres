@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1")
 id = "two_handed_sword"
+hit_feedback_profile = "heavy"
 display_name = "双手剑"
 description = "以较慢节奏挥出沉重剑光，造成高伤害的大范围扇形斩击。"
 icon = ExtResource("2")
@@ -28,7 +29,8 @@ hit_flash_duration = 0.12
 secondary_damage_mult = 0.55
 secondary_radius = 96.0
 secondary_delay = 0.5
-screen_shake_strength = 0.0
+screen_shake_strength = 2.0
+screen_shake_duration = 0.08
 visual_color = Color(0.86, 0.68, 0.34, 0.72)
 price = 20
 tier = "法器"

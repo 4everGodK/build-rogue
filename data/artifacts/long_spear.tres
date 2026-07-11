@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "long_spear"
+hit_feedback_profile = "heavy"
 display_name = "长枪"
 description = "向最近敌人方向刺出长距离贯穿枪影，适合安全地穿透成排敌人。"
 icon = ExtResource("2")

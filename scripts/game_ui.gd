@@ -54,6 +54,10 @@ const SYNERGY_EFFECTS: Dictionary = {
 }
 
 var current_wave: int = 1
+var current_system_counts: Dictionary = {}
+var current_attribute_counts: Dictionary = {}
+var current_destiny_summary: Dictionary = {}
+var current_encounter_summaries: Array = []
 
 func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -86,6 +90,8 @@ func set_wave_info(wave: int, remaining_seconds: float, remaining_enemies: int) 
 	enemy_label.text = "剩余敌人：%d" % maxi(0, remaining_enemies)
 
 func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> void:
+	current_system_counts = system_counts.duplicate(true)
+	current_attribute_counts = attribute_counts.duplicate(true)
 	var lines: Array[String] = ["[b][color=#f2d27b]体系[/color][/b]"]
 	for tag in _sorted_synergy_tags(SYSTEM_TAGS, system_counts, SYSTEM_THRESHOLDS):
 		lines.append(_format_synergy_line(tag, int(system_counts.get(tag, 0)), SYSTEM_THRESHOLDS.get(tag, [2])))
@@ -93,8 +99,36 @@ func set_synergies(system_counts: Dictionary, attribute_counts: Dictionary) -> v
 	lines.append("[b][color=#f2d27b]属性[/color][/b]")
 	for tag in _sorted_synergy_tags(ATTRIBUTE_TAGS, attribute_counts, ATTRIBUTE_THRESHOLDS):
 		lines.append(_format_synergy_line(tag, int(attribute_counts.get(tag, 0)), ATTRIBUTE_THRESHOLDS.get(tag, [2])))
+	_append_run_modifier_lines(lines)
 	synergy_label.text = "\n".join(lines)
 	synergy_label.tooltip_text = ""
+
+func set_run_modifiers(destiny_summary: Dictionary, encounter_summaries: Array) -> void:
+	current_destiny_summary = destiny_summary.duplicate(true)
+	current_encounter_summaries = encounter_summaries.duplicate(true)
+	set_synergies(current_system_counts, current_attribute_counts)
+
+func _append_run_modifier_lines(lines: Array[String]) -> void:
+	if current_destiny_summary.is_empty() and current_encounter_summaries.is_empty():
+		return
+	lines.append("")
+	lines.append("[b][color=#f2d27b]天命/奇遇[/color][/b]")
+	if not current_destiny_summary.is_empty():
+		lines.append(_format_run_modifier_line("天命", current_destiny_summary))
+	for summary in current_encounter_summaries:
+		lines.append(_format_run_modifier_line("奇遇", summary))
+
+func _format_run_modifier_line(kind: String, summary: Dictionary) -> String:
+	var title: String = str(summary.get("title", ""))
+	var detail: String = str(summary.get("detail", ""))
+	if title.is_empty():
+		title = kind
+	if detail.is_empty():
+		detail = title
+	return "[color=#d7c39a][hint=%s]%s：%s[/hint][/color]" % [_bbcode_hint(detail), kind, _bbcode_hint(title)]
+
+func _bbcode_hint(text: String) -> String:
+	return text.replace("[", "［").replace("]", "］").replace("\n", "；")
 
 func set_equipped_artifacts(battle_slots: Array, artifact_instances: Array = []) -> void:
 	if not is_node_ready():

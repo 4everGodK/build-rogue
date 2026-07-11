@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "crossbow_puppet"
+hit_feedback_profile = "medium"
 display_name = "远程傀儡"
 description = "召唤后排远程傀儡，和敌人保持距离并持续发射灵能箭。死亡后会在短时间后重生。"
 system_tag = "召唤"

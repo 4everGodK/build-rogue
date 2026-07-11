@@ -28,6 +28,7 @@ var run_move_speed_multiplier: float = 1.0
 var body_max_hp_multiplier: float = 1.0
 var body_size_multiplier: float = 1.0
 var base_visual_scale: Vector2 = Vector2.ONE
+var combat_stats = null
 
 @onready var visual: Sprite2D = $Visual
 @onready var artifact_manager: ArtifactManager = $ArtifactManager
@@ -93,11 +94,18 @@ func take_environment_damage(amount: int) -> void:
 	if hp <= 0:
 		died.emit()
 
-func heal(amount: float) -> void:
+func heal(amount: float, source = null) -> void:
 	if amount <= 0.0:
 		return
+	var before: int = hp
 	hp = mini(max_hp, hp + int(ceil(amount)))
 	hp_changed.emit(hp, max_hp)
+	var actual: float = float(maxi(0, hp - before))
+	if combat_stats != null and actual > 0.0:
+		if source is ArtifactData:
+			combat_stats.record_artifact_heal(source as ArtifactData, actual)
+		elif source is String:
+			combat_stats.record_synergy_heal(str(source), actual)
 
 func restore_full_health() -> void:
 	hp = max_hp
@@ -111,12 +119,19 @@ func revive_with_hp_ratio(ratio: float) -> void:
 func grant_invincible(duration: float) -> void:
 	invincible_time = maxf(invincible_time, maxf(0.0, duration))
 
-func add_shield(amount: float, maximum: float = 0.0) -> void:
+func add_shield(amount: float, maximum: float = 0.0, source = null) -> void:
 	if maximum > 0.0:
 		shield_limit = maxf(shield_limit, maximum)
 	var cap: float = shield_limit if shield_limit > 0.0 else float(max_hp)
+	var before: float = shield
 	shield = minf(cap, shield + maxf(0.0, amount))
 	shield_changed.emit(shield, cap)
+	var actual: float = maxf(0.0, shield - before)
+	if combat_stats != null and actual > 0.0:
+		if source is ArtifactData:
+			combat_stats.record_artifact_heal(source as ArtifactData, actual)
+		elif source is String:
+			combat_stats.record_synergy_heal(str(source), actual)
 
 func spend_life_percent(percent: float, min_hp_ratio: float = 0.0) -> void:
 	var cost: int = maxi(1, int(ceil(float(max_hp) * maxf(0.0, percent) * 0.01)))
@@ -165,7 +180,17 @@ func get_artifact_cooldown_multiplier() -> float:
 func notify_artifact_damage(data: ArtifactData) -> void:
 	artifact_manager.notify_artifact_damage(data)
 
+func record_artifact_damage(data: ArtifactData, amount: float) -> void:
+	if combat_stats != null:
+		combat_stats.record_artifact_damage(data, amount)
+
+func record_synergy_damage(label: String, amount: float) -> void:
+	if combat_stats != null:
+		combat_stats.record_synergy_damage(label, amount)
+
 func apply_attribute_on_hit(data: ArtifactData, target: Node, base_damage: float, hit_position: Vector2 = Vector2.ZERO, pre_hit_hp_ratio: float = -1.0) -> void:
+	if combat_stats != null:
+		combat_stats.record_artifact_damage(data, base_damage)
 	artifact_manager.apply_attribute_on_hit(data, target, base_damage, self, hit_position, pre_hit_hp_ratio)
 
 func get_sword_artifact_cooldown_multiplier(data: ArtifactData) -> float:
@@ -203,6 +228,9 @@ func reset_combat_state() -> void:
 	_recalculate_max_hp(false)
 	visual.scale = _body_visual_scale()
 	shield_changed.emit(shield, shield_limit)
+
+func set_combat_stats(stats) -> void:
+	combat_stats = stats
 
 func set_battle_paused(paused: bool) -> void:
 	movement_paused = paused

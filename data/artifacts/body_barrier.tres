@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "body_barrier"
+hit_feedback_profile = "explosion"
 display_name = "气血护体"
 description = "周身形成气血护罩，收缩后爆发震荡波，对近身敌人造成伤害、击退并按命中回复生命。"
 icon = ExtResource("2")

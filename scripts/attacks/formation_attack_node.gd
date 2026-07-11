@@ -8,10 +8,12 @@ var avatar_visual: Node2D
 var body_barrier_busy := false
 var dragon_hand_busy := false
 var avatar_busy := false
+var attack_instance_id: String = ""
 
 func setup(owner_player: Node2D, artifact_data: ArtifactData) -> void:
 	player = owner_player
 	data = artifact_data
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	global_position = player.global_position
 	z_as_relative = false
 	z_index = 1
@@ -56,9 +58,9 @@ func _trigger_generic_formation() -> void:
 		if player.has_method("set_artifact_move_speed_multiplier"):
 			player.call("set_artifact_move_speed_multiplier", 1.0 + data.movement_speed_bonus)
 	elif data.effect_type == "heal" and player.has_method("heal"):
-		player.call("heal", data.heal_amount)
+		player.call("heal", data.heal_amount, data)
 	elif data.effect_type == "shield" and player.has_method("add_shield"):
-		player.call("add_shield", data.shield_amount, data.shield_max)
+		player.call("add_shield", data.shield_amount, data.shield_max, data)
 		if data.shield_knockback_force > 0.0:
 			_knockback_nearby_enemies()
 		HitEffectManager.spawn_hit(get_tree(), player.global_position, "shield", Vector2.RIGHT, data.radius)
@@ -94,7 +96,7 @@ func _trigger_dragon_hand() -> void:
 		return
 	dragon_hand_busy = true
 	var center: Vector2 = _choose_dense_center(data.range if data.range > 0.0 else data.length, data.radius, direction_to_target())
-	var targets: Array[Node2D] = _collect_targets_near(center, data.radius, data.max_targets)
+	var targets: Array = _collect_targets_near(center, data.radius, data.max_targets)
 	_spawn_dragon_hand_visual(center, false)
 	_pull_targets(targets, center, 0.18)
 	var slam_delay: float = maxf(0.15, data.windup_time + 0.16)
@@ -162,12 +164,13 @@ func _damage_overlapping_at(center: Vector2, radius: float, raw_damage: float, k
 			_apply_hit(enemy, raw_damage, knockback, hit_kind, final_origin)
 	HitEffectManager.spawn_hit(get_tree(), center, hit_kind, Vector2.RIGHT, radius)
 
-func _damage_specific_or_radius(targets: Array[Node2D], center: Vector2, radius: float, raw_damage: float, knockback: float, hit_kind: String) -> void:
+func _damage_specific_or_radius(targets: Array, center: Vector2, radius: float, raw_damage: float, knockback: float, hit_kind: String) -> void:
 	var hit_set: Dictionary = {}
 	for enemy in targets:
 		if _is_valid_enemy(enemy):
-			hit_set[enemy] = true
-			_apply_hit(enemy, raw_damage, knockback, hit_kind, center)
+			var live_enemy := enemy as Node2D
+			hit_set[live_enemy] = true
+			_apply_hit(live_enemy, raw_damage, knockback, hit_kind, center)
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if hit_set.has(candidate) or not _is_valid_enemy(candidate):
 			continue
@@ -190,23 +193,24 @@ func _damage_barrier_pulse(raw_damage: float, radius: float, knockback: float, h
 			if heal_per_hit > 0.0 and player.has_method("heal") and healed < heal_cap:
 				var heal_value: float = minf(heal_per_hit, heal_cap - healed)
 				healed += heal_value
-				player.call("heal", heal_value)
+				player.call("heal", heal_value, data)
 				_spawn_heal_line(enemy.global_position, player.global_position)
 	HitEffectManager.spawn_hit(get_tree(), player.global_position, hit_kind, Vector2.RIGHT, radius)
 
 func _apply_hit(enemy: Node2D, raw_damage: float, knockback: float, hit_kind: String, knockback_origin: Vector2) -> void:
 	var hit_damage: float = _get_damage(raw_damage)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
-	var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+	var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {
+		"attack_instance_id": attack_instance_id,
+		"hit_origin": knockback_origin,
+		"effect_origin": knockback_origin,
+	})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(enemy, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 	if killed and data.kill_heal_amount > 0.0 and player.has_method("heal"):
-		player.call("heal", data.kill_heal_amount)
-	if knockback > 0.0 and enemy.has_method("apply_knockback"):
-		enemy.call("apply_knockback", knockback_origin, knockback)
+		player.call("heal", data.kill_heal_amount, data)
 	if data.effect_type == "slow" and enemy.has_method("apply_slow"):
 		enemy.call("apply_slow", data.slow_percent, maxf(0.2, data.tick_interval * 1.5), self)
-	HitEffectManager.spawn_hit(get_tree(), enemy.global_position, hit_kind, knockback_origin.direction_to(enemy.global_position), 14.0)
 
 func _choose_dense_center(search_range: float, radius: float, base_direction: Vector2) -> Vector2:
 	var origin: Vector2 = player.global_position
@@ -232,31 +236,36 @@ func _choose_dense_center(search_range: float, radius: float, base_direction: Ve
 			best = candidate
 	return best
 
-func _collect_targets_near(center: Vector2, radius: float, limit: int) -> Array[Node2D]:
-	var found: Array[Node2D] = []
+func _collect_targets_near(center: Vector2, radius: float, limit: int) -> Array:
+	var found: Array = []
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if _is_valid_enemy(candidate) and center.distance_to((candidate as Node2D).global_position) <= radius:
 			found.append(candidate as Node2D)
-	found.sort_custom(func(a: Node2D, b: Node2D) -> bool:
-		return center.distance_to(a.global_position) < center.distance_to(b.global_position)
+	found.sort_custom(func(a: Variant, b: Variant) -> bool:
+		if not _is_valid_enemy(a):
+			return false
+		if not _is_valid_enemy(b):
+			return true
+		return center.distance_to((a as Node2D).global_position) < center.distance_to((b as Node2D).global_position)
 	)
 	if limit > 0 and found.size() > limit:
 		found.resize(limit)
 	return found
 
-func _pull_targets(targets: Array[Node2D], center: Vector2, time: float) -> void:
+func _pull_targets(targets: Array, center: Vector2, time: float) -> void:
 	for enemy in targets:
 		if not _is_valid_enemy(enemy):
 			continue
-		var resistance: float = 0.35 if enemy.is_in_group("bosses") or enemy.get_class().contains("Boss") else 1.0
-		var target_position: Vector2 = enemy.global_position.lerp(center, resistance)
+		var live_enemy := enemy as Node2D
+		var resistance: float = 0.35 if live_enemy.is_in_group("bosses") or live_enemy.get_class().contains("Boss") else 1.0
+		var target_position: Vector2 = live_enemy.global_position.lerp(center, resistance)
 		var tween := get_tree().create_tween()
-		tween.tween_property(enemy, "global_position", target_position, time)
+		tween.tween_property(live_enemy, "global_position", target_position, time)
 
 func _avatar_slam_at(center: Vector2, radius: float, raw_damage: float, knockback: float, shake: float) -> void:
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	_spawn_slam_visual(center, radius)
 	_damage_overlapping_at(center, radius, raw_damage, knockback, "earth", center)
-	_shake_camera(shake)
 
 func direction_to_target() -> Vector2:
 	var nearest: Node2D = null
@@ -394,18 +403,6 @@ func _world_visual(position: Vector2) -> Node2D:
 		add_child(root)
 	return root
 
-func _shake_camera(strength: float) -> void:
-	if strength <= 0.0 or not is_instance_valid(player):
-		return
-	var camera := player.get_node_or_null("Camera2D") as Camera2D
-	if camera == null:
-		return
-	var original: Vector2 = camera.offset
-	var tween := get_tree().create_tween()
-	tween.tween_property(camera, "offset", original + Vector2(strength, 0), 0.025)
-	tween.tween_property(camera, "offset", original - Vector2(strength * 0.6, 0), 0.035)
-	tween.tween_property(camera, "offset", original, 0.04)
-
 func _formation_hit_kind() -> String:
 	match data.id:
 		"thorn_armor":
@@ -421,13 +418,14 @@ func _is_body_formation() -> bool:
 	return data.id in ["body_barrier", "thorn_armor", "golden_body_avatar"]
 
 func _is_valid_enemy(candidate: Variant) -> bool:
-	return candidate is Node2D and is_instance_valid(candidate) and not candidate.is_queued_for_deletion() and candidate.has_method("take_damage") and not bool(candidate.get("dying"))
+	return is_instance_valid(candidate) and candidate is Node2D and not candidate.is_queued_for_deletion() and candidate.has_method("take_damage") and not bool(candidate.get("dying"))
 
 func _knockback_nearby_enemies() -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("apply_knockback"):
 			if player.global_position.distance_to((candidate as Node2D).global_position) <= data.radius:
-				candidate.call("apply_knockback", player.global_position, data.shield_knockback_force)
+				var enemy := candidate as Node2D
+				enemy.call("apply_knockback", player.global_position.direction_to(enemy.global_position), data.shield_knockback_force)
 
 func _get_damage(raw_damage: float) -> float:
 	if player != null and player.has_method("get_artifact_damage"):

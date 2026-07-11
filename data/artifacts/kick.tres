@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "kick"
+hit_feedback_profile = "heavy"
 display_name = "腿"
 description = "贴身旋身扫腿，对周围一圈敌人造成较高伤害并轻微击退。"
 icon = ExtResource("2")

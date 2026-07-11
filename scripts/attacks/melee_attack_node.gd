@@ -7,9 +7,12 @@ var hit_enemies: Dictionary = {}
 var max_targets: int = 0
 var data: ArtifactData
 var direction: Vector2 = Vector2.RIGHT
+var attack_instance_id: String = ""
+var last_hit_was_critical: bool = false
 
 func setup(player: Node2D, data: ArtifactData, direction: Vector2) -> void:
 	self.data = data
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	self.direction = direction.normalized()
 	source = player
 	damage = data.damage
@@ -83,18 +86,19 @@ func _on_body_entered(body: Node) -> void:
 	hit_enemies[body] = true
 	var dealt_damage: float = _roll_damage()
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
-	var killed: bool = bool(body.call("take_damage", dealt_damage, source))
+	var killed: bool = HitFeedbackManager.deal_damage(body, dealt_damage, source, data, self, {
+		"attack_instance_id": attack_instance_id,
+		"is_critical": last_hit_was_critical,
+		"hit_origin": (source as Node2D).global_position if source is Node2D else global_position,
+	})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(body, dealt_damage, (body as Node2D).global_position if body is Node2D else global_position, pre_hit_hp_ratio)
 	if data.id == "scythe" and data.heal_amount > 0.0 and source != null and source.has_method("heal"):
-		source.call("heal", dealt_damage * data.heal_amount)
+		source.call("heal", dealt_damage * data.heal_amount, data)
 	_apply_kill_heal(killed)
-	if data.knockback_force > 0.0 and source is Node2D and body.has_method("apply_knockback"):
-		body.call("apply_knockback", (source as Node2D).global_position, data.knockback_force)
 	if data.slow_percent > 0.0 and body.has_method("apply_slow"):
 		body.call("apply_slow", data.slow_percent, maxf(0.2, data.debuff_duration), self)
 	if body is Node2D:
-		HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, ArtifactVisuals.melee_hit_kind(data), direction, 18.0)
 		_apply_sword_special_on_hit(body as Node2D, dealt_damage)
 
 func _apply_sword_special_on_hit(body: Node2D, dealt_damage: float) -> void:
@@ -113,10 +117,12 @@ func _apply_sword_special_on_hit(body: Node2D, dealt_damage: float) -> void:
 				_spawn_delayed_scar_blast(global_position + direction * data.length * 0.72)
 
 func _roll_damage() -> float:
+	last_hit_was_critical = false
 	var final_damage: float = damage
 	if source != null and source.has_method("get_artifact_damage"):
 		final_damage = float(source.call("get_artifact_damage", data, damage))
 	if data != null and data.crit_chance > 0.0 and randf() < data.crit_chance:
+		last_hit_was_critical = true
 		return final_damage * maxf(1.0, data.crit_damage_mult)
 	return final_damage
 
@@ -129,7 +135,7 @@ func _apply_kill_heal(killed: bool) -> void:
 	if not killed or data == null or data.kill_heal_amount <= 0.0:
 		return
 	if source != null and source.has_method("heal"):
-		source.call("heal", data.kill_heal_amount)
+		source.call("heal", data.kill_heal_amount, data)
 
 func _notify_artifact_damage() -> void:
 	if source != null and source.has_method("notify_artifact_damage"):
@@ -176,12 +182,13 @@ func _spawn_extra_melee_wave(data: ArtifactData) -> void:
 		if source != null and source.has_method("get_artifact_damage"):
 			wave_damage = float(source.call("get_artifact_damage", data, wave_damage))
 		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
-		var killed: bool = bool(body.call("take_damage", wave_damage, source))
+		var killed: bool = HitFeedbackManager.deal_damage(body, wave_damage, source, data, self, {
+			"attack_instance_id": attack_instance_id,
+			"hit_origin": global_position,
+		})
 		_notify_artifact_damage()
 		_apply_attribute_on_hit(body, wave_damage, (body as Node2D).global_position if body is Node2D else wave.global_position, pre_hit_hp_ratio)
 		_apply_kill_heal(killed)
-		if body is Node2D:
-			HitEffectManager.spawn_hit(get_tree(), (body as Node2D).global_position, "sword", direction, 14.0)
 	)
 
 func _spawn_cross_slash_damage() -> void:
@@ -216,11 +223,13 @@ func _spawn_delayed_single_damage(target: Node2D, mult: float, delay: float) -> 
 			return
 		var hit_damage: float = _get_damage(damage * mult)
 		var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(target)
-		var killed: bool = bool(target.call("take_damage", hit_damage, source))
+		var killed: bool = HitFeedbackManager.deal_damage(target, hit_damage, source, data, self, {
+			"attack_instance_id": attack_instance_id,
+			"hit_origin": global_position,
+		})
 		_notify_artifact_damage()
 		_apply_attribute_on_hit(target, hit_damage, target.global_position, pre_hit_hp_ratio)
 		_apply_kill_heal(killed)
-		HitEffectManager.spawn_hit(get_tree(), target.global_position, "poison", -direction, 12.0)
 	)
 
 func _spawn_delayed_scar_blast(center: Vector2) -> void:
@@ -248,12 +257,14 @@ func _spawn_area_damage(center: Vector2, radius: float, base_damage: float, hit_
 			var enemy := candidate as Node2D
 			if center.distance_to(enemy.global_position) <= radius:
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(enemy)
-				var killed: bool = bool(enemy.call("take_damage", final_damage, source))
+				var killed: bool = HitFeedbackManager.deal_damage(enemy, final_damage, source, data, self, {
+					"attack_instance_id": attack_instance_id,
+					"hit_origin": center,
+					"effect_origin": center,
+				})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(enemy, final_damage, enemy.global_position, pre_hit_hp_ratio)
 				_apply_kill_heal(killed)
-				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, hit_kind, direction, 12.0)
-	HitEffectManager.spawn_hit(get_tree(), center, hit_kind, direction, radius)
 
 func _spawn_sword_scar(center: Vector2, scar_direction: Vector2, strong: bool) -> void:
 	if get_tree() == null or get_tree().current_scene == null:

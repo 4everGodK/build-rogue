@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "copper_coin"
+hit_feedback_profile = "light"
 display_name = "铜钱"
 description = "命中后在附近未命中的敌人之间弹射，适合补刀但单体较弱。"
 icon = ExtResource("2")

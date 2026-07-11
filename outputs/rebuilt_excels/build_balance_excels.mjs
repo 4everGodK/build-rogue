@@ -39,7 +39,7 @@ const DEFAULTS = {
   poison_dps: 0,
   poison_duration: 0,
   poison_can_stack: true,
-  knockback_force: 0,
+  knockback_force: "",
   counter_range: 0,
   counter_speed: 620,
   heal_amount: 0,
@@ -92,7 +92,13 @@ const DEFAULTS = {
   reveal_time: 0,
   pause_time: 0,
   sweep_rotation_speed: 0,
-  screen_shake_strength: 0,
+  hit_feedback_profile: "",
+  hit_stop_seconds: "",
+  screen_shake_strength: "",
+  screen_shake_duration: "",
+  hit_effect_scale: "",
+  hit_sound_id: "",
+  damage_number_style: "",
 };
 
 function rel(file) {
@@ -679,9 +685,15 @@ function buildConfigWorkbook(data) {
     pause_time: a.pause_time,
     sweep_rotation_speed: a.sweep_rotation_speed,
     screen_shake_strength: a.screen_shake_strength,
+    hit_feedback_profile: a.hit_feedback_profile,
+    hit_stop_seconds: a.hit_stop_seconds,
+    screen_shake_duration: a.screen_shake_duration,
+    hit_effect_scale: a.hit_effect_scale,
+    hit_sound_id: a.hit_sound_id,
+    damage_number_style: a.damage_number_style,
     来源: a.source_file,
   }));
-  addSheet(wb, "法宝总表", artifactRows, { widths: Array(56).fill(120) });
+  addSheet(wb, "法宝总表", artifactRows, { widths: Array(64).fill(120) });
 
   const starRows = [];
   for (const a of data.artifacts) {
@@ -859,6 +871,13 @@ function buildSystemWorkbook(data) {
     ["disable_spirit_gathering", "奇遇", "禁用聚灵按钮。"],
     ["max_hp_multiplier / move_speed_multiplier", "奇遇", "玩家最大生命和移动速度倍率。"],
     ["max_hp_penalty_per_star3", "奇遇", "每个出战3星法宝扣最大生命。"],
+    ["hit_feedback_profile", "法宝", "命中反馈模板：light/medium/heavy/explosion/continuous/summon；留空使用系统映射。"],
+    ["hit_stop_seconds", "法宝", "Hit Stop 秒数覆盖；留空使用模板默认值。"],
+    ["knockback_force", "法宝", "击退力度覆盖；留空使用模板默认值。"],
+    ["screen_shake_strength / screen_shake_duration", "法宝", "震屏强度与持续时间覆盖；留空使用模板默认值。"],
+    ["hit_effect_scale", "法宝", "对象池命中特效缩放覆盖；留空使用模板默认值。"],
+    ["hit_sound_id", "法宝", "统一命中音效 ID；留空使用模板默认值。"],
+    ["damage_number_style", "法宝", "伤害数字样式：normal/critical/continuous/healing；留空使用模板默认值。"],
   ].map(([字段, 来源, 含义]) => ({ 字段, 来源, 含义 }));
   addSheet(wb, "字段字典", fieldRows);
 

@@ -132,5 +132,8 @@ func _death_burst(origin: Vector2) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if origin.distance_to((candidate as Node2D).global_position) <= burst_radius:
-				candidate.call("take_damage", burst_damage, player)
-	HitEffectManager.spawn_hit(get_tree(), origin, "flash", Vector2.UP, burst_radius)
+				HitFeedbackManager.deal_damage(candidate, burst_damage, player, data, self, {
+					"profile": "explosion",
+					"hit_origin": origin,
+					"effect_origin": origin,
+				})

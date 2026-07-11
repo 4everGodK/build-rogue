@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "poison_bug"
+hit_feedback_profile = "light"
 display_name = "毒虫"
 description = "召唤没有仇恨值的毒虫群。毒虫不会被敌人主动攻击，但仍会被范围伤害波及。毒虫近战撕咬并附加中毒。"
 system_tag = "召唤"

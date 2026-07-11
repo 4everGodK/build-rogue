@@ -62,6 +62,10 @@ var bonus_attribute_counts: Dictionary = {}
 var effects: Dictionary = {}
 var sword_attack_speed_stacks: int = 0
 var summon_template_count: int = 0
+var combat_stats = null
+
+func set_combat_stats(stats) -> void:
+	combat_stats = stats
 
 func recalculate(battle_slots: Array) -> void:
 	system_counts.clear()
@@ -235,6 +239,8 @@ func notify_artifact_damage(data: ArtifactData) -> void:
 	if max_stacks <= 0:
 		return
 	sword_attack_speed_stacks = mini(max_stacks, sword_attack_speed_stacks + 1)
+	if combat_stats != null:
+		combat_stats.record_synergy_effect("剑修：攻速叠层", 1)
 
 func get_sword_attack_speed_bonus() -> float:
 	return sword_attack_speed_stacks * float(effects.get("sword_attack_speed_per_stack", 0.0))
@@ -270,7 +276,9 @@ func _apply_metal_on_hit(target: Node, base_damage: float, source: Node, pre_hit
 	if hp_ratio < 0.0 and target.has_method("get_hp_ratio"):
 		hp_ratio = float(target.call("get_hp_ratio"))
 	if hp_ratio >= 0.0 and hp_ratio < hp_ratio_limit:
-		_damage_enemy(target, base_damage * multiplier, source)
+		var extra_damage: float = base_damage * multiplier
+		_record_synergy_damage("金：斩杀增伤", extra_damage)
+		_damage_enemy(target, extra_damage, source)
 
 func _apply_wood_on_hit(target: Node) -> void:
 	var duration: float = float(effects.get("wood_root_duration", 0.0))
@@ -282,6 +290,8 @@ func _apply_wood_on_hit(target: Node) -> void:
 	var damage_taken_bonus: float = float(effects.get("wood_damage_taken_bonus", 0.0))
 	if applied and damage_taken_bonus > 0.0 and target.has_method("apply_damage_taken_multiplier"):
 		target.call("apply_damage_taken_multiplier", damage_taken_bonus, duration, "attribute_wood")
+	if applied and combat_stats != null:
+		combat_stats.record_synergy_effect("木：禁锢/易伤", 1)
 
 func _apply_water_on_hit(source: Node) -> void:
 	if source == null:
@@ -294,9 +304,9 @@ func _apply_water_on_hit(source: Node) -> void:
 		hp_ratio = float(source.call("get_hp_ratio"))
 	if hp_ratio >= 1.0 and bool(effects.get("water_overflow_to_shield", false)) and source.has_method("add_shield"):
 		var max_hp: float = float(source.get("max_hp"))
-		source.call("add_shield", heal_amount, max_hp * float(effects.get("water_shield_max_ratio", 0.0)))
+		source.call("add_shield", heal_amount, max_hp * float(effects.get("water_shield_max_ratio", 0.0)), "水：治疗/护盾")
 	elif source.has_method("heal"):
-		source.call("heal", heal_amount)
+		source.call("heal", heal_amount, "水：治疗/护盾")
 
 func _apply_fire_on_hit(target: Node, base_damage: float, source: Node, hit_position: Vector2) -> void:
 	var radius: float = float(effects.get("fire_explosion_radius", 0.0))
@@ -304,7 +314,7 @@ func _apply_fire_on_hit(target: Node, base_damage: float, source: Node, hit_posi
 	if radius <= 0.0 or multiplier <= 0.0 or base_damage <= 0.0:
 		return
 	var origin: Vector2 = _hit_origin(target, hit_position)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target)
+	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "火：爆炸")
 	HitEffectManager.spawn_hit(get_tree(), origin, "fire", Vector2.UP, radius)
 
 func _apply_earth_on_hit(target: Node, base_damage: float, source: Node) -> void:
@@ -315,9 +325,10 @@ func _apply_earth_on_hit(target: Node, base_damage: float, source: Node) -> void
 	if target.has_method("apply_stun"):
 		var stun_duration: float = float(effects.get("earth_center_stun", 0.0))
 		if stun_duration > 0.0:
-			target.call("apply_stun", stun_duration, "attribute_earth", float(effects.get("earth_stun_internal_cooldown", 0.0)))
+			if bool(target.call("apply_stun", stun_duration, "attribute_earth", float(effects.get("earth_stun_internal_cooldown", 0.0)))) and combat_stats != null:
+				combat_stats.record_synergy_effect("土：眩晕", 1)
 	var origin: Vector2 = _hit_origin(target)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target)
+	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "土：震荡")
 	HitEffectManager.spawn_hit(get_tree(), origin, "earth", Vector2.UP, radius)
 
 func _apply_lightning_on_hit(target: Node, base_damage: float, source: Node) -> void:
@@ -338,6 +349,7 @@ func _apply_lightning_on_hit(target: Node, base_damage: float, source: Node) -> 
 			return
 		hit[next_target.get_instance_id()] = true
 		HitEffectManager.spawn_coin_path(get_tree(), (current as Node2D).global_position, next_target.global_position)
+		_record_synergy_damage("雷：连锁", chain_damage)
 		_damage_enemy(next_target, chain_damage, source)
 		chain_damage *= falloff
 		current = next_target
@@ -350,20 +362,27 @@ func _apply_poison_on_hit(target: Node, base_damage: float, source: Node) -> voi
 		return
 	var burst_radius: float = float(effects.get("poison_burst_radius", 0.0))
 	var burst_damage: float = base_damage * float(effects.get("poison_burst_damage_multiplier", 0.0))
-	target.call("apply_poison", base_damage * dps_multiplier, duration, true, source, burst_radius, burst_damage)
+	target.call("apply_poison", base_damage * dps_multiplier, duration, true, source, burst_radius, burst_damage, "毒：中毒伤害")
+	if combat_stats != null:
+		combat_stats.record_synergy_effect("毒：中毒附加", 1)
 
-func _damage_enemies_in_radius(origin: Vector2, radius: float, damage: float, source: Node, excluded: Node = null) -> void:
+func _damage_enemies_in_radius(origin: Vector2, radius: float, damage: float, source: Node, excluded: Node = null, stat_label: String = "") -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate == excluded:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if origin.distance_to((candidate as Node2D).global_position) <= radius:
+				_record_synergy_damage(stat_label, damage)
 				_damage_enemy(candidate, damage, source)
 
 func _damage_enemy(target: Node, damage: float, source: Node) -> void:
 	if damage <= 0.0 or target == null or not target.has_method("take_damage"):
 		return
 	target.call("take_damage", damage, source)
+
+func _record_synergy_damage(label: String, amount: float) -> void:
+	if combat_stats != null and not label.is_empty():
+		combat_stats.record_synergy_damage(label, amount)
 
 func _nearest_unhit_enemy(origin: Vector2, max_range: float, hit: Dictionary) -> Node2D:
 	var nearest: Node2D

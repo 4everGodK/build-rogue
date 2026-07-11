@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "soul_banner"
+hit_feedback_profile = "continuous"
 display_name = "招魂幡"
 description = "连接多名敌人并压制，持续造成伤害。敌人死亡后化为幽魂冲击其他敌人，接触后爆炸并消失。"
 icon = ExtResource("2")

@@ -12,10 +12,12 @@ var pause_left := 0.0
 var outbound_hits: Dictionary = {}
 var return_hits: Dictionary = {}
 var visual: Node2D
+var attack_instance_id: String = ""
 
 func setup(owner_player: Node2D, artifact_data: ArtifactData, attack_direction: Vector2) -> void:
 	player = owner_player
 	data = artifact_data
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	direction = attack_direction.normalized() if attack_direction.length_squared() > 0.001 else Vector2.RIGHT
 	origin = player.global_position
 	global_position = origin + direction * 28.0
@@ -74,7 +76,12 @@ func _damage_overlaps() -> void:
 		hits[enemy] = true
 		var hit_damage: float = _get_damage(hit_damage_base)
 		var pre: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {
+			"profile": "explosion",
+			"attack_instance_id": attack_instance_id,
+			"hit_origin": global_position,
+			"effect_origin": global_position,
+		})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
 		_apply_kill_heal(killed, enemy.global_position)
@@ -119,7 +126,7 @@ func _spawn_life_draw() -> void:
 func _apply_kill_heal(killed: bool, from_position: Vector2) -> void:
 	if not killed or data.kill_heal_amount <= 0.0 or player == null or not player.has_method("heal"):
 		return
-	player.call("heal", data.kill_heal_amount)
+	player.call("heal", data.kill_heal_amount, data)
 	var line := Line2D.new()
 	line.width = 2.5
 	line.default_color = Color(1.0, 0.08, 0.12, 0.72)

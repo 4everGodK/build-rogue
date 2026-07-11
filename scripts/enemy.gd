@@ -12,10 +12,10 @@ signal died(gold_reward: int)
 @export var gold_reward: int = 1
 @export var death_animation_duration: float = 0.15
 @export var arena_half_size: Vector2 = Vector2(560.0, 336.0)
+@export_range(0.0, 1.0, 0.05) var knockback_resistance: float = 1.0
 
 var hp: float = max_hp
 var player: Player
-var flash_time: float = 0.0
 var dying: bool = false
 var poison_stacks: Array[Dictionary] = []
 var knockback_velocity: Vector2 = Vector2.ZERO
@@ -28,12 +28,18 @@ var damage_reduction_effects: Dictionary = {}
 var contact_damage_cooldown: float = 0.0
 var taunt_target: Node2D
 var taunt_time: float = 0.0
+var base_visual_scale: Vector2 = Vector2.ONE
+var hit_flash_serial: int = 0
+var hit_squash_tween: Tween
+var hit_flash_material: ShaderMaterial
 
 @onready var visual: CanvasItem = $Visual
 @onready var contact_area: Area2D = $ContactArea
 
 func _ready() -> void:
 	hp = max_hp
+	base_visual_scale = visual.scale
+	_prepare_hit_flash_material()
 
 func _physics_process(delta: float) -> void:
 	if dying:
@@ -65,12 +71,6 @@ func _physics_process(delta: float) -> void:
 		if contact_distance <= maxf(contact_radius, separation_radius) and not _is_stunned():
 			_try_contact_damage(current_target)
 
-	if flash_time > 0.0:
-		flash_time -= delta
-		visual.modulate = Color.WHITE
-	else:
-		visual.modulate = Color.WHITE
-
 	_process_poison(delta)
 	_process_timed_effects(delta)
 	if taunt_time > 0.0:
@@ -94,14 +94,12 @@ func take_damage(amount: float, _source = null) -> bool:
 		return false
 	var final_amount: float = amount * _current_incoming_damage_multiplier()
 	hp -= final_amount
-	flash_time = 0.08
-	_spawn_damage_number(final_amount)
 	if hp <= 0.0:
 		_die()
 		return true
 	return false
 
-func apply_poison(dps: float, duration: float, can_stack: bool, source = null, burst_radius: float = 0.0, burst_damage: float = 0.0) -> void:
+func apply_poison(dps: float, duration: float, can_stack: bool, source = null, burst_radius: float = 0.0, burst_damage: float = 0.0, stat_source = null) -> void:
 	if dps <= 0.0 or duration <= 0.0:
 		return
 	if not can_stack:
@@ -112,15 +110,46 @@ func apply_poison(dps: float, duration: float, can_stack: bool, source = null, b
 		"source": source,
 		"burst_radius": burst_radius,
 		"burst_damage": burst_damage,
+		"stat_source": stat_source,
 	})
 
 func get_hp_ratio() -> float:
 	return hp / max_hp
 
-func apply_knockback(from_position: Vector2, force: float) -> void:
+func apply_knockback(direction: Vector2, force: float) -> void:
 	if force <= 0.0:
 		return
-	knockback_velocity += from_position.direction_to(global_position) * force
+	var normalized := direction.normalized()
+	if normalized == Vector2.ZERO:
+		return
+	knockback_velocity += normalized * force
+
+func play_hit_flash(duration: float) -> void:
+	if duration <= 0.0 or hit_flash_material == null:
+		return
+	hit_flash_serial += 1
+	var serial := hit_flash_serial
+	hit_flash_material.set_shader_parameter("flash_amount", 1.0)
+	get_tree().create_timer(duration, true, false, true).timeout.connect(func() -> void:
+		if is_instance_valid(self) and serial == hit_flash_serial and hit_flash_material != null:
+			hit_flash_material.set_shader_parameter("flash_amount", 0.0)
+	)
+
+func play_hit_squash(target_scale: Vector2, duration: float) -> void:
+	if duration <= 0.0 or visual == null:
+		return
+	if hit_squash_tween != null and hit_squash_tween.is_valid():
+		hit_squash_tween.kill()
+	hit_squash_tween = get_tree().create_tween()
+	hit_squash_tween.tween_property(visual, "scale", base_visual_scale * target_scale, minf(0.015, duration * 0.25))
+	hit_squash_tween.tween_property(visual, "scale", base_visual_scale, maxf(0.01, duration - minf(0.015, duration * 0.25))).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+func _prepare_hit_flash_material() -> void:
+	var shader := Shader.new()
+	shader.code = "shader_type canvas_item; uniform float flash_amount : hint_range(0.0, 1.0) = 0.0; void fragment(){ vec4 c = texture(TEXTURE, UV) * COLOR; c.rgb = mix(c.rgb, vec3(1.0), flash_amount); COLOR = c; }"
+	hit_flash_material = ShaderMaterial.new()
+	hit_flash_material.shader = shader
+	visual.material = hit_flash_material
 
 func apply_slow(percent: float, duration: float, source = null) -> void:
 	slow_effects[str(source)] = {"value": clampf(percent, 0.0, 0.9), "time_left": duration}
@@ -224,10 +253,13 @@ func _process_poison(delta: float) -> void:
 	if poison_stacks.is_empty():
 		return
 
+	var first_poison: Dictionary = poison_stacks[0]
 	var total_damage: float = 0.0
 	for index in range(poison_stacks.size() - 1, -1, -1):
 		var poison: Dictionary = poison_stacks[index]
-		total_damage += float(poison.get("dps", 0.0)) * delta
+		var tick_damage: float = float(poison.get("dps", 0.0)) * delta
+		total_damage += tick_damage
+		_record_stat_damage(poison.get("source", null), poison.get("stat_source", null), tick_damage)
 		poison["time_left"] = float(poison.get("time_left", 0.0)) - delta
 		if float(poison["time_left"]) <= 0.0:
 			poison_stacks.remove_at(index)
@@ -235,7 +267,13 @@ func _process_poison(delta: float) -> void:
 			poison_stacks[index] = poison
 
 	if total_damage > 0.0:
-		take_damage(total_damage)
+		var poison_source: Node = first_poison.get("source", null)
+		var stat_source := first_poison.get("stat_source", null) as ArtifactData
+		HitFeedbackManager.deal_damage(self, total_damage, poison_source, stat_source, self, {
+			"is_continuous": true,
+			"hit_origin": global_position,
+			"attack_instance_id": "poison:%s" % get_instance_id(),
+		})
 
 func _on_contact_area_body_entered(body: Node) -> void:
 	if body is Player:
@@ -275,17 +313,6 @@ func _current_target() -> Node2D:
 			nearest_distance_squared = distance_squared
 	return nearest
 
-func _spawn_damage_number(amount: float) -> void:
-	var label: Label = Label.new()
-	label.text = str(int(ceil(amount)))
-	label.modulate = Color(1.0, 0.95, 0.45, 1.0)
-	label.position = global_position + Vector2(-8.0, -28.0)
-	get_tree().current_scene.add_child(label)
-	var tween: Tween = get_tree().create_tween()
-	tween.tween_property(label, "position", label.position + Vector2(0.0, -24.0), 0.35)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.35)
-	tween.tween_callback(label.queue_free)
-
 func _die() -> void:
 	_try_poison_death_burst()
 	dying = true
@@ -300,6 +327,7 @@ func _try_poison_death_burst() -> void:
 	var best_radius: float = 0.0
 	var best_damage: float = 0.0
 	var burst_source = null
+	var burst_stat_source = null
 	for poison in poison_stacks:
 		var radius: float = float(poison.get("burst_radius", 0.0))
 		var damage: float = float(poison.get("burst_damage", 0.0))
@@ -307,6 +335,7 @@ func _try_poison_death_burst() -> void:
 			best_radius = radius
 			best_damage = damage
 			burst_source = poison.get("source", null)
+			burst_stat_source = poison.get("stat_source", null)
 	if best_radius <= 0.0 or best_damage <= 0.0:
 		return
 	for candidate in get_tree().get_nodes_in_group("enemies"):
@@ -314,5 +343,18 @@ func _try_poison_death_burst() -> void:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= best_radius:
-				candidate.call("take_damage", best_damage, burst_source)
+				_record_stat_damage(burst_source, burst_stat_source, best_damage)
+				HitFeedbackManager.deal_damage(candidate, best_damage, burst_source, burst_stat_source as ArtifactData, self, {
+					"profile": "continuous",
+					"is_continuous": true,
+					"hit_origin": global_position,
+				})
 	HitEffectManager.spawn_hit(get_tree(), global_position, "poison", Vector2.UP, best_radius)
+
+func _record_stat_damage(source, stat_source, amount: float) -> void:
+	if amount <= 0.0 or source == null:
+		return
+	if stat_source is ArtifactData and source.has_method("record_artifact_damage"):
+		source.call("record_artifact_damage", stat_source, amount)
+	elif stat_source is String and source.has_method("record_synergy_damage"):
+		source.call("record_synergy_damage", str(stat_source), amount)

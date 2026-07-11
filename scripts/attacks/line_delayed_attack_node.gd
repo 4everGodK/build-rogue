@@ -64,7 +64,7 @@ func _strike(center: Vector2) -> void:
 			if center.distance_to((candidate as Node2D).global_position) <= data.radius:
 				var hit_damage: float = _get_damage()
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
-				candidate.call("take_damage", hit_damage, player)
+				HitFeedbackManager.deal_damage(candidate, hit_damage, player, data, self, {"hit_origin": global_position})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, hit_damage, (candidate as Node2D).global_position, pre_hit_hp_ratio)
 	if data.id == "brush":
@@ -89,7 +89,7 @@ func _damage_brush_line() -> void:
 			if _distance_to_segment(enemy.global_position, start, end) <= hit_radius:
 				var hit_damage: float = _get_damage()
 				var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(candidate)
-				candidate.call("take_damage", hit_damage, player)
+				HitFeedbackManager.deal_damage(candidate, hit_damage, player, data, self, {"hit_origin": global_position})
 				_notify_artifact_damage()
 				_apply_attribute_on_hit(candidate, hit_damage, enemy.global_position, pre_hit_hp_ratio)
 				HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "ink", direction, maxf(10.0, hit_radius * 0.7))

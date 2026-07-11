@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1")
 id = "one_handed_sword"
+hit_feedback_profile = "medium"
 display_name = "单手剑"
 description = "向最近敌人方向挥出近战剑光，伤害和范围都较稳定。"
 icon = ExtResource("2")

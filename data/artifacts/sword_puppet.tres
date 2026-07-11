@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "sword_puppet"
+hit_feedback_profile = "medium"
 display_name = "近战傀儡"
 description = "召唤持续存在的近战傀儡，追击最近敌人并用近战挥砍。死亡后会在短时间后重生。"
 system_tag = "召唤"

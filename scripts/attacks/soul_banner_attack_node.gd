@@ -3,14 +3,14 @@ class_name SoulBannerAttackNode
 
 var player: Node2D
 var data: ArtifactData
-var targets: Array[Node2D] = []
+var targets: Array = []
 var time_left: float = 0.0
 var tick_remaining: float = 0.0
 var lines_root: Node2D
 var banner_visual: Node2D
 var marked_enemies: Dictionary = {}
 var spawned_from_enemy: Dictionary = {}
-var active_souls: Array[Node2D] = []
+var active_souls: Array = []
 var souls_since_wave: int = 0
 
 func setup(owner_player: Node2D, artifact_data: ArtifactData, primary_target: Node2D) -> void:
@@ -68,7 +68,10 @@ func _refill_targets() -> void:
 		return float(a["distance_squared"]) < float(b["distance_squared"])
 	)
 	for item in candidates:
-		var enemy := item["enemy"] as Node2D
+		var stored_enemy: Variant = item.get("enemy")
+		if not _target_valid(stored_enemy):
+			continue
+		var enemy := stored_enemy as Node2D
 		targets.append(enemy)
 		_mark_target(enemy)
 		if targets.size() >= target_count:
@@ -76,17 +79,21 @@ func _refill_targets() -> void:
 
 func _tick_damage() -> void:
 	for index in range(targets.size() - 1, -1, -1):
-		var enemy := targets[index]
-		if not _target_valid(enemy):
+		var stored_enemy: Variant = targets[index]
+		if not _target_valid(stored_enemy):
 			targets.remove_at(index)
 			continue
+		var enemy := stored_enemy as Node2D
 		if data.slow_percent > 0.0 and enemy.has_method("apply_slow"):
 			enemy.call("apply_slow", data.slow_percent, maxf(data.tick_interval * 1.5, 0.3), self)
 		if data.damage_reduction_percent > 0.0 and enemy.has_method("apply_damage_reduction"):
 			enemy.call("apply_damage_reduction", data.damage_reduction_percent, maxf(data.tick_interval * 1.5, 0.3), self)
 		var hit_damage: float = _get_damage(data.damage)
 		var pre: float = _pre_hit_hp_ratio(enemy)
-		var killed: bool = bool(enemy.call("take_damage", hit_damage, player))
+		var killed: bool = HitFeedbackManager.deal_damage(enemy, hit_damage, player, data, self, {
+			"is_continuous": true,
+			"hit_origin": global_position,
+		})
 		_notify()
 		_apply_attr(enemy, hit_damage, enemy.global_position, pre)
 		HitEffectManager.spawn_hit(get_tree(), enemy.global_position, "blood", global_position.direction_to(enemy.global_position), 12.0)
@@ -173,7 +180,10 @@ func _explode_soul(origin: Vector2) -> void:
 		if _target_valid(candidate) and origin.distance_to((candidate as Node2D).global_position) <= radius:
 			var enemy := candidate as Node2D
 			var pre: float = _pre_hit_hp_ratio(enemy)
-			enemy.call("take_damage", soul_damage, player)
+			HitFeedbackManager.deal_damage(enemy, soul_damage, player, data, self, {
+				"is_continuous": true,
+				"hit_origin": global_position,
+			})
 			_notify()
 			_apply_attr(enemy, soul_damage, enemy.global_position, pre)
 	_spawn_soul_wave_visual(origin, radius, false)
@@ -195,7 +205,10 @@ func _release_soul_wave() -> void:
 		if _target_valid(candidate) and global_position.distance_to((candidate as Node2D).global_position) <= radius:
 			var enemy := candidate as Node2D
 			var pre: float = _pre_hit_hp_ratio(enemy)
-			enemy.call("take_damage", wave_damage, player)
+			HitFeedbackManager.deal_damage(enemy, wave_damage, player, data, self, {
+				"is_continuous": true,
+				"hit_origin": global_position,
+			})
 			_notify()
 			_apply_attr(enemy, wave_damage, enemy.global_position, pre)
 	_spawn_soul_wave_visual(global_position, radius, true)
@@ -219,6 +232,7 @@ func _redraw_links() -> void:
 	for enemy in targets:
 		if not _target_valid(enemy):
 			continue
+		enemy = enemy as Node2D
 		var line := Line2D.new()
 		line.width = maxf(2.0, data.width * 0.1)
 		line.default_color = Color(0.35, 0.05, 0.42, 0.5)
@@ -296,7 +310,7 @@ func _soul_explosion_radius() -> float:
 	return maxf(12.0, data.explosion_radius) * mult
 
 func _target_valid(enemy: Variant) -> bool:
-	return enemy is Node2D and is_instance_valid(enemy) and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
+	return is_instance_valid(enemy) and enemy is Node2D and not enemy.is_queued_for_deletion() and enemy.has_method("take_damage") and not bool(enemy.get("dying"))
 
 func _get_damage(base_damage: float) -> float:
 	return float(player.call("get_artifact_damage", data, base_damage)) if player != null and player.has_method("get_artifact_damage") else base_damage

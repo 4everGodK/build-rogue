@@ -25,9 +25,11 @@ var return_hit_enemies: Dictionary = {}
 var launch_position: Vector2
 var charge_remaining: float = 0.0
 var charge_total: float = 0.0
+var attack_instance_id: String = ""
 
 func setup(owner_player: Node2D, attack_direction: Vector2, data: ArtifactData) -> void:
 	self.data = data
+	attack_instance_id = HitFeedbackManager.begin_attack(self)
 	global_position = owner_player.global_position
 	launch_position = owner_player.global_position
 	direction = attack_direction.normalized()
@@ -118,15 +120,15 @@ func _on_body_entered(body: Node) -> void:
 	phase_hits[body] = true
 	var hit_damage: float = _get_damage(damage)
 	var pre_hit_hp_ratio: float = _pre_hit_hp_ratio(body)
-	var killed: bool = bool(body.call("take_damage", hit_damage, source))
+	var killed: bool = HitFeedbackManager.deal_damage(body, hit_damage, source, data, self, {
+		"attack_instance_id": attack_instance_id,
+		"hit_origin": global_position - direction * maxf(8.0, visual_radius),
+	})
 	_notify_artifact_damage()
 	_apply_attribute_on_hit(body, hit_damage, global_position, pre_hit_hp_ratio)
 	_apply_kill_heal(killed)
 	if data.poison_dps > 0.0 and body.has_method("apply_poison"):
-		body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack)
-	HitEffectManager.spawn_hit(get_tree(), global_position, ArtifactVisuals.projectile_hit_kind(data), direction, maxf(14.0, visual_radius * 1.8))
-	if data.id == "flying_sword":
-		HitEffectManager.spawn_hit(get_tree(), global_position, "lightning", direction, maxf(10.0, visual_radius * 1.2))
+		body.call("apply_poison", data.poison_dps, maxf(0.1, data.poison_duration), data.poison_can_stack, source, 0.0, 0.0, data)
 	if damage_reduction_percent > 0.0 and body.has_method("apply_damage_reduction"):
 		body.call("apply_damage_reduction", damage_reduction_percent, debuff_duration, self)
 	if data.poison_explosion_damage_mult > 0.0:
@@ -196,6 +198,7 @@ func _update_charge_visual() -> void:
 		visual_node.rotation += 0.45
 
 func _explode(direct_target: Node) -> void:
+	HitFeedbackManager.play_area_feedback(source, data, self, global_position, attack_instance_id, "explosion")
 	if data.id == "fire_orb":
 		_explode_fire_orb(direct_target)
 		return
@@ -204,7 +207,12 @@ func _explode(direct_target: Node) -> void:
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= explosion_radius:
-				var killed: bool = bool(candidate.call("take_damage", _get_damage(damage), source))
+				var killed: bool = HitFeedbackManager.deal_damage(candidate, _get_damage(damage), source, data, self, {
+					"profile": "explosion",
+					"attack_instance_id": attack_instance_id,
+					"hit_origin": global_position,
+					"effect_origin": global_position,
+				})
 				_notify_artifact_damage()
 				_apply_kill_heal(killed)
 	var blast: Polygon2D = Polygon2D.new()
@@ -236,7 +244,12 @@ func _damage_explosion(radius: float, base_damage: float, direct_target: Node) -
 			continue
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= radius:
-				var killed: bool = bool(candidate.call("take_damage", _get_damage(base_damage), source))
+				var killed: bool = HitFeedbackManager.deal_damage(candidate, _get_damage(base_damage), source, data, self, {
+					"profile": "explosion",
+					"attack_instance_id": attack_instance_id,
+					"hit_origin": global_position,
+					"effect_origin": global_position,
+				})
 				_notify_artifact_damage()
 				_apply_kill_heal(killed)
 
@@ -259,16 +272,20 @@ func _poison_explode() -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= blast_radius:
-				var killed: bool = bool(candidate.call("take_damage", poison_damage, source))
+				var killed: bool = HitFeedbackManager.deal_damage(candidate, poison_damage, source, data, self, {
+					"profile": "explosion",
+					"attack_instance_id": attack_instance_id,
+					"hit_origin": global_position,
+					"effect_origin": global_position,
+				})
 				_notify_artifact_damage()
 				_apply_kill_heal(killed)
-	HitEffectManager.spawn_hit(get_tree(), global_position, "poison", direction, blast_radius)
 
 func _apply_kill_heal(killed: bool) -> void:
 	if not killed or data == null or data.kill_heal_amount <= 0.0:
 		return
 	if source != null and source.has_method("heal"):
-		source.call("heal", data.kill_heal_amount)
+		source.call("heal", data.kill_heal_amount, data)
 
 func _notify_artifact_damage() -> void:
 	if source != null and source.has_method("notify_artifact_damage"):
