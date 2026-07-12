@@ -16,9 +16,9 @@ const BODY_GROWTH_TIERS: Array[Dictionary] = [
 ]
 
 const METAL_LOW_HP_TIERS: Array[Dictionary] = [
-	{"required": 6, "hp_ratio": 0.3, "damage_multiplier": 1.0},
-	{"required": 4, "hp_ratio": 0.5, "damage_multiplier": 0.45},
-	{"required": 2, "hp_ratio": 0.5, "damage_multiplier": 0.25},
+	{"required": 6, "hp_ratio": 0.5, "damage_multiplier": 2.0},
+	{"required": 4, "hp_ratio": 0.5, "damage_multiplier": 1.0},
+	{"required": 2, "hp_ratio": 0.5, "damage_multiplier": 0.5},
 ]
 const WOOD_ROOT_TIERS: Array[Dictionary] = [
 	{"required": 6, "duration": 1.5, "damage_taken_bonus": 0.2},
@@ -27,9 +27,9 @@ const WOOD_ROOT_TIERS: Array[Dictionary] = [
 ]
 const WOOD_ROOT_INTERNAL_COOLDOWN: float = 1.2
 const WATER_HEAL_TIERS: Array[Dictionary] = [
-	{"required": 6, "heal": 0.8, "overflow_to_shield": true, "shield_max_ratio": 0.35},
-	{"required": 4, "heal": 0.8, "overflow_to_shield": false, "shield_max_ratio": 0.0},
-	{"required": 2, "heal": 0.4, "overflow_to_shield": false, "shield_max_ratio": 0.0},
+	{"required": 6, "heal": 0.2, "overflow_to_shield": true, "shield_max_ratio": 0.35},
+	{"required": 4, "heal": 0.2, "overflow_to_shield": false, "shield_max_ratio": 0.0},
+	{"required": 2, "heal": 0.1, "overflow_to_shield": false, "shield_max_ratio": 0.0},
 ]
 const FIRE_EXPLOSION_TIERS: Array[Dictionary] = [
 	{"required": 6, "radius": 92.0, "damage_multiplier": 0.75},
@@ -37,18 +37,18 @@ const FIRE_EXPLOSION_TIERS: Array[Dictionary] = [
 	{"required": 2, "radius": 56.0, "damage_multiplier": 0.35},
 ]
 const EARTH_SHOCKWAVE_TIERS: Array[Dictionary] = [
-	{"required": 6, "radius": 112.0, "damage_multiplier": 0.65, "stun": 0.6},
-	{"required": 4, "radius": 112.0, "damage_multiplier": 0.45, "stun": 0.0},
-	{"required": 2, "radius": 72.0, "damage_multiplier": 0.35, "stun": 0.0},
+	{"required": 6, "radius": 112.0, "damage_multiplier": 0.50, "slow_percent": 0.40, "slow_duration": 1.5, "stun": 0.6},
+	{"required": 4, "radius": 112.0, "damage_multiplier": 0.35, "slow_percent": 0.30, "slow_duration": 1.2, "stun": 0.0},
+	{"required": 2, "radius": 72.0, "damage_multiplier": 0.25, "slow_percent": 0.20, "slow_duration": 1.0, "stun": 0.0},
 ]
 const EARTH_STUN_INTERNAL_COOLDOWN: float = 1.5
 const LIGHTNING_CHAIN_TIERS: Array[Dictionary] = [
-	{"required": 6, "targets": 6, "damage_multiplier": 0.7},
-	{"required": 4, "targets": 4, "damage_multiplier": 0.7},
-	{"required": 2, "targets": 2, "damage_multiplier": 0.7},
+	{"required": 6, "targets": 6, "damage_multiplier": 0.5},
+	{"required": 4, "targets": 4, "damage_multiplier": 0.5},
+	{"required": 2, "targets": 2, "damage_multiplier": 0.5},
 ]
 const LIGHTNING_CHAIN_RANGE: float = 220.0
-const LIGHTNING_CHAIN_FALLOFF: float = 0.75
+const LIGHTNING_CHAIN_FALLOFF: float = 1.0
 const POISON_TIERS: Array[Dictionary] = [
 	{"required": 6, "dps_multiplier": 0.35, "duration": 4.0, "burst_radius": 84.0, "burst_damage_multiplier": 0.9},
 	{"required": 4, "dps_multiplier": 0.35, "duration": 4.0, "burst_radius": 0.0, "burst_damage_multiplier": 0.0},
@@ -187,6 +187,8 @@ func _update_attribute_effects() -> void:
 	var earth_tier := _attribute_tier("土", EARTH_SHOCKWAVE_TIERS)
 	effects["earth_shockwave_radius"] = float(earth_tier.get("radius", 0.0))
 	effects["earth_shockwave_damage_multiplier"] = float(earth_tier.get("damage_multiplier", 0.0))
+	effects["earth_slow_percent"] = float(earth_tier.get("slow_percent", 0.0))
+	effects["earth_slow_duration"] = float(earth_tier.get("slow_duration", 0.0))
 	effects["earth_center_stun"] = float(earth_tier.get("stun", 0.0))
 	effects["earth_stun_internal_cooldown"] = EARTH_STUN_INTERNAL_COOLDOWN
 
@@ -240,7 +242,7 @@ func notify_artifact_damage(data: ArtifactData) -> void:
 		return
 	sword_attack_speed_stacks = mini(max_stacks, sword_attack_speed_stacks + 1)
 	if combat_stats != null:
-		combat_stats.record_synergy_effect("剑修：攻速叠层", 1)
+		combat_stats.set_synergy_count("剑修：攻速层数", sword_attack_speed_stacks, "层")
 
 func get_sword_attack_speed_bonus() -> float:
 	return sword_attack_speed_stacks * float(effects.get("sword_attack_speed_per_stack", 0.0))
@@ -318,20 +320,37 @@ func _apply_fire_on_hit(target: Node, base_damage: float, source: Node, hit_posi
 	if radius <= 0.0 or multiplier <= 0.0 or base_damage <= 0.0:
 		return
 	var origin: Vector2 = _hit_origin(target, hit_position)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "火：爆炸", "explosion")
+	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, null, "火：爆炸", "explosion")
 
 func _apply_earth_on_hit(target: Node, base_damage: float, source: Node) -> void:
 	var radius: float = float(effects.get("earth_shockwave_radius", 0.0))
 	var multiplier: float = float(effects.get("earth_shockwave_damage_multiplier", 0.0))
 	if radius <= 0.0 or multiplier <= 0.0 or base_damage <= 0.0:
 		return
+	var slow_percent: float = float(effects.get("earth_slow_percent", 0.0))
+	var slow_duration: float = float(effects.get("earth_slow_duration", 0.0))
+	_apply_earth_slow(target, slow_percent, slow_duration)
 	if target.has_method("apply_stun"):
 		var stun_duration: float = float(effects.get("earth_center_stun", 0.0))
 		if stun_duration > 0.0:
 			if bool(target.call("apply_stun", stun_duration, "attribute_earth", float(effects.get("earth_stun_internal_cooldown", 0.0)))) and combat_stats != null:
 				combat_stats.record_synergy_effect("土：眩晕", 1)
 	var origin: Vector2 = _hit_origin(target)
-	_damage_enemies_in_radius(origin, radius, base_damage * multiplier, source, target, "土：震荡", "explosion")
+	var shockwave_damage: float = base_damage * multiplier
+	for candidate in get_tree().get_nodes_in_group("enemies"):
+		if candidate == target or not candidate is Node2D or not candidate.has_method("take_damage"):
+			continue
+		if origin.distance_to((candidate as Node2D).global_position) > radius:
+			continue
+		_apply_earth_slow(candidate, slow_percent, slow_duration)
+		_record_synergy_damage("土：震荡", shockwave_damage)
+		_damage_enemy(candidate, shockwave_damage, source, "explosion", origin)
+
+func _apply_earth_slow(target: Node, percent: float, duration: float) -> void:
+	if percent > 0.0 and duration > 0.0 and target != null and target.has_method("apply_slow"):
+		target.call("apply_slow", percent, duration, "attribute_earth")
+		if combat_stats != null:
+			combat_stats.record_synergy_effect("土：减速", 1)
 
 func _apply_lightning_on_hit(target: Node, base_damage: float, source: Node) -> void:
 	var remaining: int = int(effects.get("lightning_chain_targets", 0))
@@ -365,8 +384,6 @@ func _apply_poison_on_hit(target: Node, base_damage: float, source: Node) -> voi
 	var burst_radius: float = float(effects.get("poison_burst_radius", 0.0))
 	var burst_damage: float = base_damage * float(effects.get("poison_burst_damage_multiplier", 0.0))
 	target.call("apply_poison", base_damage * dps_multiplier, duration, true, source, burst_radius, burst_damage, "毒：中毒伤害")
-	if combat_stats != null:
-		combat_stats.record_synergy_effect("毒：中毒附加", 1)
 
 func _damage_enemies_in_radius(origin: Vector2, radius: float, damage: float, source: Node, excluded: Node = null, stat_label: String = "", profile_name: String = "medium") -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):

@@ -6,7 +6,7 @@ class_name EnemyRanged
 @export var approach_distance := 350.0
 @export var attack_interval := 3.0
 @export var windup_time := 0.5
-@export var projectile_speed := 225.0
+@export var projectile_speed := 300.0
 @export var projectile_damage := 7
 @export var global_projectile_cap := 18
 @export var first_attack_grace := 1.4
@@ -14,7 +14,6 @@ class_name EnemyRanged
 var attack_timer := first_attack_grace
 var winding_up := false
 var locked_target := Vector2.ZERO
-var warning_line: Line2D
 
 func _process_movement_behavior(delta: float) -> void:
 	attack_timer -= delta
@@ -43,15 +42,9 @@ func _process_movement_behavior(delta: float) -> void:
 func _begin_windup(target_position: Vector2) -> void:
 	winding_up = true
 	locked_target = target_position
-	warning_line = Line2D.new()
-	warning_line.width = 3.0
-	warning_line.default_color = Color(1.0, .28, .18, .75)
-	warning_line.points = PackedVector2Array([Vector2.ZERO, to_local(locked_target)])
-	add_child(warning_line)
 	visual.modulate = Color(1.6, .65, .45, 1.0)
 	await get_tree().create_timer(windup_time).timeout
 	if dying: return
-	if is_instance_valid(warning_line): warning_line.queue_free()
 	visual.modulate = Color.WHITE
 	_fire()
 	winding_up = false

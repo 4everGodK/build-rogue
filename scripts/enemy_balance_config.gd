@@ -8,7 +8,7 @@ const ENEMIES := {
 	"basic": {"hp": 22.0, "speed": 82.0, "damage": 4, "first_wave": 1},
 	"fast": {"hp": 17.0, "speed": 138.0, "damage": 5, "first_wave": 1},
 	"tank": {"hp": 88.0, "speed": 52.0, "damage": 9, "first_wave": 3},
-	"ranged": {"hp": 18.0, "speed": 58.0, "damage": 7, "first_wave": 6, "ideal_range": 270.0, "attack_interval": 3.0, "windup": 0.5, "projectile_speed": 225.0},
+	"ranged": {"hp": 18.0, "speed": 58.0, "damage": 7, "first_wave": 6, "ideal_range": 270.0, "attack_interval": 3.0, "windup": 0.5, "projectile_speed": 300.0},
 	"charger": {"hp": 30.0, "speed": 84.0, "damage": 9, "first_wave": 8, "dash_speed": 260.0, "windup": 0.85, "recovery": 1.0, "cooldown": 5.0},
 }
 

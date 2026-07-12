@@ -2,7 +2,7 @@ extends Area2D
 class_name EnemyProjectile
 
 var direction := Vector2.RIGHT
-var speed := 225.0
+var speed := 300.0
 var damage := 7
 var lifetime := 4.0
 

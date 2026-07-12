@@ -572,7 +572,8 @@ func _build_combat_stats_text() -> String:
 			if healing > 0.0:
 				parts.append("回复/护盾：%s" % _format_stat_number(healing))
 			if count > 0:
-				parts.append("触发：%d次" % count)
+				var count_unit: String = str(row.get("count_unit", "次"))
+				parts.append("最终层数：%d层" % count if count_unit == "层" else "触发：%d%s" % [count, count_unit])
 			lines.append("  " + "    ".join(parts))
 	return "\n".join(lines)
 

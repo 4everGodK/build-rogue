@@ -41,6 +41,13 @@ func record_synergy_effect(label: String, count: int = 1) -> void:
 	var row := _synergy_row(label)
 	row["count"] = int(row.get("count", 0)) + count
 
+func set_synergy_count(label: String, count: int, unit: String = "次") -> void:
+	if not enabled or label.is_empty() or count < 0:
+		return
+	var row := _synergy_row(label)
+	row["count"] = count
+	row["count_unit"] = unit
+
 func artifact_summary() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for row in artifact_rows.values():
@@ -80,5 +87,6 @@ func _synergy_row(label: String) -> Dictionary:
 			"damage": 0.0,
 			"healing": 0.0,
 			"count": 0,
+			"count_unit": "次",
 		}
 	return synergy_rows[label]

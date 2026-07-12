@@ -10,11 +10,17 @@ func _ready() -> void:
 	ranged.setup(player)
 	ranged.windup_time = .05
 	ranged.attack_timer = 0.0
+	await get_tree().create_timer(.03).timeout
+	for child in ranged.get_children():
+		if child is Line2D:
+			return _fail("RANGED_WARNING_LINE_PRESENT")
 	await get_tree().create_timer(.30).timeout
 	var projectiles := get_tree().get_nodes_in_group("enemy_projectiles")
 	if projectiles.size() != 1:
 		return _fail("RANGED_PROJECTILE_COUNT_%d" % projectiles.size())
 	var projectile := projectiles[0] as EnemyProjectile
+	if not is_equal_approx(projectile.speed, 300.0):
+		return _fail("RANGED_PROJECTILE_SPEED_%s" % projectile.speed)
 	var locked_direction := projectile.direction
 	player.global_position = Vector2(0, 160)
 	await get_tree().process_frame

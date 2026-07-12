@@ -60,7 +60,12 @@ var current_destiny_summary: Dictionary = {}
 var current_encounter_summaries: Array = []
 
 func _ready() -> void:
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The full-screen root must allow mouse traversal so the battle artifact cards
+	# can receive hover events. PASS keeps gameplay input propagation intact.
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	artifact_bar.mouse_filter = Control.MOUSE_FILTER_PASS
+	artifact_bar.get_node("ArtifactMargin").mouse_filter = Control.MOUSE_FILTER_PASS
+	artifact_slots.mouse_filter = Control.MOUSE_FILTER_PASS
 	get_viewport().size_changed.connect(_on_viewport_size_changed)
 	_apply_styles()
 	_apply_responsive_layout()
@@ -153,7 +158,8 @@ func set_equipped_artifacts(battle_slots: Array, artifact_instances: Array = [])
 func _make_artifact_slot(stack: ArtifactStack, instance: ArtifactInstance) -> Control:
 	var panel: PanelContainer = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(92, 68)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.tooltip_text = stack.get_combat_tooltip()
 	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.07, 0.09, 0.74), _tier_border_color(stack.artifact_data.tier), 2, 5))
 
 	var margin: MarginContainer = MarginContainer.new()

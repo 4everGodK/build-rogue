@@ -318,8 +318,9 @@ func _process_poison(delta: float) -> void:
 
 	if total_damage > 0.0:
 		var poison_source: Node = first_poison.get("source", null)
-		var stat_source := first_poison.get("stat_source", null) as ArtifactData
-		HitFeedbackManager.deal_damage(self, total_damage, poison_source, stat_source, self, {
+		var raw_stat_source: Variant = first_poison.get("stat_source", null)
+		var artifact_stat_source: ArtifactData = raw_stat_source if raw_stat_source is ArtifactData else null
+		HitFeedbackManager.deal_damage(self, total_damage, poison_source, artifact_stat_source, self, {
 			"is_continuous": true,
 			"hit_origin": global_position,
 			"attack_instance_id": "poison:%s" % get_instance_id(),
@@ -404,7 +405,8 @@ func _try_poison_death_burst() -> void:
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			if global_position.distance_to((candidate as Node2D).global_position) <= best_radius:
 				_record_stat_damage(burst_source, burst_stat_source, best_damage)
-				HitFeedbackManager.deal_damage(candidate, best_damage, burst_source, burst_stat_source as ArtifactData, self, {
+				var artifact_stat_source: ArtifactData = burst_stat_source if burst_stat_source is ArtifactData else null
+				HitFeedbackManager.deal_damage(candidate, best_damage, burst_source, artifact_stat_source, self, {
 					"profile": "continuous",
 					"is_continuous": true,
 					"hit_origin": global_position,

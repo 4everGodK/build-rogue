@@ -50,3 +50,15 @@ func get_upgrade_tooltip() -> String:
 		get_sell_value(),
 		ArtifactStarConfig.describe_star_effect(artifact_data, star_level),
 	]
+
+func get_combat_tooltip() -> String:
+	if artifact_data == null:
+		return ""
+	return "%s %s\n%s / %s\n\n%s\n\n%s" % [
+		artifact_data.display_name,
+		get_star_text(),
+		artifact_data.system_tag,
+		artifact_data.get_attribute_display(),
+		artifact_data.description,
+		ArtifactStarConfig.describe_star_effect(artifact_data, star_level),
+	]
