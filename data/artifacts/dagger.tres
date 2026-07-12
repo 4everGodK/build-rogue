@@ -11,6 +11,7 @@ description = "高频短距离刺击，可命中少量近身敌人。"
 icon = ExtResource("2")
 system_tag = "剑修"
 attribute_tag = "毒"
+secondary_attribute_tag = "金"
 attack_template = "melee"
 attack_shape = "stab"
 damage = 7.5

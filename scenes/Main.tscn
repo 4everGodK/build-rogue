@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="3_ui"]
@@ -14,6 +14,8 @@
 [ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id="13_fast"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyTank.tscn" id="14_tank"]
 [ext_resource type="PackedScene" path="res://scenes/BossBasic.tscn" id="15_boss"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyRanged.tscn" id="24_ranged"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyCharger.tscn" id="25_charger"]
 [ext_resource type="Script" path="res://scripts/run_summary.gd" id="16_summary"]
 [ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="17_result"]
 [ext_resource type="Script" path="res://scripts/cultivation_manager.gd" id="18_cultivation"]
@@ -58,6 +60,8 @@ script = ExtResource("6_wave")
 basic_enemy_scene = ExtResource("12_basic")
 fast_enemy_scene = ExtResource("13_fast")
 tank_enemy_scene = ExtResource("14_tank")
+ranged_enemy_scene = ExtResource("24_ranged")
+charger_enemy_scene = ExtResource("25_charger")
 boss_scene = ExtResource("15_boss")
 
 [node name="EconomyManager" type="Node" parent="."]

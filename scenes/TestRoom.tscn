@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://ui/GameUI.tscn" id="2_ui"]
@@ -14,6 +14,8 @@
 [ext_resource type="PackedScene" path="res://scenes/EnemyBasic.tscn" id="12_basic"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyFast.tscn" id="13_fast"]
 [ext_resource type="PackedScene" path="res://scenes/EnemyTank.tscn" id="14_tank"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyRanged.tscn" id="18_ranged"]
+[ext_resource type="PackedScene" path="res://scenes/EnemyCharger.tscn" id="19_charger"]
 [ext_resource type="Script" path="res://scripts/run_summary.gd" id="15_summary"]
 [ext_resource type="PackedScene" path="res://ui/ResultPanel.tscn" id="16_result"]
 [ext_resource type="Script" path="res://scripts/combat_room_timer.gd" id="17_room_timer"]
@@ -51,6 +53,8 @@ script = ExtResource("5_wave")
 basic_enemy_scene = ExtResource("12_basic")
 fast_enemy_scene = ExtResource("13_fast")
 tank_enemy_scene = ExtResource("14_tank")
+ranged_enemy_scene = ExtResource("18_ranged")
+charger_enemy_scene = ExtResource("19_charger")
 
 [node name="EconomyManager" type="Node" parent="."]
 script = ExtResource("6_economy")

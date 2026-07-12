@@ -10,6 +10,7 @@ display_name = "铁甲傀儡"
 description = "召唤高生命铁卫傀儡，尽量挡在玩家与怪群之间，并周期性嘲讽附近敌人。死亡后会重生。"
 system_tag = "召唤"
 attribute_tag = "土"
+secondary_attribute_tag = "金"
 attack_template = "summon"
 attack_shape = "stab"
 damage = 8.0

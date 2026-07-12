@@ -11,6 +11,7 @@ description = "周身形成气血护罩，收缩后爆发震荡波，对近身�
 icon = ExtResource("2")
 system_tag = "体修"
 attribute_tag = "水"
+secondary_attribute_tag = "土"
 attack_template = "formation"
 attack_shape = "aura"
 effect_type = "damage"

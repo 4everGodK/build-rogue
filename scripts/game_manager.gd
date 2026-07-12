@@ -218,6 +218,7 @@ func _start_battle() -> void:
 	room_spirit_stones = 0
 	_stop_boss_overtime_burn()
 	wave_manager.start_next_wave()
+	wave_manager.set_room_duration(_room_duration_for_wave(wave_manager.wave_number))
 	_apply_destiny_runtime_modifiers()
 	player.artifact_manager.refresh_persistent_artifacts()
 	if debug_test_room:

@@ -83,8 +83,8 @@ func recalculate(battle_slots: Array) -> void:
 		system_counts[stack.artifact_data.system_tag] = int(system_counts.get(stack.artifact_data.system_tag, 0)) + 1
 		if stack.artifact_data.attack_template == "summon":
 			summon_template_count += 1
-		var attribute_tag: String = stack.artifact_data.get_attribute_tag()
-		attribute_counts[attribute_tag] = int(attribute_counts.get(attribute_tag, 0)) + 1
+		for attribute_tag in stack.artifact_data.get_attribute_tags():
+			attribute_counts[attribute_tag] = int(attribute_counts.get(attribute_tag, 0)) + 1
 	_apply_bonus_counts()
 	_update_effects()
 	synergies_changed.emit(system_counts.duplicate(), attribute_counts.duplicate())
@@ -251,7 +251,11 @@ func get_sword_cooldown_multiplier() -> float:
 func apply_attribute_on_hit(data: ArtifactData, target: Node, base_damage: float, source: Node = null, hit_position: Vector2 = Vector2.ZERO, pre_hit_hp_ratio: float = -1.0) -> void:
 	if data == null or target == null:
 		return
-	match data.get_attribute_tag():
+	for attribute_tag in data.get_attribute_tags():
+		_apply_attribute_effect(attribute_tag, target, base_damage, source, hit_position, pre_hit_hp_ratio)
+
+func _apply_attribute_effect(attribute_tag: String, target: Node, base_damage: float, source: Node, hit_position: Vector2, pre_hit_hp_ratio: float) -> void:
+	match attribute_tag:
 		"金":
 			_apply_metal_on_hit(target, base_damage, source, pre_hit_hp_ratio)
 		"木":

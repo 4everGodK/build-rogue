@@ -574,6 +574,8 @@ func _offer_system_tag(offer: Dictionary) -> String:
 	return str(tags[0]) if tags.size() > 0 else ""
 
 func _offer_attribute_tag(offer: Dictionary) -> String:
+	if offer.has("attribute_display"):
+		return str(offer["attribute_display"])
 	if offer.has("attribute_tag"):
 		return str(offer["attribute_tag"])
 	var tags: Array = offer.get("tags", [])

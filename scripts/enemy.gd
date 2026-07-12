@@ -2,6 +2,7 @@ extends CharacterBody2D
 class_name Enemy
 
 signal died(gold_reward: int)
+signal elite_reward_requested(enemy_type: String)
 
 @export var max_hp: float = 20.0
 @export var move_speed: float = 80.0
@@ -13,6 +14,7 @@ signal died(gold_reward: int)
 @export var death_animation_duration: float = 0.15
 @export var arena_half_size: Vector2 = Vector2(560.0, 336.0)
 @export_range(0.0, 1.0, 0.05) var knockback_resistance: float = 1.0
+@export var enemy_type: String = "basic"
 
 var hp: float = max_hp
 var player: Player
@@ -32,6 +34,7 @@ var base_visual_scale: Vector2 = Vector2.ONE
 var hit_squash_tween: Tween
 var hit_flash_material: ShaderMaterial
 var hit_flash_timer: Timer
+var is_elite: bool = false
 
 @onready var visual: CanvasItem = $Visual
 @onready var contact_area: Area2D = $ContactArea
@@ -45,9 +48,19 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if dying:
 		return
+	_tick_common(delta)
+	_process_movement_behavior(delta)
+	_process_poison(delta)
+	_process_timed_effects(delta)
+	if taunt_time > 0.0:
+		taunt_time -= delta
+
+func _tick_common(delta: float) -> void:
 	if contact_damage_cooldown > 0.0:
 		contact_damage_cooldown -= delta
 	_tick_cooldowns(delta)
+
+func _process_movement_behavior(delta: float) -> void:
 	var current_target := _current_target()
 	if _is_stunned():
 		velocity = Vector2.ZERO
@@ -72,10 +85,39 @@ func _physics_process(delta: float) -> void:
 		if contact_distance <= maxf(contact_radius, separation_radius) and not _is_stunned():
 			_try_contact_damage(current_target)
 
-	_process_poison(delta)
-	_process_timed_effects(delta)
-	if taunt_time > 0.0:
-		taunt_time -= delta
+func apply_spawn_scaling(hp_multiplier: float, damage_multiplier: float) -> void:
+	max_hp *= hp_multiplier
+	hp = max_hp
+	contact_damage = maxi(1, int(ceil(float(contact_damage) * damage_multiplier)))
+	_apply_special_damage_scaling(damage_multiplier)
+
+func _apply_special_damage_scaling(_damage_multiplier: float) -> void:
+	pass
+
+func configure_elite() -> void:
+	if is_elite:
+		return
+	is_elite = true
+	max_hp *= float(EnemyBalanceConfig.ELITE.hp)
+	hp = max_hp
+	contact_damage = maxi(1, int(ceil(float(contact_damage) * float(EnemyBalanceConfig.ELITE.damage))))
+	_apply_special_damage_scaling(float(EnemyBalanceConfig.ELITE.damage))
+	move_speed *= float(EnemyBalanceConfig.ELITE.speed)
+	scale *= float(EnemyBalanceConfig.ELITE.scale)
+	_add_elite_marker()
+
+func _add_elite_marker() -> void:
+	var ring := Line2D.new()
+	ring.name = "EliteMarker"
+	ring.width = 2.5
+	ring.default_color = Color(1.0, 0.72, 0.12, 0.9)
+	var points := PackedVector2Array()
+	for index in 25:
+		var angle := TAU * float(index) / 24.0
+		points.append(Vector2(cos(angle), sin(angle)) * 20.0)
+	ring.points = points
+	ring.z_index = -1
+	add_child(ring)
 
 func setup(target_player: Player) -> void:
 	player = target_player
@@ -325,7 +367,17 @@ func _die() -> void:
 	_try_poison_death_burst()
 	dying = true
 	set_physics_process(false)
+	collision_layer = 0
+	collision_mask = 0
+	if contact_area != null:
+		contact_area.set_deferred("monitoring", false)
+		contact_area.set_deferred("monitorable", false)
+	var body_shape := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if body_shape != null:
+		body_shape.set_deferred("disabled", true)
 	died.emit(gold_reward)
+	if is_elite:
+		elite_reward_requested.emit(enemy_type)
 	var tween: Tween = get_tree().create_tween()
 	tween.tween_property(self, "scale", Vector2.ZERO, death_animation_duration)
 	tween.parallel().tween_property(self, "modulate:a", 0.0, death_animation_duration)

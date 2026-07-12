@@ -450,8 +450,10 @@ func _swing(origin: Vector2, damage: float, attack_range: float) -> void:
 	for candidate in get_tree().get_nodes_in_group("enemies"):
 		if candidate is Node2D and candidate.has_method("take_damage"):
 			var enemy := candidate as Node2D
+			var distance := global_position.distance_to(enemy.global_position)
 			var to_enemy := global_position.direction_to(enemy.global_position)
-			if global_position.distance_to(enemy.global_position) <= attack_range and direction.dot(to_enemy) >= 0.35:
+			var alignment := 1.0 if distance <= 0.01 else direction.dot(to_enemy)
+			if distance <= attack_range and alignment >= 0.35:
 				damage_enemy(enemy, damage)
 	_spawn_swing_arc(direction, attack_range)
 

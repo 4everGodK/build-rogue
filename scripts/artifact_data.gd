@@ -7,6 +7,7 @@ class_name ArtifactData
 @export var icon: Texture2D
 @export_enum("剑修", "法修", "体修", "召唤", "魔修") var system_tag: String = "剑修"
 @export_enum("金", "木", "水", "火", "土", "雷", "毒") var attribute_tag: String = "金"
+@export_enum("无", "金", "木", "水", "火", "土", "雷", "毒") var secondary_attribute_tag: String = "无"
 @export_enum("melee", "projectile", "orbit", "beam", "formation", "line_delayed", "summon", "target_aoe", "soul_banner") var attack_template: String = "projectile"
 @export_enum("slash", "stab", "circle", "line", "cone", "head_slash", "projectile", "beam", "aura") var attack_shape: String = "projectile"
 @export_enum("damage", "slow", "attack_speed", "heal", "shield", "damage_reduction", "avatar_slam") var effect_type: String = "damage"
@@ -123,11 +124,22 @@ func get_attribute_tag() -> String:
 	var normalized: String = str(LEGACY_ATTRIBUTE_FALLBACKS.get(attribute_tag, attribute_tag))
 	return normalized if normalized in ACTIVE_ATTRIBUTE_TAGS else "金"
 
+func get_attribute_tags() -> Array[String]:
+	var tags: Array[String] = [get_attribute_tag()]
+	var secondary: String = str(LEGACY_ATTRIBUTE_FALLBACKS.get(secondary_attribute_tag, secondary_attribute_tag))
+	if secondary in ACTIVE_ATTRIBUTE_TAGS and secondary not in tags:
+		tags.append(secondary)
+	return tags
+
+func get_attribute_display() -> String:
+	return "＋".join(get_attribute_tags())
+
 func get_shop_cost() -> int:
 	return CultivationManager.cost_for_tier(tier)
 
 func to_offer() -> Dictionary:
 	var normalized_attribute: String = get_attribute_tag()
+	var normalized_attributes: Array[String] = get_attribute_tags()
 	return {
 		"id": id,
 		"display_name": display_name,
@@ -135,7 +147,10 @@ func to_offer() -> Dictionary:
 		"icon": icon,
 		"system_tag": system_tag,
 		"attribute_tag": normalized_attribute,
-		"tags": [system_tag, normalized_attribute],
+		"secondary_attribute_tag": secondary_attribute_tag,
+		"attribute_tags": normalized_attributes,
+		"attribute_display": get_attribute_display(),
+		"tags": [system_tag] + normalized_attributes,
 		"attack_template": attack_template,
 		"level": 1,
 		"tier": tier,

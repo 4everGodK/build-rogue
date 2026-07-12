@@ -9,6 +9,7 @@ const SYSTEM_TAGS = ["剑修", "法修", "体修", "召唤", "魔修"];
 const ATTRIBUTE_TAGS = ["金", "木", "水", "火", "土", "雷", "毒"];
 const TIER_ORDER = ["凡器", "法器", "灵器", "灵宝", "仙宝"];
 const DEFAULTS = {
+  secondary_attribute_tag: "",
   damage: 10,
   max_hp_damage_coefficient: 0,
   cooldown: 1,
@@ -250,6 +251,7 @@ async function collectData() {
   const gameText = await read("scripts/game_manager.gd");
   const shopText = await read("scripts/shop_manager.gd");
   const waveText = await read("scripts/wave_manager.gd");
+  const enemyBalanceText = await read("scripts/enemy_balance_config.gd");
   const synergyText = await read("scripts/synergy_manager.gd");
   const destinyText = await read("scripts/destiny_manager.gd");
   const encounterText = await read("scripts/encounter_manager.gd");
@@ -265,6 +267,8 @@ async function collectData() {
     tierNames: evalGdLiteral(extractLiteral(cultivationText, "TIER_NAMES")),
     roomRewards: evalGdLiteral(extractLiteral(gameText, "ROOM_CLEAR_SPIRIT_STONES_BY_RANGE")),
     bossWaves: evalGdLiteral(extractLiteral(waveText, "BOSS_WAVES")),
+    enemies: evalGdLiteral(extractLiteral(enemyBalanceText, "ENEMIES")),
+    elite: evalGdLiteral(extractLiteral(enemyBalanceText, "ELITE")),
     cultivationClickCost: extractNumber(cultivationText, "CULTIVATION_CLICK_COST"),
     cultivationGainPerClick: extractNumber(cultivationText, "CULTIVATION_GAIN_PER_CLICK"),
     baseBattleSlots: extractNumber(cultivationText, "BASE_BATTLE_SLOT_COUNT"),
@@ -635,7 +639,9 @@ function buildConfigWorkbook(data) {
     战斗定位: swordDesignNote(a, "role"),
     新增关键字段: swordDesignNote(a, "fields"),
     流派: a.system_tag,
-    属性: a.attribute_tag,
+    主属性: a.attribute_tag,
+    副属性: a.secondary_attribute_tag || "",
+    属性组合: a.secondary_attribute_tag ? `${a.attribute_tag}＋${a.secondary_attribute_tag}` : a.attribute_tag,
     品阶: a.tier,
     价格: a.cost,
     修为要求: a.cultivation_requirement,
@@ -844,11 +850,45 @@ function buildSystemWorkbook(data) {
       固定灵石奖励: data.roomRewards.find((r) => wave >= r.min && wave <= r.max)?.reward ?? "",
       固定修为: data.roomCultivation,
       生存刷怪间隔: data.waveScaling.spawnIntervals[wave],
-      生存每批数量: data.waveScaling.packSizes[wave],
+      生存每批数量: Math.ceil(data.waveScaling.packSizes[wave] * (wave === 1 ? 1 : 1.5)),
       备注: isBoss ? "击败Boss后触发奇遇选择；最终Boss为20关" : "",
     });
   }
   addSheet(wb, "关卡成长", waveRows);
+
+  const enemyNames = { basic: "基础怪", fast: "快速怪", tank: "坦克怪", ranged: "远程怪", charger: "突进怪" };
+  addSheet(wb, "敌人配置", Object.entries(data.enemies).map(([id, cfg]) => ({
+    敌人ID: id, 名称: enemyNames[id] ?? id, 基础生命: cfg.hp, 移动速度: cfg.speed,
+    主要伤害: cfg.damage, 首次出现关卡: cfg.first_wave,
+    理想距离: cfg.ideal_range ?? "", 攻击间隔: cfg.attack_interval ?? "", 前摇秒数: cfg.windup ?? "",
+    弹体速度: cfg.projectile_speed ?? "", 突进速度: cfg.dash_speed ?? "", 硬直秒数: cfg.recovery ?? "",
+    技能冷却: cfg.cooldown ?? "", 数据来源: "EnemyBalanceConfig.ENEMIES",
+  })));
+
+  const waveDesign = [
+    [1,"教学","基础100%；18秒后少量快速",0], [2,"速度压力","基础85%/快速15%",0], [3,"速度压力","基础70%/快速20%/坦克10%",0],
+    [4,"高血目标","基础63%/快速16%/坦克21%",1], [5,"高血目标+Boss","基础62%/快速16%/坦克22%",1],
+    [6,"远程教学","基础57%/快速16%/坦克16%/远程11%",0], [7,"远程压力","基础52%/快速15%/坦克15%/远程18%",1],
+    [8,"突进教学","基础51%/快速15%/坦克15%/远程14%/突进5%",1], [9,"机动混合+Boss","基础46%/快速15%/坦克15%/远程14%/突进10%",1],
+    [10,"杂兵海","基础67%/快速18%/坦克7%/远程5%/突进3%",1], [11,"重装波","基础49%/快速8%/坦克25%/远程15%/突进3%",1],
+    [12,"追猎波","基础50%/快速24%/坦克8%/远程6%/突进12%",1], [13,"火力波+Boss","基础48%/快速8%/坦克17%/远程22%/突进5%",2],
+    [14,"精英波","基础50%/快速12%/坦克18%/远程13%/突进7%",2],
+    ...Array.from({length:6}, (_,i) => [15+i, "高压组合" + ([17,20].includes(15+i) ? "+Boss" : ""), "基础45%/快速16%/坦克17%/远程13%/突进9%", 15+i < 18 ? 2 : 3]),
+  ];
+  addSheet(wb, "关卡刷怪", waveDesign.map(([wave, theme, weights, elites]) => ({
+    关卡: wave, 主题: theme, 敌人权重: weights,
+    数量倍率: wave === 1 ? 1 : 1.5,
+    每批数量: Math.ceil(data.waveScaling.packSizes[wave] * (wave === 1 ? 1 : 1.5)),
+    生成间隔: data.waveScaling.spawnIntervals[wave], 精英次数: elites, 后半段强度倍率: 1.2,
+    安全生成距离: 245, 敌方弹体上限: 18, 远程上限: wave < 6 ? 0 : wave < 7 ? 2 : wave < 13 ? 4 : 6,
+    突进上限: wave < 8 ? 0 : wave < 9 ? 2 : wave < 12 ? 3 : 4,
+  })));
+
+  addSheet(wb, "精英配置", [{
+    体型倍率: data.elite.scale, 生命倍率: data.elite.hp, 伤害倍率: data.elite.damage,
+    移速倍率: data.elite.speed, 支持类型: "基础/快速/坦克/远程/突进",
+    奖励处理: "elite_reward_requested 接口（暂不大幅增加灵石）",
+  }]);
 
   addSheet(wb, "羁绊说明", data.synergies);
 
@@ -856,7 +896,8 @@ function buildSystemWorkbook(data) {
     ["id", "法宝/天命/奇遇", "唯一标识，用于代码引用和去重。"],
     ["display_name/name", "法宝/天命/奇遇", "显示名称。"],
     ["system_tag", "法宝", "流派羁绊：剑修、法修、体修、召唤、魔修。"],
-    ["attribute_tag", "法宝", "属性羁绊：金、木、水、火、土、雷、毒。"],
+    ["attribute_tag", "法宝", "主属性羁绊：金、木、水、火、土、雷、毒。"],
+    ["secondary_attribute_tag", "法宝", "可选副属性；填写后该法宝同时计入两种属性羁绊，并在命中时执行两种已激活属性效果。"],
     ["tier", "法宝", "品阶，同时决定基础价格。"],
     ["attack_template", "法宝", "攻击模板：melee/projectile/orbit/beam/formation/line_delayed/summon/target_aoe/soul_banner。"],
     ["effect_type", "法宝", "特殊效果类型：damage/slow/attack_speed/heal/shield/damage_reduction/avatar_slam。"],

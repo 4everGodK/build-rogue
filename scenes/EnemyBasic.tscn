@@ -13,12 +13,13 @@ radius = 14.0
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1_enemy")
-max_hp = 20.0
-move_speed = 80.0
-contact_damage = 5
+max_hp = 22.0
+move_speed = 82.0
+contact_damage = 4
 contact_radius = 18.0
 separation_radius = 27.0
 gold_reward = 1
+enemy_type = "basic"
 
 [node name="Visual" type="Sprite2D" parent="."]
 scale = Vector2(0.085, 0.085)

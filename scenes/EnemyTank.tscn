@@ -12,13 +12,14 @@ radius = 18.0
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1_enemy")
-max_hp = 72.0
-move_speed = 55.0
-contact_damage = 8
+max_hp = 88.0
+move_speed = 52.0
+contact_damage = 9
 gold_reward = 3
 contact_radius = 22.0
 separation_radius = 32.0
 knockback_resistance = 0.65
+enemy_type = "tank"
 
 [node name="Visual" type="Polygon2D" parent="."]
 color = Color(0.55, 0.25, 0.95, 1)

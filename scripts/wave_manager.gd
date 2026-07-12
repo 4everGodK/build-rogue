@@ -5,254 +5,204 @@ signal wave_started(wave_number: int)
 signal wave_cleared(wave_number: int)
 signal enemy_killed(gold_reward: int)
 signal boss_defeated(wave_number: int)
+signal special_enemy_introduced(enemy_type: String)
+signal elite_defeated(enemy_type: String)
 
-const NORMAL_HP_GROWTH_PER_WAVE: float = 0.30
-const BOSS_HP_GROWTH_PER_WAVE: float = 0.22
-const GLOBAL_ENEMY_HP_MULTIPLIER: float = 2.25
-const HP_POWER_GROWTH_START_WAVE: int = 3
-const HP_POWER_GROWTH_PER_WAVE: float = 0.015
-const HP_POWER_GROWTH_EXPONENT: float = 2.0
-const SPAWN_COUNT_GROWTH_PER_WAVE: float = 0.35
+# Literal mirrors are retained so the existing Excel sync generator can extract them.
 const BOSS_WAVES: Array[int] = [5, 9, 13, 17, 20]
-const FIRST_BOSS_HP_MULTIPLIER: float = 0.8
-const EARLY_NORMAL_HP_MULTIPLIERS: Dictionary = {
-	1: 1.0,
-	2: 1.0,
-	3: 1.0,
-}
-const SURVIVAL_SPAWN_INTERVALS: Dictionary = {
-	1: 1.033,
-	2: 0.936,
-	3: 0.936,
-	4: 0.725,
-	5: 0.697,
-	6: 0.54,
-	7: 0.458,
-	8: 0.606,
-	9: 0.566,
-	10: 0.521,
-	11: 0.472,
-	12: 0.434,
-	13: 0.405,
-	14: 0.495,
-	15: 0.458,
-	16: 0.422,
-	17: 0.397,
-	18: 0.372,
-	19: 0.357,
-	20: 0.351,
-}
-const SURVIVAL_PACK_SIZES: Dictionary = {
-	1: 2,
-	2: 2,
-	3: 2,
-	4: 2,
-	5: 2,
-	6: 2,
-	7: 2,
-	8: 3,
-	9: 3,
-	10: 3,
-	11: 3,
-	12: 3,
-	13: 3,
-	14: 4,
-	15: 4,
-	16: 4,
-	17: 4,
-	18: 4,
-	19: 4,
-	20: 4,
-}
-
+const NORMAL_HP_GROWTH_PER_WAVE := 0.008
+const BOSS_HP_GROWTH_PER_WAVE := 0.10
+const GLOBAL_ENEMY_HP_MULTIPLIER := 1.0
+const HP_POWER_GROWTH_START_WAVE := 99
+const HP_POWER_GROWTH_PER_WAVE := 0.0
+const HP_POWER_GROWTH_EXPONENT := 1.0
+const SPAWN_COUNT_GROWTH_PER_WAVE := 0.0
+const SURVIVAL_SPAWN_INTERVALS := {1:1.05,2:.98,3:.94,4:.86,5:.82,6:.78,7:.73,8:.69,9:.66,10:.63,11:.61,12:.58,13:.56,14:.54,15:.52,16:.495,17:.47,18:.445,19:.42,20:.40}
+const SURVIVAL_PACK_SIZES := {1:2,2:2,3:2,4:2,5:2,6:2,7:2,8:3,9:3,10:3,11:3,12:3,13:3,14:4,15:4,16:4,17:4,18:4,19:4,20:4}
 @export var basic_enemy_scene: PackedScene
 @export var fast_enemy_scene: PackedScene
 @export var tank_enemy_scene: PackedScene
+@export var ranged_enemy_scene: PackedScene
+@export var charger_enemy_scene: PackedScene
 @export var boss_scene: PackedScene
-@export var spawn_margin: float = 60.0
-@export var arena_size: Vector2 = Vector2(1120.0, 672.0)
-@export var survival_mode: bool = true
+@export var spawn_margin := 60.0
+@export var minimum_player_spawn_distance := 245.0
+@export var arena_size := Vector2(1120.0, 672.0)
+@export var survival_mode := true
 
 var player: Player
-var wave_number: int = 0
-var alive_enemies: int = 0
-var active: bool = false
-var normal_hp_multiplier: float = 1.0
-var boss_hp_multiplier: float = 1.0
-var destiny_enemy_stat_multiplier: float = 1.0
-var spawn_count_multiplier: float = 1.0
-var room_elapsed: float = 0.0
-var spawn_timer: float = 0.0
+var wave_number := 0
+var alive_enemies := 0
+var active := false
+var normal_hp_multiplier := 1.0
+var normal_damage_multiplier := 1.0
+var boss_hp_multiplier := 1.0
+var destiny_enemy_stat_multiplier := 1.0
+var room_elapsed := 0.0
+var spawn_timer := 0.0
+var room_duration := 60.0
+var elites_spawned := 0
+var introduced_types: Dictionary = {}
 
-func configure(target_player: Player) -> void:
-	player = target_player
-
-func set_destiny_enemy_stat_multiplier(multiplier: float) -> void:
-	destiny_enemy_stat_multiplier = maxf(0.1, multiplier)
+func configure(target_player: Player) -> void: player = target_player
+func set_room_duration(seconds: float) -> void: room_duration = maxf(1.0, seconds)
+func set_destiny_enemy_stat_multiplier(multiplier: float) -> void: destiny_enemy_stat_multiplier = maxf(.1, multiplier)
+func is_boss_wave(number: int) -> bool: return BOSS_WAVES.has(number)
+func is_final_boss_wave(number: int) -> bool: return number == EnemyBalanceConfig.TOTAL_WAVES
 
 func _process(delta: float) -> void:
-	if not active or not survival_mode:
-		return
+	if not active or not survival_mode: return
 	room_elapsed += delta
 	spawn_timer -= delta
+	_spawn_scheduled_elites()
 	if spawn_timer <= 0.0:
 		_spawn_survival_pack()
-		spawn_timer = _survival_spawn_interval(wave_number)
+		var config := EnemyBalanceConfig.wave(wave_number)
+		var interval := float(config.spawn_interval)
+		if room_elapsed >= room_duration * float(config.late_start): interval /= float(config.late_multiplier)
+		spawn_timer = interval
 
 func start_next_wave() -> void:
-	if basic_enemy_scene == null or not is_instance_valid(player):
-		return
+	if basic_enemy_scene == null or not is_instance_valid(player): return
 	wave_number += 1
 	active = true
 	room_elapsed = 0.0
-	spawn_timer = 0.05
+	spawn_timer = .05
+	elites_spawned = 0
 	clear_existing_enemies()
-	_update_wave_scaling(wave_number)
-	if survival_mode and is_boss_wave(wave_number):
-		_spawn_many(boss_scene, 1, boss_hp_multiplier)
-	if not survival_mode:
-		_spawn_wave(wave_number)
+	_update_wave_scaling()
+	if survival_mode and is_boss_wave(wave_number): _spawn_enemy("boss")
+	if not survival_mode: _spawn_survival_pack()
 	wave_started.emit(wave_number)
-
-func is_boss_wave(number: int) -> bool:
-	return BOSS_WAVES.has(number)
-
-func is_final_boss_wave(number: int) -> bool:
-	return number == 20
 
 func has_alive_boss() -> bool:
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if enemy is BossBasic and not bool(enemy.get("dying")):
-			return true
+		if enemy is BossBasic and not bool(enemy.get("dying")): return true
 	return false
 
 func pause_wave(paused: bool) -> void:
 	active = not paused
 	for enemy in get_tree().get_nodes_in_group("enemies"):
-		if enemy.has_method("set_combat_paused"):
-			enemy.call("set_combat_paused", paused)
-		else:
-			enemy.set_physics_process(not paused)
+		if enemy.has_method("set_combat_paused"): enemy.call("set_combat_paused", paused)
 
 func clear_existing_enemies() -> void:
-	for enemy in get_tree().get_nodes_in_group("enemies"):
-		enemy.queue_free()
+	for enemy in get_tree().get_nodes_in_group("enemies"): enemy.queue_free()
+	for projectile in get_tree().get_nodes_in_group("enemy_projectiles"): projectile.queue_free()
 	alive_enemies = 0
 
 func finish_current_room(clear_remaining: bool = true) -> void:
 	active = false
-	if clear_remaining:
-		clear_existing_enemies()
+	if clear_remaining: clear_existing_enemies()
 	wave_cleared.emit(wave_number)
 
-func _spawn_wave(number: int) -> void:
-	clear_existing_enemies()
-	_update_wave_scaling(number)
-	var config: Dictionary = _wave_config(number)
-	_spawn_many(basic_enemy_scene, _scaled_spawn_count(int(config.get("basic", 0))), normal_hp_multiplier)
-	_spawn_many(fast_enemy_scene, _scaled_spawn_count(int(config.get("fast", 0))), normal_hp_multiplier)
-	_spawn_many(tank_enemy_scene, _scaled_spawn_count(int(config.get("tank", 0))), normal_hp_multiplier)
-	_spawn_many(boss_scene, _scaled_spawn_count(int(config.get("boss", 0))), boss_hp_multiplier)
-
-func _wave_config(number: int) -> Dictionary:
-	match number:
-		1:
-			return {"basic": 5}
-		2:
-			return {"basic": 10, "fast": 3}
-		3:
-			return {"basic": 6, "fast": 2, "tank": 1}
-		4:
-			return {"basic": 11, "fast": 4, "tank": 2}
-		_:
-			var config: Dictionary = {"basic": 8, "fast": 4, "tank": 2}
-			if is_boss_wave(number):
-				config["boss"] = 1
-			return config
-
-func _spawn_many(scene: PackedScene, count: int, hp_multiplier: float) -> void:
-	if scene == null:
-		return
-	for _index in range(count):
-		var enemy: Enemy = scene.instantiate() as Enemy
-		if enemy == null:
-			continue
-		enemy.max_hp *= hp_multiplier * destiny_enemy_stat_multiplier
-		if enemy is BossBasic and wave_number == 5:
-			enemy.max_hp *= FIRST_BOSS_HP_MULTIPLIER
-		enemy.contact_damage = int(ceil(float(enemy.contact_damage) * destiny_enemy_stat_multiplier))
-		if enemy is BossBasic:
-			(enemy as BossBasic).bullet_damage = int(ceil(float((enemy as BossBasic).bullet_damage) * destiny_enemy_stat_multiplier))
-		get_parent().add_child(enemy)
-		enemy.hp = enemy.max_hp
-		enemy.global_position = _random_edge_position()
-		enemy.setup(player)
-		enemy.died.connect(_on_enemy_died)
-		if enemy is BossBasic:
-			enemy.died.connect(_on_boss_died.bind(wave_number))
-		alive_enemies += 1
-
 func _spawn_survival_pack() -> void:
-	var pack_count: int = _survival_pack_count()
-	for _index in range(pack_count):
-		_spawn_many(_roll_survival_enemy_scene(), 1, normal_hp_multiplier)
+	var config := EnemyBalanceConfig.wave(wave_number)
+	if alive_enemies >= int(config.max_alive): return
+	var count: int = mini(int(config.pack_size), int(config.max_alive) - alive_enemies)
+	for _index in count:
+		var enemy_type := _roll_enemy_type(config)
+		if enemy_type != "": _spawn_enemy(enemy_type)
 
-func _survival_pack_count() -> int:
-	return int(SURVIVAL_PACK_SIZES.get(wave_number, 4))
+func _roll_enemy_type(config: Dictionary) -> String:
+	var candidates: Array[String] = []
+	var total := 0.0
+	for key in config.weights:
+		var enemy_type := str(key)
+		if room_elapsed < float(config.first_spawn_times.get(enemy_type, 0.0)): continue
+		if _type_count(enemy_type) >= int(config.type_caps.get(enemy_type, 999)): continue
+		if (enemy_type == "fast" or enemy_type == "charger") and _mobile_threat_count() >= int(config.mobile_threat_cap): continue
+		candidates.append(enemy_type)
+		total += float(config.weights[key])
+	if candidates.is_empty(): return "basic" if _type_count("basic") < int(config.type_caps.get("basic", 999)) else ""
+	var roll := randf() * total
+	for enemy_type in candidates:
+		roll -= float(config.weights[enemy_type])
+		if roll <= 0.0: return enemy_type
+	return candidates.back()
 
-func _survival_spawn_interval(number: int) -> float:
-	return float(SURVIVAL_SPAWN_INTERVALS.get(number, 0.351))
+func _spawn_scheduled_elites() -> void:
+	var config := EnemyBalanceConfig.wave(wave_number)
+	var wanted := int(config.elite_count)
+	if elites_spawned >= wanted: return
+	var times: Array = config.elite_times
+	if elites_spawned < times.size() and room_elapsed >= room_duration * float(times[elites_spawned]):
+		var elite_type := _pick_elite_type(config)
+		if _spawn_enemy(elite_type, true): elites_spawned += 1
 
-func _roll_survival_enemy_scene() -> PackedScene:
-	var roll: float = randf()
-	if wave_number >= 3 and tank_enemy_scene != null and roll < 0.12:
-		return tank_enemy_scene
-	if wave_number >= 4 and tank_enemy_scene != null and roll < 0.22:
-		return tank_enemy_scene
-	if wave_number >= 2 and fast_enemy_scene != null and roll < 0.48:
-		return fast_enemy_scene
-	return basic_enemy_scene
+func _pick_elite_type(config: Dictionary) -> String:
+	var choices: Array[String] = []
+	for enemy_type in ["basic", "tank", "fast", "ranged", "charger"]:
+		if config.weights.has(enemy_type) and _type_count(enemy_type) < int(config.type_caps.get(enemy_type, 999)): choices.append(enemy_type)
+	return choices.pick_random() if not choices.is_empty() else "basic"
+
+func _spawn_enemy(enemy_type: String, elite := false) -> bool:
+	var scene := _scene_for(enemy_type)
+	if scene == null: return false
+	var enemy := scene.instantiate() as Enemy
+	if enemy == null: return false
+	if enemy_type == "boss":
+		enemy.apply_spawn_scaling(boss_hp_multiplier * destiny_enemy_stat_multiplier, normal_damage_multiplier * destiny_enemy_stat_multiplier)
+	else:
+		enemy.apply_spawn_scaling(normal_hp_multiplier * destiny_enemy_stat_multiplier, normal_damage_multiplier * destiny_enemy_stat_multiplier)
+	get_parent().add_child(enemy)
+	enemy.global_position = _safe_edge_position()
+	enemy.setup(player)
+	if enemy is EnemyRanged: enemy.global_projectile_cap = int(EnemyBalanceConfig.wave(wave_number).enemy_projectile_cap)
+	if elite: enemy.configure_elite()
+	enemy.died.connect(_on_enemy_died)
+	enemy.elite_reward_requested.connect(_on_elite_reward_requested)
+	if enemy is BossBasic: enemy.died.connect(_on_boss_died.bind(wave_number))
+	alive_enemies += 1
+	if (enemy_type == "ranged" or enemy_type == "charger") and not introduced_types.has(enemy_type):
+		introduced_types[enemy_type] = true
+		special_enemy_introduced.emit(enemy_type)
+	return true
+
+func _scene_for(enemy_type: String) -> PackedScene:
+	match enemy_type:
+		"basic": return basic_enemy_scene
+		"fast": return fast_enemy_scene
+		"tank": return tank_enemy_scene
+		"ranged": return ranged_enemy_scene
+		"charger": return charger_enemy_scene
+		"boss": return boss_scene
+	return null
+
+func _type_count(enemy_type: String) -> int:
+	var count := 0
+	for enemy in get_tree().get_nodes_in_group("enemies"):
+		if str(enemy.get("enemy_type")) == enemy_type and not bool(enemy.get("dying")): count += 1
+	return count
+
+func _mobile_threat_count() -> int: return _type_count("fast") + _type_count("charger")
+
+func _safe_edge_position() -> Vector2:
+	var best := Vector2.ZERO
+	for _attempt in 12:
+		best = _random_edge_position()
+		if not is_instance_valid(player) or best.distance_to(player.global_position) >= minimum_player_spawn_distance: return best
+	return best
 
 func _random_edge_position() -> Vector2:
-	var half_size: Vector2 = arena_size * 0.5
-	var side: int = randi_range(0, 3)
-	match side:
-		0:
-			return Vector2(randf_range(-half_size.x, half_size.x), -half_size.y + spawn_margin)
-		1:
-			return Vector2(half_size.x - spawn_margin, randf_range(-half_size.y, half_size.y))
-		2:
-			return Vector2(randf_range(-half_size.x, half_size.x), half_size.y - spawn_margin)
-		_:
-			return Vector2(-half_size.x + spawn_margin, randf_range(-half_size.y, half_size.y))
+	var half := arena_size * .5
+	match randi_range(0, 3):
+		0: return Vector2(randf_range(-half.x, half.x), -half.y + spawn_margin)
+		1: return Vector2(half.x - spawn_margin, randf_range(-half.y, half.y))
+		2: return Vector2(randf_range(-half.x, half.x), half.y - spawn_margin)
+		_: return Vector2(-half.x + spawn_margin, randf_range(-half.y, half.y))
 
 func _on_enemy_died(gold_reward: int) -> void:
 	enemy_killed.emit(gold_reward)
-	alive_enemies = max(0, alive_enemies - 1)
+	alive_enemies = maxi(0, alive_enemies - 1)
 	if active and not survival_mode and alive_enemies <= 0:
 		active = false
 		wave_cleared.emit(wave_number)
 
-func _on_boss_died(_gold_reward: int, defeated_wave_number: int) -> void:
-	boss_defeated.emit(defeated_wave_number)
+func _on_elite_reward_requested(enemy_type: String) -> void: elite_defeated.emit(enemy_type)
+func _on_boss_died(_reward: int, defeated_wave: int) -> void: boss_defeated.emit(defeated_wave)
 
-func _update_wave_scaling(number: int) -> void:
-	var power_growth_bonus := _hp_power_growth_bonus(number)
-	normal_hp_multiplier = float(EARLY_NORMAL_HP_MULTIPLIERS.get(number, 1.0 + float(number - 3) * NORMAL_HP_GROWTH_PER_WAVE + power_growth_bonus)) * GLOBAL_ENEMY_HP_MULTIPLIER
-	boss_hp_multiplier = (1.0 + float(number - 1) * BOSS_HP_GROWTH_PER_WAVE + power_growth_bonus) * GLOBAL_ENEMY_HP_MULTIPLIER
-	spawn_count_multiplier = 1.0 + float(number - 1) * SPAWN_COUNT_GROWTH_PER_WAVE
-	print("[Wave Scaling] wave=%d normal_hp=x%.2f boss_hp=x%.2f spawn_count=x%.2f" % [
-		number,
-		normal_hp_multiplier,
-		boss_hp_multiplier,
-		spawn_count_multiplier,
-	])
-
-func _hp_power_growth_bonus(number: int) -> float:
-	var wave_delta: int = maxi(0, number - HP_POWER_GROWTH_START_WAVE)
-	return pow(float(wave_delta), HP_POWER_GROWTH_EXPONENT) * HP_POWER_GROWTH_PER_WAVE
-
-func _scaled_spawn_count(base_count: int) -> int:
-	if base_count <= 0:
-		return 0
-	return maxi(1, ceili(float(base_count) * spawn_count_multiplier))
+func _update_wave_scaling() -> void:
+	normal_hp_multiplier = EnemyBalanceConfig.normal_hp_multiplier(wave_number)
+	normal_damage_multiplier = EnemyBalanceConfig.normal_damage_multiplier(wave_number)
+	boss_hp_multiplier = EnemyBalanceConfig.boss_hp_multiplier(wave_number)
+	print("[Wave Scaling] wave=%d hp=x%.3f damage=x%.3f theme=%s" % [wave_number, normal_hp_multiplier, normal_damage_multiplier, EnemyBalanceConfig.wave(wave_number).theme])

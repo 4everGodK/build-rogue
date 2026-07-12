@@ -13,15 +13,16 @@ radius = 13.5
 collision_layer = 2
 collision_mask = 4
 script = ExtResource("1_enemy")
-max_hp = 18.0
-move_speed = 130.0
-contact_damage = 4
+max_hp = 17.0
+move_speed = 138.0
+contact_damage = 5
 contact_radius = 17.0
 separation_radius = 26.0
 gold_reward = 1
+enemy_type = "fast"
 
 [node name="Visual" type="Sprite2D" parent="."]
-scale = Vector2(0.09, 0.09)
+scale = Vector2(0.075, 0.075)
 texture = ExtResource("2_wolf_demon")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

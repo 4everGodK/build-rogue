@@ -10,6 +10,7 @@ description = "音符命中后短暂降低敌人伤害，直伤较低。"
 icon = ExtResource("2")
 system_tag = "法修"
 attribute_tag = "水"
+secondary_attribute_tag = "木"
 attack_template = "projectile"
 attack_shape = "circle"
 damage = 21.0

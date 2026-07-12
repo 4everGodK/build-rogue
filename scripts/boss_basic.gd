@@ -28,6 +28,9 @@ func take_damage(amount: float, source = null) -> bool:
 	_update_health_bar()
 	return killed
 
+func _apply_special_damage_scaling(multiplier: float) -> void:
+	bullet_damage = maxi(1, int(ceil(float(bullet_damage) * multiplier)))
+
 func _physics_process(delta: float) -> void:
 	if dying:
 		return

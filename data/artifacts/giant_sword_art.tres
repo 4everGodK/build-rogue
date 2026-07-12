@@ -16,6 +16,7 @@ description = "在角色身后凝聚巨剑，朝敌人发射，在较宽的直�
 icon = ExtResource("2")
 system_tag = "剑修"
 attribute_tag = "金"
+secondary_attribute_tag = "土"
 attack_template = "projectile"
 attack_shape = "line"
 damage = 134.0

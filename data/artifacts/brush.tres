@@ -10,6 +10,7 @@ description = "锁定最近敌人方向挥出直线墨迹，短暂延迟后整�
 icon = ExtResource("2")
 system_tag = "法修"
 attribute_tag = "木"
+secondary_attribute_tag = "毒"
 attack_template = "line_delayed"
 attack_shape = "line"
 damage = 48.0
