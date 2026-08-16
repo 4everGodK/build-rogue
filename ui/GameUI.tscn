@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_ui.gd" id="1_ui"]
+[ext_resource type="Script" path="res://scripts/ui/ui_safe_area_control.gd" id="2_safe"]
+[ext_resource type="Theme" path="res://themes/cloud_paper_theme.tres" id="3_theme"]
 
 [node name="UI" type="CanvasLayer"]
 layer = 5
@@ -14,125 +16,174 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("3_theme")
 
-[node name="ResourcePanel" type="PanelContainer" parent="Root"]
+[node name="SafeArea" type="Control" parent="Root"]
 layout_mode = 1
-anchors_preset = 0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 186.0
-offset_bottom = 82.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_safe")
+
+[node name="ResourcePanel" type="PanelContainer" parent="Root/SafeArea"]
+layout_mode = 1
+offset_right = 292.0
+offset_bottom = 116.0
 mouse_filter = 2
 
-[node name="ResourceMargin" type="MarginContainer" parent="Root/ResourcePanel"]
+[node name="ResourceMargin" type="MarginContainer" parent="Root/SafeArea/ResourcePanel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 7
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
-[node name="ResourceVBox" type="VBoxContainer" parent="Root/ResourcePanel/ResourceMargin"]
+[node name="ResourceVBox" type="VBoxContainer" parent="Root/SafeArea/ResourcePanel/ResourceMargin"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
-[node name="HpLabel" type="Label" parent="Root/ResourcePanel/ResourceMargin/ResourceVBox"]
+[node name="HpRow" type="HBoxContainer" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox"]
 layout_mode = 2
-text = "生命：100 / 100"
+mouse_filter = 2
+theme_override_constants/separation = 8
 
-[node name="StoneLabel" type="Label" parent="Root/ResourcePanel/ResourceMargin/ResourceVBox"]
+[node name="HpIcon" type="Label" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/HpRow"]
+custom_minimum_size = Vector2(42, 22)
 layout_mode = 2
-text = "◆ 0"
+text = "生命"
 
-[node name="WavePanel" type="PanelContainer" parent="Root"]
+[node name="HpBar" type="ProgressBar" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/HpRow"]
+custom_minimum_size = Vector2(142, 22)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+value = 100.0
+
+[node name="HpLabel" type="Label" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/HpRow"]
+custom_minimum_size = Vector2(70, 22)
+layout_mode = 2
+text = "100 / 100"
+horizontal_alignment = 2
+
+[node name="ShieldRow" type="HBoxContainer" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="ShieldIcon" type="Label" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/ShieldRow"]
+custom_minimum_size = Vector2(42, 18)
+layout_mode = 2
+text = "护盾"
+
+[node name="ShieldBar" type="ProgressBar" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/ShieldRow"]
+custom_minimum_size = Vector2(142, 18)
+layout_mode = 2
+size_flags_horizontal = 3
+show_percentage = false
+
+[node name="ShieldLabel" type="Label" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox/ShieldRow"]
+custom_minimum_size = Vector2(70, 18)
+layout_mode = 2
+text = "0 / 0"
+horizontal_alignment = 2
+
+[node name="StoneLabel" type="Label" parent="Root/SafeArea/ResourcePanel/ResourceMargin/ResourceVBox"]
+layout_mode = 2
+text = "◆ 灵石 0"
+
+[node name="WavePanel" type="PanelContainer" parent="Root/SafeArea"]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -160.0
-offset_top = 12.0
-offset_right = 160.0
-offset_bottom = 66.0
+offset_left = -178.0
+offset_right = 178.0
+offset_bottom = 68.0
 grow_horizontal = 2
 mouse_filter = 2
 
-[node name="WaveMargin" type="MarginContainer" parent="Root/WavePanel"]
+[node name="WaveMargin" type="MarginContainer" parent="Root/SafeArea/WavePanel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 7
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 7
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
 
-[node name="WaveHBox" type="HBoxContainer" parent="Root/WavePanel/WaveMargin"]
+[node name="WaveHBox" type="HBoxContainer" parent="Root/SafeArea/WavePanel/WaveMargin"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="WaveLabel" type="Label" parent="Root/WavePanel/WaveMargin/WaveHBox"]
+[node name="WaveLabel" type="Label" parent="Root/SafeArea/WavePanel/WaveMargin/WaveHBox"]
 layout_mode = 2
 text = "第 1 波"
 
-[node name="TimerLabel" type="Label" parent="Root/WavePanel/WaveMargin/WaveHBox"]
+[node name="TimerLabel" type="Label" parent="Root/SafeArea/WavePanel/WaveMargin/WaveHBox"]
 layout_mode = 2
-text = "00:00"
+text = "01:00"
 
-[node name="EnemyLabel" type="Label" parent="Root/WavePanel/WaveMargin/WaveHBox"]
+[node name="EnemyLabel" type="Label" parent="Root/SafeArea/WavePanel/WaveMargin/WaveHBox"]
 layout_mode = 2
-text = "剩余敌人：0"
+text = "敌 0"
 
-[node name="SynergyPanel" type="PanelContainer" parent="Root"]
+[node name="SynergyPanel" type="PanelContainer" parent="Root/SafeArea"]
 layout_mode = 1
-anchors_preset = 0
-offset_left = 12.0
-offset_top = 104.0
-offset_right = 194.0
-offset_bottom = 426.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -260.0
+offset_bottom = 214.0
+grow_horizontal = 0
 mouse_filter = 2
 
-[node name="SynergyMargin" type="MarginContainer" parent="Root/SynergyPanel"]
+[node name="SynergyMargin" type="MarginContainer" parent="Root/SafeArea/SynergyPanel"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 9
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 9
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
-[node name="SynergyLabel" type="RichTextLabel" parent="Root/SynergyPanel/SynergyMargin"]
+[node name="SynergyLabel" type="RichTextLabel" parent="Root/SafeArea/SynergyPanel/SynergyMargin"]
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 1
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 text = ""
 
-[node name="ArtifactBar" type="PanelContainer" parent="Root"]
+[node name="ArtifactBar" type="PanelContainer" parent="Root/SafeArea"]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -360.0
+offset_left = -380.0
 offset_top = -96.0
-offset_right = 360.0
-offset_bottom = -12.0
+offset_right = 380.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 2
+mouse_filter = 1
 
-[node name="ArtifactMargin" type="MarginContainer" parent="Root/ArtifactBar"]
+[node name="ArtifactMargin" type="MarginContainer" parent="Root/SafeArea/ArtifactBar"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 9
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 9
-theme_override_constants/margin_bottom = 8
+mouse_filter = 1
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
-[node name="ArtifactSlots" type="HBoxContainer" parent="Root/ArtifactBar/ArtifactMargin"]
+[node name="ArtifactSlots" type="HBoxContainer" parent="Root/SafeArea/ArtifactBar/ArtifactMargin"]
 layout_mode = 2
-mouse_filter = 2
+mouse_filter = 1
 theme_override_constants/separation = 8
 alignment = 1

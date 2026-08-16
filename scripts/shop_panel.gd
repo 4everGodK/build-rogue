@@ -17,12 +17,13 @@ signal sell_requested(from_area: String, from_index: int)
 @onready var shop_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame
 @onready var battle_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame
 @onready var bag_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame
-@onready var sell_zone: PanelContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/SellZone
+@onready var sell_zone: SellDropZone = $Panel/MarginContainer/Root/MainRow/LeftColumn/SellZone
 @onready var synergy_frame: PanelContainer = $Panel/MarginContainer/Root/MainRow/SynergyFrame
 @onready var stone_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/StoneLabel
 @onready var cultivation_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/ShopHeader/CultivationLabel
 @onready var message_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/MessageLabel
 @onready var offer_box: GridContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferScroll/OfferBox
+@onready var offer_scroll: ScrollContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/ShopFrame/ShopBox/OfferScroll
 @onready var battle_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox/BattleLabel
 @onready var battle_grid: GridContainer = $Panel/MarginContainer/Root/MainRow/LeftColumn/BattleFrame/BattleBox/BattleGrid
 @onready var bag_label: Label = $Panel/MarginContainer/Root/MainRow/LeftColumn/BagFrame/BagBox/BagLabel
@@ -98,6 +99,13 @@ var debug_catalog_mode: bool = false
 var offer_card_size: Vector2 = Vector2(164, 166)
 var battle_slot_size: Vector2 = Vector2(168, 72)
 var bag_slot_size: Vector2 = Vector2(112, 60)
+var compact_layout: bool = false
+var offer_buttons: Array[Button] = []
+var lock_buttons: Array[Button] = []
+var battle_slot_buttons: Array[Control] = []
+var bag_slot_buttons: Array[Control] = []
+var keyboard_source_area: String = ""
+var keyboard_source_index: int = -1
 
 func _ready() -> void:
 	hide()
@@ -108,6 +116,7 @@ func _ready() -> void:
 	spirit_gathering_button.pressed.connect(_on_spirit_gathering_button_pressed)
 	continue_button.pressed.connect(_on_continue_button_pressed)
 	sell_zone.sell_drop_requested.connect(_on_sell_drop_requested)
+	sell_zone.keyboard_sell_requested.connect(_on_keyboard_sell_requested)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED and is_node_ready():
@@ -122,11 +131,21 @@ func open_shop(wave: int, offers: Array, stones: int, battle_slots: Array, bag_s
 	set_economy(stones)
 	set_inventory(battle_slots, bag_slots)
 	set_synergies(system_counts, attribute_counts)
-	set_message("点击法宝购买，拖动到出战区或储物袋。")
+	set_message("购买：确认键　移动：先选法宝再选槽位　出售：选法宝后确认出售区。")
 	call_deferred("_refresh_layout_after_open")
+	call_deferred("_focus_shop_entry")
 
 func close_shop() -> void:
+	_clear_keyboard_source()
 	hide()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible or keyboard_source_area.is_empty():
+		return
+	if event.is_action_pressed("ui_cancel"):
+		_clear_keyboard_source()
+		set_message("已取消移动法宝。")
+		get_viewport().set_input_as_handled()
 
 func set_debug_catalog_mode(enabled: bool) -> void:
 	debug_catalog_mode = enabled
@@ -285,6 +304,9 @@ func _render_offers() -> void:
 		return
 	for child in offer_box.get_children():
 		child.queue_free()
+	offer_buttons.clear()
+	lock_buttons.clear()
+	lock_buttons.resize(current_offers.size())
 	for index in range(current_offers.size()):
 		var offer: Dictionary = current_offers[index] if index < current_offers.size() else {}
 		var button: Button = Button.new()
@@ -294,7 +316,7 @@ func _render_offers() -> void:
 		button.disabled = offer.is_empty()
 		button.text = ""
 		button.tooltip_text = "" if offer.is_empty() else _make_offer_tooltip(offer)
-		button.focus_mode = Control.FOCUS_NONE
+		button.focus_mode = Control.FOCUS_ALL
 		_apply_offer_card_style(button, offer)
 		if offer.is_empty():
 			_build_empty_offer_card(button)
@@ -302,16 +324,25 @@ func _render_offers() -> void:
 			_build_offer_card(button, offer, index)
 			button.pressed.connect(_on_offer_button_pressed.bind(index))
 		offer_box.add_child(button)
+		offer_buttons.append(button)
+	call_deferred("_configure_focus_navigation")
 
 func _render_slots() -> void:
 	for child in battle_grid.get_children():
 		child.queue_free()
 	for child in bag_grid.get_children():
 		child.queue_free()
+	battle_slot_buttons.clear()
+	bag_slot_buttons.clear()
 	for index in range(current_battle_slots.size()):
-		battle_grid.add_child(_make_slot_button("battle", index, current_battle_slots[index] as ArtifactStack))
+		var battle_button := _make_slot_button("battle", index, current_battle_slots[index] as ArtifactStack)
+		battle_grid.add_child(battle_button)
+		battle_slot_buttons.append(battle_button)
 	for index in range(current_bag_slots.size()):
-		bag_grid.add_child(_make_slot_button("bag", index, current_bag_slots[index] as ArtifactStack))
+		var bag_button := _make_slot_button("bag", index, current_bag_slots[index] as ArtifactStack)
+		bag_grid.add_child(bag_button)
+		bag_slot_buttons.append(bag_button)
+	call_deferred("_configure_focus_navigation")
 
 func _update_slot_layouts() -> void:
 	var battle_count: int = current_battle_slots.size()
@@ -335,6 +366,7 @@ func _make_slot_button(area: String, index: int, stack: ArtifactStack) -> Invent
 	button.slot_drop_requested.connect(func(from_area: String, from_index: int, to_area: String, to_index: int) -> void:
 		inventory_move_requested.emit(from_area, from_index, to_area, to_index)
 	)
+	button.pressed.connect(_on_inventory_slot_activated.bind(area, index))
 	return button
 
 func _on_offer_button_pressed(offer_index: int) -> void:
@@ -357,6 +389,103 @@ func _on_continue_button_pressed() -> void:
 
 func _on_sell_drop_requested(from_area: String, from_index: int) -> void:
 	sell_requested.emit(from_area, from_index)
+
+func _on_inventory_slot_activated(area: String, index: int) -> void:
+	if keyboard_source_area.is_empty():
+		if _stack_at(area, index) == null:
+			set_message("空槽位不能作为移动起点。")
+			return
+		keyboard_source_area = area
+		keyboard_source_index = index
+		set_message("已选中法宝：选择目标槽位移动，或确认出售区出售。")
+		return
+	if keyboard_source_area == area and keyboard_source_index == index:
+		_clear_keyboard_source()
+		set_message("已取消选择。")
+		return
+	inventory_move_requested.emit(keyboard_source_area, keyboard_source_index, area, index)
+	_clear_keyboard_source()
+	set_message("法宝已移动。")
+
+func _on_keyboard_sell_requested() -> void:
+	if keyboard_source_area.is_empty():
+		set_message("请先在出战区或储物袋选择要出售的法宝。")
+		return
+	sell_requested.emit(keyboard_source_area, keyboard_source_index)
+	_clear_keyboard_source()
+	set_message("法宝已出售。")
+
+func _stack_at(area: String, index: int) -> ArtifactStack:
+	var slots: Array = current_battle_slots if area == "battle" else current_bag_slots if area == "bag" else []
+	if index < 0 or index >= slots.size():
+		return null
+	return slots[index] as ArtifactStack
+
+func _clear_keyboard_source() -> void:
+	keyboard_source_area = ""
+	keyboard_source_index = -1
+
+func _focus_shop_entry() -> void:
+	for button in offer_buttons:
+		if is_instance_valid(button) and button.visible and not button.disabled:
+			button.grab_focus()
+			return
+	if is_instance_valid(continue_button):
+		continue_button.grab_focus()
+
+func _configure_focus_navigation() -> void:
+	if not is_node_ready():
+		return
+	var top_row: Array[Control] = []
+	for control in [reroll_button, breakthrough_button, spirit_gathering_button, continue_button]:
+		if is_instance_valid(control) and control.visible and not control.disabled:
+			top_row.append(control)
+	var locks := _valid_focus_controls(lock_buttons)
+	var offers := _valid_focus_controls(offer_buttons)
+	var battle := _valid_focus_controls(battle_slot_buttons)
+	var bag := _valid_focus_controls(bag_slot_buttons)
+	var sell: Array[Control] = [sell_zone]
+	_link_horizontal(top_row)
+	_link_horizontal(locks)
+	_link_horizontal(offers)
+	_link_horizontal(battle)
+	_link_horizontal(bag)
+	_link_vertical(top_row, locks if not locks.is_empty() else offers)
+	if not locks.is_empty():
+		_link_vertical(locks, offers)
+	_link_vertical(offers, battle)
+	_link_vertical(battle, bag)
+	_link_vertical(bag, sell)
+	if is_instance_valid(sell_zone) and is_instance_valid(continue_button):
+		sell_zone.focus_neighbor_bottom = sell_zone.get_path_to(continue_button)
+
+func _valid_focus_controls(source: Array) -> Array[Control]:
+	var result: Array[Control] = []
+	for value in source:
+		var control := value as Control
+		if is_instance_valid(control) and control.visible and not bool(control.get("disabled")):
+			result.append(control)
+	return result
+
+func _link_horizontal(row: Array[Control]) -> void:
+	if row.size() <= 1:
+		return
+	for index in row.size():
+		var control := row[index]
+		var left := row[(index - 1 + row.size()) % row.size()]
+		var right := row[(index + 1) % row.size()]
+		control.focus_neighbor_left = control.get_path_to(left)
+		control.focus_neighbor_right = control.get_path_to(right)
+
+func _link_vertical(upper: Array[Control], lower: Array[Control]) -> void:
+	if upper.is_empty() or lower.is_empty():
+		return
+	for index in upper.size():
+		var target_index := mini(lower.size() - 1, int(floor(float(index) * float(lower.size()) / float(upper.size()))))
+		upper[index].focus_neighbor_bottom = upper[index].get_path_to(lower[target_index])
+	for index in lower.size():
+		var target_index := mini(upper.size() - 1, int(floor(float(index) * float(upper.size()) / float(lower.size()))))
+		lower[index].focus_neighbor_top = lower[index].get_path_to(upper[target_index])
 
 func _build_empty_offer_card(button: Button) -> void:
 	var label: Label = Label.new()
@@ -382,20 +511,22 @@ func _build_offer_card(button: Button, offer: Dictionary, offer_index: int) -> v
 	button.add_child(box)
 
 	var lock_button: Button = Button.new()
-	lock_button.text = "锁" if bool(offer.get("locked", false)) else "开"
+	lock_button.text = "已锁" if bool(offer.get("locked", false)) else "锁定"
 	lock_button.tooltip_text = "取消锁定" if bool(offer.get("locked", false)) else "锁定此法宝"
-	lock_button.custom_minimum_size = Vector2(34, 26)
+	lock_button.custom_minimum_size = UITokens.MIN_TARGET
 	lock_button.anchor_left = 1.0
 	lock_button.anchor_right = 1.0
-	lock_button.offset_left = -42.0
-	lock_button.offset_top = 6.0
+	lock_button.offset_left = -56.0
+	lock_button.offset_top = 4.0
 	lock_button.offset_right = -8.0
-	lock_button.offset_bottom = 32.0
-	lock_button.focus_mode = Control.FOCUS_NONE
+	lock_button.offset_bottom = 52.0
+	lock_button.focus_mode = Control.FOCUS_ALL
 	lock_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	lock_button.pressed.connect(_on_lock_button_pressed.bind(offer_index))
 	_apply_lock_button_style(lock_button, bool(offer.get("locked", false)))
 	button.add_child(lock_button)
+	if offer_index >= 0 and offer_index < lock_buttons.size():
+		lock_buttons[offer_index] = lock_button
 
 	var top_row: HBoxContainer = HBoxContainer.new()
 	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -406,7 +537,7 @@ func _build_offer_card(button: Button, offer: Dictionary, offer_index: int) -> v
 	icon_rect.texture = _get_offer_icon(offer)
 	icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon_rect.custom_minimum_size = Vector2(50, 50)
+	icon_rect.custom_minimum_size = Vector2(42, 42) if compact_layout else Vector2(50, 50)
 	icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top_row.add_child(icon_rect)
 
@@ -431,26 +562,66 @@ func _build_offer_card(button: Button, offer: Dictionary, offer_index: int) -> v
 
 	var tag_label: Label = Label.new()
 	tag_label.text = "%s / %s" % [_offer_system_tag(offer), _offer_attribute_tag(offer)]
-	tag_label.add_theme_font_size_override("font_size", 13)
+	tag_label.add_theme_font_size_override("font_size", UITokens.FONT_CAPTION)
 	tag_label.add_theme_color_override("font_color", Color(0.68, 0.82, 1.0))
 	tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(tag_label)
 
+	var decision_label := Label.new()
+	var decision := _offer_decision_hint(offer)
+	decision_label.text = str(decision.get("text", ""))
+	decision_label.add_theme_font_size_override("font_size", UITokens.FONT_CAPTION)
+	decision_label.add_theme_color_override("font_color", decision.get("color", UITokens.JADE_500))
+	decision_label.clip_text = true
+	decision_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(decision_label)
+
 	var desc_label: Label = Label.new()
-	desc_label.text = _short_description(str(offer.get("description", "")), 28)
+	desc_label.text = _short_description(str(offer.get("description", "")), 18)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_label.custom_minimum_size = Vector2(0, 44)
+	desc_label.custom_minimum_size = Vector2(0, 24)
+	desc_label.visible = not compact_layout
 	desc_label.add_theme_color_override("font_color", Color(0.82, 0.84, 0.9))
 	desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(desc_label)
 
 	var price_label: Label = Label.new()
-	price_label.text = "%d 灵石" % int(offer.get("cost", offer.get("price", 1)))
+	var offer_cost := int(offer.get("cost", offer.get("price", 1)))
+	price_label.text = "%d 灵石" % offer_cost
 	price_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price_label.add_theme_font_size_override("font_size", 16)
-	price_label.add_theme_color_override("font_color", Color(0.98, 0.78, 0.34))
+	price_label.add_theme_color_override("font_color", UITokens.AMBER_500 if current_stones >= offer_cost else UITokens.VERMILION_500)
 	price_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(price_label)
+
+func _offer_decision_hint(offer: Dictionary) -> Dictionary:
+	var offer_id := str(offer.get("id", ""))
+	if _owns_artifact_id(offer_id):
+		return {"text": "◆ 已有同名，可用于合成", "color": UITokens.JADE_500}
+	var candidates: Array[Dictionary] = []
+	var system_tag := _offer_system_tag(offer)
+	candidates.append({"tag": system_tag, "count": int(current_system_counts.get(system_tag, 0)), "thresholds": SYSTEM_THRESHOLDS.get(system_tag, [2])})
+	for attribute_tag in offer.get("attribute_tags", [_offer_attribute_tag(offer)]):
+		var normalized := str(attribute_tag)
+		candidates.append({"tag": normalized, "count": int(current_attribute_counts.get(normalized, 0)), "thresholds": ATTRIBUTE_THRESHOLDS.get(normalized, [2])})
+	for candidate in candidates:
+		var target := _next_synergy_target(int(candidate["count"]), candidate["thresholds"])
+		if int(candidate["count"]) < target and int(candidate["count"]) + 1 >= target:
+			return {"text": "◆ 购买后激活 %s %d" % [candidate["tag"], target], "color": UITokens.AMBER_500}
+	if not candidates.is_empty():
+		var first := candidates[0]
+		var target := _next_synergy_target(int(first["count"]), first["thresholds"])
+		return {"text": "◇ 推进 %s %d/%d" % [first["tag"], mini(int(first["count"]) + 1, target), target], "color": UITokens.PLAYER_CYAN}
+	return {"text": "◇ 查看详情判断构筑", "color": UITokens.PAPER_200}
+
+func _owns_artifact_id(artifact_id: String) -> bool:
+	if artifact_id.is_empty():
+		return false
+	for stack in current_battle_slots + current_bag_slots:
+		var artifact_stack := stack as ArtifactStack
+		if artifact_stack != null and artifact_stack.artifact_data != null and artifact_stack.artifact_data.id == artifact_id:
+			return true
+	return false
 
 func _make_offer_tooltip(offer: Dictionary) -> String:
 	var lines: Array[String] = [
@@ -608,32 +779,34 @@ func _format_number(value: float) -> String:
 	return "%.1f" % value
 
 func _apply_panel_styles() -> void:
-	shop_frame.add_theme_stylebox_override("panel", _make_panel_style(Color(0.08, 0.095, 0.12, 0.96), Color(0.62, 0.48, 0.22), 2))
-	battle_frame.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.12, 0.17, 0.96), Color(0.25, 0.72, 1.0), 2))
-	bag_frame.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.065, 0.08, 0.82), Color(0.32, 0.31, 0.28), 1))
-	synergy_frame.add_theme_stylebox_override("panel", _make_panel_style(Color(0.055, 0.065, 0.075, 0.96), Color(0.58, 0.46, 0.22), 2))
-	title_label.add_theme_font_size_override("font_size", 24)
-	title_label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.55))
-	stone_label.add_theme_font_size_override("font_size", 20)
-	stone_label.add_theme_color_override("font_color", Color(0.95, 0.86, 0.58))
-	cultivation_label.add_theme_font_size_override("font_size", 16)
-	cultivation_label.add_theme_color_override("font_color", Color(0.58, 0.86, 1.0))
-	reroll_button.custom_minimum_size = Vector2(118, 38)
-	breakthrough_button.custom_minimum_size = Vector2(130, 38)
-	spirit_gathering_button.custom_minimum_size = Vector2(118, 38)
-	spirit_gathering_label.custom_minimum_size = Vector2(44, 38)
-	reroll_button.focus_mode = Control.FOCUS_NONE
-	breakthrough_button.focus_mode = Control.FOCUS_NONE
-	spirit_gathering_button.focus_mode = Control.FOCUS_NONE
+	shop_frame.add_theme_stylebox_override("panel", UITokens.style(Color(UITokens.INK_900, 0.98), UITokens.AMBER_500.darkened(0.35), 2, UITokens.RADIUS_CARD, 6))
+	battle_frame.add_theme_stylebox_override("panel", UITokens.style(Color(UITokens.INK_900, 0.98), UITokens.PLAYER_CYAN.darkened(0.30), 2, UITokens.RADIUS_CARD, 6))
+	bag_frame.add_theme_stylebox_override("panel", UITokens.style(Color(UITokens.INK_950, 0.90), UITokens.INK_800, 1, UITokens.RADIUS_CARD, 6))
+	synergy_frame.add_theme_stylebox_override("panel", UITokens.style(Color(UITokens.INK_900, 0.98), UITokens.AMBER_500.darkened(0.42), 2, UITokens.RADIUS_CARD, 6))
+	title_label.add_theme_font_size_override("font_size", UITokens.FONT_HEADING)
+	title_label.add_theme_color_override("font_color", UITokens.PAPER_100)
+	stone_label.add_theme_font_size_override("font_size", UITokens.FONT_HEADING_SM)
+	stone_label.add_theme_color_override("font_color", UITokens.AMBER_500)
+	cultivation_label.add_theme_font_size_override("font_size", UITokens.FONT_BODY_SM)
+	cultivation_label.add_theme_color_override("font_color", UITokens.PLAYER_CYAN)
+	reroll_button.custom_minimum_size = Vector2(118, 48)
+	breakthrough_button.custom_minimum_size = Vector2(130, 48)
+	spirit_gathering_button.custom_minimum_size = Vector2(118, 48)
+	spirit_gathering_label.custom_minimum_size = UITokens.MIN_TARGET
+	reroll_button.focus_mode = Control.FOCUS_ALL
+	breakthrough_button.focus_mode = Control.FOCUS_ALL
+	spirit_gathering_button.focus_mode = Control.FOCUS_ALL
+	continue_button.focus_mode = Control.FOCUS_ALL
 	reroll_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	breakthrough_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	spirit_gathering_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	spirit_gathering_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	spirit_gathering_label.add_theme_font_size_override("font_size", 16)
-	spirit_gathering_label.add_theme_color_override("font_color", Color(0.7, 0.92, 1.0))
-	battle_label.add_theme_font_size_override("font_size", 18)
-	battle_label.add_theme_color_override("font_color", Color(0.48, 0.84, 1.0))
-	bag_label.add_theme_color_override("font_color", Color(0.72, 0.69, 0.58))
+	spirit_gathering_label.add_theme_font_size_override("font_size", UITokens.FONT_BODY_SM)
+	spirit_gathering_label.add_theme_color_override("font_color", UITokens.PLAYER_CYAN)
+	battle_label.add_theme_font_size_override("font_size", UITokens.FONT_BODY)
+	battle_label.add_theme_color_override("font_color", UITokens.PLAYER_CYAN)
+	bag_label.add_theme_font_size_override("font_size", UITokens.FONT_BODY_SM)
+	bag_label.add_theme_color_override("font_color", UITokens.PAPER_200)
 	synergy_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	synergy_label.add_theme_constant_override("line_separation", 4)
 
@@ -642,6 +815,10 @@ func _apply_responsive_layout() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 	var aspect: float = viewport_size.x / viewport_size.y
+	compact_layout = viewport_size.y <= 720.0
+	offer_scroll.custom_minimum_size.y = 148.0 if compact_layout else clampf(viewport_size.y * 0.26, 176.0, 300.0)
+	root_box.add_theme_constant_override("separation", 8 if compact_layout else 10)
+	left_column.add_theme_constant_override("separation", 6 if compact_layout else 10)
 	main_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	left_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	shop_frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -657,24 +834,26 @@ func _apply_responsive_layout() -> void:
 		side_width = 300.0
 	synergy_frame.custom_minimum_size = Vector2(side_width, 0.0)
 
-	var available_left_width: float = maxf(520.0, viewport_size.x - side_width - 78.0)
+	var frame_width: float = minf(viewport_size.x, viewport_size.y * 16.0 / 9.0)
+	var safe_content_width: float = frame_width * (1.0 - UITokens.SAFE_MARGIN_RATIO * 2.0)
+	var available_left_width: float = maxf(520.0, safe_content_width - side_width - 14.0)
 	var left_width: float = clampf(available_left_width, 520.0, 1180.0)
 	var offer_columns: int = 4 if debug_catalog_mode else maxi(1, current_offers.size())
 	offer_box.columns = offer_columns
 	var offer_gap: float = 8.0 * float(maxi(0, offer_columns - 1))
 	var offer_width: float = floor((left_width - offer_gap) / float(offer_columns))
-	offer_card_size = Vector2(clampf(offer_width, 112.0, 230.0), 176.0 if aspect < 1.7 else 168.0)
+	offer_card_size = Vector2(clampf(offer_width, 112.0, 230.0), 144.0 if compact_layout else 176.0 if aspect < 1.7 else 168.0)
 
 	var responsive_battle_count: float = maxf(1.0, float(maxi(1, current_battle_slots.size())))
 	var battle_width: float = floor((left_width - 8.0 * (responsive_battle_count - 1.0)) / responsive_battle_count)
-	battle_slot_size = Vector2(clampf(battle_width, 168.0, 250.0), 72.0)
+	battle_slot_size = Vector2(clampf(battle_width, 152.0, 250.0), 56.0 if compact_layout else 72.0)
 
 	var responsive_bag_count: float = maxf(1.0, float(maxi(1, current_bag_slots.size())))
 	var bag_width: float = floor((left_width - 8.0 * (responsive_bag_count - 1.0)) / responsive_bag_count)
-	bag_slot_size = Vector2(clampf(bag_width, 96.0, 165.0), 58.0)
+	bag_slot_size = Vector2(clampf(bag_width, 92.0, 165.0), 48.0 if compact_layout else 58.0)
 
 func _apply_offer_card_style(button: Button, offer: Dictionary = {}) -> void:
-	var bg: Color = Color(0.10, 0.115, 0.14, 0.96)
+	var bg: Color = Color(UITokens.INK_900, 0.98)
 	var border: Color = _tier_border_color(str(offer.get("tier", "")))
 	if bool(offer.get("locked", false)):
 		border = Color(1.0, 0.78, 0.22)
@@ -682,6 +861,7 @@ func _apply_offer_card_style(button: Button, offer: Dictionary = {}) -> void:
 	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.08), border.lightened(0.22), 3))
 	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), border.lightened(0.38), 3))
 	button.add_theme_stylebox_override("disabled", _make_card_style(Color(0.06, 0.06, 0.08, 0.86), Color(0.23, 0.23, 0.27), 1))
+	button.add_theme_stylebox_override("focus", UITokens.focus_style())
 
 func _apply_lock_button_style(button: Button, locked: bool) -> void:
 	var bg: Color = Color(0.22, 0.18, 0.08, 0.96) if locked else Color(0.08, 0.095, 0.12, 0.96)
@@ -689,55 +869,14 @@ func _apply_lock_button_style(button: Button, locked: bool) -> void:
 	button.add_theme_stylebox_override("normal", _make_card_style(bg, border, 1))
 	button.add_theme_stylebox_override("hover", _make_card_style(bg.lightened(0.12), border.lightened(0.20), 1))
 	button.add_theme_stylebox_override("pressed", _make_card_style(bg.darkened(0.08), border.lightened(0.32), 1))
+	button.add_theme_stylebox_override("focus", UITokens.focus_style())
 	button.add_theme_color_override("font_color", Color(1.0, 0.86, 0.36) if locked else Color(0.78, 0.82, 0.88))
 
 func _tier_border_color(tier: String) -> Color:
-	match tier:
-		"凡器":
-			return Color(0.58, 0.62, 0.66)
-		"法器":
-			return Color(0.35, 0.86, 0.42)
-		"灵器":
-			return Color(0.34, 0.62, 1.0)
-		"灵宝":
-			return Color(0.72, 0.42, 1.0)
-		"仙宝":
-			return Color(1.0, 0.78, 0.22)
-		_:
-			return Color(0.44, 0.39, 0.24)
+	return UITokens.rarity_color(tier)
 
 func _make_panel_style(bg_color: Color, border_color: Color, border_width: int) -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.border_width_left = border_width
-	style.border_width_top = border_width
-	style.border_width_right = border_width
-	style.border_width_bottom = border_width
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.content_margin_left = 10
-	style.content_margin_top = 8
-	style.content_margin_right = 10
-	style.content_margin_bottom = 8
-	return style
+	return UITokens.style(bg_color, border_color, border_width, UITokens.RADIUS_CARD, 10)
 
 func _make_card_style(bg_color: Color, border_color: Color, border_width: int) -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.border_color = border_color
-	style.border_width_left = border_width
-	style.border_width_top = border_width
-	style.border_width_right = border_width
-	style.border_width_bottom = border_width
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.content_margin_left = 7
-	style.content_margin_top = 7
-	style.content_margin_right = 7
-	style.content_margin_bottom = 7
-	return style
+	return UITokens.style(bg_color, border_color, border_width, UITokens.RADIUS_CARD, 7)

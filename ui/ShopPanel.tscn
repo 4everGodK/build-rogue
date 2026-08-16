@@ -1,7 +1,9 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/shop_panel.gd" id="1_shop"]
 [ext_resource type="Script" path="res://scripts/sell_drop_zone.gd" id="2_sell"]
+[ext_resource type="Script" path="res://scripts/ui/ui_safe_area.gd" id="3_safe"]
+[ext_resource type="Theme" path="res://themes/cloud_paper_theme.tres" id="4_theme"]
 
 [node name="ShopPanel" type="Control"]
 process_mode = 3
@@ -12,6 +14,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_shop")
+theme = ExtResource("4_theme")
 
 [node name="Panel" type="Panel" parent="."]
 layout_mode = 1
@@ -28,10 +31,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 14
+script = ExtResource("3_safe")
 
 [node name="Root" type="VBoxContainer" parent="Panel/MarginContainer"]
 layout_mode = 2
@@ -48,17 +48,17 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="RerollButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
-custom_minimum_size = Vector2(118, 38)
+custom_minimum_size = Vector2(118, 48)
 layout_mode = 2
 text = "刷新: 1"
 
 [node name="BreakthroughButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
-custom_minimum_size = Vector2(130, 38)
+custom_minimum_size = Vector2(130, 48)
 layout_mode = 2
 text = "突破: 10"
 
 [node name="SpiritGatheringButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
-custom_minimum_size = Vector2(118, 38)
+custom_minimum_size = Vector2(118, 48)
 layout_mode = 2
 tooltip_text = "花费100灵石聚灵1层。
 下回合返还110灵石。
@@ -66,7 +66,7 @@ tooltip_text = "花费100灵石聚灵1层。
 text = "聚灵 100"
 
 [node name="SpiritGatheringLabel" type="Label" parent="Panel/MarginContainer/Root/TopActionRow"]
-custom_minimum_size = Vector2(44, 38)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 tooltip_text = "花费100灵石聚灵1层。
 下回合返还110灵石。
@@ -75,7 +75,7 @@ text = "0/3"
 vertical_alignment = 1
 
 [node name="ContinueButton" type="Button" parent="Panel/MarginContainer/Root/TopActionRow"]
-custom_minimum_size = Vector2(180, 44)
+custom_minimum_size = Vector2(180, 52)
 layout_mode = 2
 text = "继续战斗"
 
@@ -154,10 +154,11 @@ text = "储物袋 8"
 layout_mode = 2
 columns = 8
 
-[node name="SellZone" type="PanelContainer" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
+[node name="SellZone" type="Button" parent="Panel/MarginContainer/Root/MainRow/LeftColumn"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 script = ExtResource("2_sell")
+text = ""
 
 [node name="Label" type="Label" parent="Panel/MarginContainer/Root/MainRow/LeftColumn/SellZone"]
 layout_mode = 2

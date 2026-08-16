@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/encounter_panel.gd" id="1_encounter_panel"]
+[ext_resource type="Theme" path="res://themes/cloud_paper_theme.tres" id="2_theme"]
 
 [node name="EncounterPanel" type="Control"]
 visible = false
@@ -12,6 +13,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("1_encounter_panel")
+theme = ExtResource("2_theme")
 
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1

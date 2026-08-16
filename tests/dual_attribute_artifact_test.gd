@@ -20,6 +20,8 @@ func _ready() -> void:
 			return _fail("MISSING_%s" % artifact_id)
 		if data.get_attribute_tags() != EXPECTED[artifact_id]:
 			return _fail("BAD_TAGS_%s_%s" % [artifact_id, data.get_attribute_tags()])
+		if "毒" in data.get_attribute_tags() and data.poison_dps > 0.0:
+			return _fail("POISON_ARTIFACT_HAS_NATIVE_DOT_%s" % artifact_id)
 		slots.append(ArtifactStack.new(data, 1))
 
 	var manager := SynergyManager.new()

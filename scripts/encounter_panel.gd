@@ -16,6 +16,7 @@ func open_choices(choices: Array[Dictionary]) -> void:
 	current_choices = choices.duplicate(true)
 	_render_cards()
 	show()
+	call_deferred("_focus_first_card")
 
 func close_panel() -> void:
 	hide()
@@ -37,7 +38,7 @@ func _make_card(choice: Dictionary) -> Button:
 		card_width = 190.0
 	button.custom_minimum_size = Vector2(card_width, 260.0)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.text = ""
 	button.pressed.connect(func() -> void:
 		encounter_selected.emit(str(choice.get("id", "")))
@@ -96,6 +97,12 @@ func _make_card(choice: Dictionary) -> Button:
 	action_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(action_label)
 	return button
+
+func _focus_first_card() -> void:
+	for child in card_row.get_children():
+		if child is Button and not child.disabled:
+			(child as Button).grab_focus()
+			return
 
 func _apply_styles() -> void:
 	title_label.text = "奇遇"

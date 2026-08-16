@@ -16,6 +16,7 @@ func open_choices(offers: Array[Dictionary]) -> void:
 	for artifact in offers:
 		offer_box.add_child(_make_offer_button(artifact))
 	show()
+	call_deferred("_focus_first_offer")
 
 func close_choices() -> void:
 	hide()
@@ -29,5 +30,12 @@ func _make_offer_button(artifact: Dictionary) -> Button:
 		" / ".join(offer.get("tags", [])),
 	]
 	button.custom_minimum_size = Vector2(360, 86)
+	button.focus_mode = Control.FOCUS_ALL
 	button.pressed.connect(func() -> void: artifact_selected.emit(offer))
 	return button
+
+func _focus_first_offer() -> void:
+	for child in offer_box.get_children():
+		if child is Button and not child.disabled:
+			(child as Button).grab_focus()
+			return

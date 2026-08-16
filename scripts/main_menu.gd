@@ -12,3 +12,7 @@ func _ready() -> void:
 	start_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(GAME_SCENE))
 	test_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(TEST_SCENE))
 	quit_button.pressed.connect(func() -> void: get_tree().quit())
+	start_button.focus_mode = Control.FOCUS_ALL
+	test_button.focus_mode = Control.FOCUS_ALL
+	quit_button.focus_mode = Control.FOCUS_ALL
+	start_button.grab_focus()

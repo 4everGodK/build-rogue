@@ -1,13 +1,17 @@
-extends PanelContainer
+extends Button
 class_name SellDropZone
 
 signal sell_drop_requested(from_area: String, from_index: int)
+signal keyboard_sell_requested
 
 @onready var label: Label = $Label
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	label.text = "拖到这里出售法宝"
+	focus_mode = Control.FOCUS_ALL
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.text = "出售区（选择法宝后确认）"
+	pressed.connect(func() -> void: keyboard_sell_requested.emit())
 	_apply_style(false)
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
@@ -24,19 +28,9 @@ func _notification(what: int) -> void:
 		_apply_style(false)
 
 func _apply_style(is_hover: bool) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.18, 0.075, 0.07, 0.96) if is_hover else Color(0.10, 0.06, 0.055, 0.90)
-	style.border_color = Color(1.0, 0.50, 0.30, 1.0) if is_hover else Color(0.58, 0.22, 0.18, 0.86)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.content_margin_left = 10
-	style.content_margin_top = 8
-	style.content_margin_right = 10
-	style.content_margin_bottom = 8
-	add_theme_stylebox_override("panel", style)
+	var background := Color(0.18, 0.075, 0.07, 0.96) if is_hover else Color(0.10, 0.06, 0.055, 0.94)
+	var border := Color(1.0, 0.50, 0.30, 1.0) if is_hover else UITokens.VERMILION_500.darkened(0.28)
+	add_theme_stylebox_override("normal", UITokens.style(background, border, 2))
+	add_theme_stylebox_override("hover", UITokens.style(background.lightened(0.08), UITokens.VERMILION_500, 2))
+	add_theme_stylebox_override("pressed", UITokens.style(background.darkened(0.08), UITokens.PAPER_100, 3))
+	add_theme_stylebox_override("focus", UITokens.focus_style())

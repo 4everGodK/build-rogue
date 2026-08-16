@@ -11,6 +11,8 @@ signal main_menu_requested
 
 func _ready() -> void:
 	hide()
+	restart_button.focus_mode = Control.FOCUS_ALL
+	menu_button.focus_mode = Control.FOCUS_ALL
 	restart_button.pressed.connect(func() -> void: restart_requested.emit())
 	menu_button.pressed.connect(func() -> void: main_menu_requested.emit())
 
@@ -19,3 +21,4 @@ func show_result(title: String, details: String, restart_text: String = "再来�
 	detail_label.text = details
 	restart_button.text = restart_text
 	show()
+	restart_button.grab_focus()
